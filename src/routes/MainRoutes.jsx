@@ -57,23 +57,9 @@ const Paymentfailedbookings = Loadable(lazy(() => import('../audiviews/Paymentfa
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Auditorium Components (using your audiviews folder)
 const AuditoriumDashboard = Loadable(lazy(() => import('../audiviews/dashboard/index')));
-const Auditoriumcoupons = Loadable(lazy(() => import('../audiviews/coupons')));
+const Auditoriumcoupons = Loadable(lazy(() => import('../audiviews/Coupons')));
 const Auditoriumbanner = Loadable(lazy(() => import('../audiviews/Banner')));
 const AuditoriumPushnotifications = Loadable(lazy(() => import('../audiviews/Pushnotifications')));
 const Auditoriumcategory = Loadable(lazy(() => import('../audiviews/Audicategory')));
