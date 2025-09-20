@@ -27,7 +27,7 @@ const EditList = Loadable(lazy(() => import('../views/Editlist')));
 
 // Vehicles - Category
 const Category = Loadable(lazy(() => import('../views/Category')));
-const EditCategory = Loadable(lazy(() => import('../views/EditCategory')));
+const EditCategory = Loadable(lazy(() => import('../views/Editcategory')));
 const AllTrips = Loadable(lazy(() => import('../views/Alltrips')));
 const Scheduled = Loadable(lazy(() => import('../views/Scheduled')));
 const Pending = Loadable(lazy(() => import('../views/Pending')));
