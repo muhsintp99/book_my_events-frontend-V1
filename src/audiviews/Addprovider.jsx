@@ -29,6 +29,9 @@ function AddAuditorium() {
   const activeModuleId = localStorage.getItem('moduleDbId');
 
   const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
     storeName: '',
     storeAddress: {
       street: '',
@@ -47,10 +50,15 @@ function AddAuditorium() {
     ownerLastName: '',
     ownerPhone: '',
     ownerEmail: '',
-    password: '',
-    confirmPassword: '',
     businessTIN: '',
-    tinExpireDate: ''
+    tinExpireDate: '',
+    status: 'pending', // Default value, typically managed by backend
+    reviewedBy: '', // Admin-controlled, optional in form
+    reviewedAt: '', // Admin-controlled, optional in form
+    rejectionReason: '', // Admin-controlled, optional in form
+    adminNotes: '', // Admin-controlled, optional in form
+    isActive: true, // Default value, typically managed by backend
+    approvedProvider: '' // Admin-controlled, optional in form
   });
 
   const [zones, setZones] = useState([]);
@@ -70,7 +78,7 @@ function AddAuditorium() {
 
   const API_BASE_URL = import.meta.env.MODE === 'development'
     ? 'http://localhost:5000/api'
-    : "https://api.bookmyevent.ae/api";
+    : 'https://api.bookmyevent.ae/api';
 
   useEffect(() => {
     fetchZones();
@@ -195,12 +203,15 @@ function AddAuditorium() {
 
   const validateForm = () => {
     const errors = [];
-    if (!formData.storeName.trim()) errors.push('Store name is required');
-    if (!formData.storeAddress.fullAddress.trim()) errors.push('Full address is required');
-    if (!formData.businessTIN.trim()) errors.push('Business TIN is required');
-    if (!formData.tinExpireDate) errors.push('TIN expire date is required');
-    if (!formData.zone) errors.push('Zone selection is required');
-    if (!formData.module) errors.push('Module selection is required');
+    if (!formData.firstName.trim()) errors.push('First name is required');
+    if (!formData.lastName.trim()) errors.push('Last name is required');
+    if (!formData.email.trim()) errors.push('Email is required');
+    if (!formData.ownerFirstName.trim()) errors.push('Owner first name is required');
+    if (!formData.ownerLastName.trim()) errors.push('Owner last name is required');
+    if (!formData.ownerEmail.trim()) errors.push('Owner email is required');
+    if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.ownerEmail)) {
+      errors.push('Owner email is invalid');
+    }
     return errors;
   };
 
@@ -213,12 +224,36 @@ function AddAuditorium() {
     try {
       setLoading(true);
       const formPayload = new FormData();
+      formPayload.append('firstName', formData.firstName);
+      formPayload.append('lastName', formData.lastName);
+      formPayload.append('email', formData.email);
+      formPayload.append('role', 'vendor');
       formPayload.append('storeName', formData.storeName);
+      formPayload.append('storeAddress[street]', formData.storeAddress.street);
+      formPayload.append('storeAddress[city]', formData.storeAddress.city);
+      formPayload.append('storeAddress[state]', formData.storeAddress.state);
+      formPayload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
       formPayload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
+      formPayload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
+      formPayload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
+      formPayload.append('latitude', formData.latitude);
+      formPayload.append('longitude', formData.longitude);
+      formPayload.append('ownerFirstName', formData.ownerFirstName);
+      formPayload.append('ownerLastName', formData.ownerLastName);
+      formPayload.append('ownerPhone', formData.ownerPhone);
+      formPayload.append('ownerEmail', formData.ownerEmail);
       formPayload.append('businessTIN', formData.businessTIN);
       formPayload.append('tinExpireDate', formData.tinExpireDate);
       formPayload.append('module', formData.module);
       formPayload.append('zone', formData.zone);
+      // Optional admin-controlled fields, included but typically managed by backend
+      formPayload.append('status', formData.status);
+      formPayload.append('reviewedBy', formData.reviewedBy);
+      formPayload.append('reviewedAt', formData.reviewedAt);
+      formPayload.append('rejectionReason', formData.rejectionReason);
+      formPayload.append('adminNotes', formData.adminNotes);
+      formPayload.append('isActive', formData.isActive);
+      formPayload.append('approvedProvider', formData.approvedProvider);
       if (files.logo) formPayload.append('logo', files.logo);
       if (files.coverImage) formPayload.append('coverImage', files.coverImage);
       if (files.tinCertificate) formPayload.append('tinCertificate', files.tinCertificate);
@@ -228,15 +263,15 @@ function AddAuditorium() {
         body: formPayload
       });
       const result = await response.json();
-      if (response.ok && result.success) {
-        showAlert('Vendor registered successfully', 'success');
+      if (response.ok) {
+        showAlert('Provider added successfully', 'success');
+        fetchVendors(); // Refresh vendors list
         handleReset();
-        fetchVendors();
       } else {
-        throw new Error(result.message || 'Failed to register vendor');
+        showAlert(result.message || 'Failed to add provider', 'error');
       }
-    } catch (err) {
-      showAlert(err.message, 'error');
+    } catch (error) {
+      showAlert('Error adding provider', 'error');
     } finally {
       setLoading(false);
     }
@@ -244,8 +279,17 @@ function AddAuditorium() {
 
   const handleReset = () => {
     setFormData({
+      firstName: '',
+      lastName: '',
+      email: '',
       storeName: '',
-      storeAddress: { street: '', city: '', state: '', zipCode: '', fullAddress: '' },
+      storeAddress: {
+        street: '',
+        city: '',
+        state: '',
+        zipCode: '',
+        fullAddress: ''
+      },
       minimumDeliveryTime: '',
       maximumDeliveryTime: '',
       zone: '',
@@ -256,140 +300,304 @@ function AddAuditorium() {
       ownerLastName: '',
       ownerPhone: '',
       ownerEmail: '',
-      password: '',
-      confirmPassword: '',
       businessTIN: '',
-      tinExpireDate: ''
+      tinExpireDate: '',
+      status: 'pending',
+      reviewedBy: '',
+      reviewedAt: '',
+      rejectionReason: '',
+      adminNotes: '',
+      isActive: true,
+      approvedProvider: ''
     });
+    setSelectedZone('');
     setLogoPreview(null);
     setCoverPreview(null);
     setTinCertificatePreview(null);
-    setFiles({ logo: null, coverImage: null, tinCertificate: null });
+    setFiles({
+      logo: null,
+      coverImage: null,
+      tinCertificate: null
+    });
   };
 
   const formatAddress = (address) => {
-    if (typeof address === 'string') return address;
-    if (typeof address === 'object' && address !== null) {
-      return address.fullAddress ||
-        `${address.street || ''}, ${address.city || ''}, ${address.state || ''} ${address.zipCode || ''}`.trim();
-    }
-    return 'N/A';
+    if (!address) return 'N/A';
+    return [address.street, address.city, address.state, address.zipCode].filter(Boolean).join(', ') || 'N/A';
   };
 
   return (
-    <Box sx={{ p: { xs: 2, sm: 3 }, backgroundColor: 'white', width: '100%', overflowY: 'auto' }}>
-      <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
-        <Typography variant="h4" fontWeight="bold">Add New Provider</Typography>
-      </Box>
-
-      <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 2 }}>
-        Default English (EN)
+    <Box sx={{ p: 3, backgroundColor: '#f9f9f9',borderRadius: 2 }}>
+      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
+        Add Provider
       </Typography>
 
-      <TextField
-        fullWidth
-        label="Store Name *"
-        variant="outlined"
-        value={formData.storeName}
-        onChange={handleInputChange('storeName')}
-        sx={{ mb: 2 }}
-      />
-
-      {/* Logo & Cover Section */}
-      <Box sx={{ mt: 3, mb: 3 }}>
-        <Typography variant="h4" sx={{ mb: 2, fontWeight: "bold" }}>
-          Provider Logo & Covers
-        </Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-          <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', flex: 1 }}>
-            <Typography variant="caption">Logo (1:1)</Typography>
-            {logoPreview && (
-              <Box sx={{ mt: 1, mb: 2 }}>
-                <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain', border: '1px solid #ddd', borderRadius: '4px' }} />
-              </Box>
-            )}
-            <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
-              {logoPreview ? 'Change Image' : 'Upload Image'}
-              <input type="file" hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'logo')} />
-            </Button>
-          </Box>
-
-          <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', flex: 1 }}>
-            <Typography variant="caption">Provider Cover (2:1)</Typography>
-            {coverPreview && (
-              <Box sx={{ mt: 1, mb: 2 }}>
-                <img src={coverPreview} alt="Cover Preview" style={{ maxWidth: '100%', maxHeight: '150px', objectFit: 'contain', border: '1px solid #ddd', borderRadius: '4px' }} />
-              </Box>
-            )}
-            <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
-              {coverPreview ? 'Change Image' : 'Upload Image'}
-              <input type="file" hidden accept="image/*" onChange={(e) => handleImageUpload(e, 'coverImage')} />
-            </Button>
-          </Box>
-        </Box>
-      </Box>
-
-      {/* Zone & Module */}
-      {zonesLoading ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading zones...</Typography>
-        </Box>
-      ) : (
-        <Select
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Store Information</Typography>
+        <TextField
           fullWidth
+          label="Store Name"
           variant="outlined"
-          displayEmpty
-          value={selectedZone}
-          onChange={handleZoneChange}
+          value={formData.storeName}
+          onChange={handleInputChange('storeName')}
           sx={{ mb: 2 }}
-        >
-          <MenuItem value="" disabled>Select Zone *</MenuItem>
-          {zones.map((zone) => (
-            <MenuItem key={zone._id} value={zone._id}>{zone.name}</MenuItem>
-          ))}
-        </Select>
-      )}
+        />
+      </Box>
 
-      {modulesLoading ? (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading modules...</Typography>
+      {logoPreview && (
+        <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Logo:</Typography>
+          <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
-      ) : (
-        <Select fullWidth variant="outlined" value={formData.module} onChange={handleModuleChange} sx={{ mb: 2 }}>
-          <MenuItem value="" disabled>Select Module *</MenuItem>
-          {modules.map((m) => (
-            <MenuItem key={m._id} value={m._id}>{m.title}</MenuItem>
-          ))}
-        </Select>
       )}
+      <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
+        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
+          {logoPreview ? 'Change Logo' : 'Upload Logo'}
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'logo')} />
+        </Button>
+      </Box>
 
-      {/* Owner Info */}
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>Owner Information</Typography>
+      {coverPreview && (
+        <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Cover:</Typography>
+          <img src={coverPreview} alt="Cover Preview" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+        </Box>
+      )}
+      <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
+        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
+          {coverPreview ? 'Change Cover' : 'Upload Cover'}
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'coverImage')} />
+        </Button>
+      </Box>
+
+
+      {/* User Information */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="First name" variant="outlined" value={formData.ownerFirstName} onChange={handleInputChange('ownerFirstName')} />
-          <TextField fullWidth label="Last name" variant="outlined" value={formData.ownerLastName} onChange={handleInputChange('ownerLastName')} />
-          <TextField fullWidth label="Phone" variant="outlined" value={formData.ownerPhone} onChange={handleInputChange('ownerPhone')} />
-          <TextField fullWidth label="Email" variant="outlined" type="email" value={formData.ownerEmail} onChange={handleInputChange('ownerEmail')} />
+          <TextField
+            fullWidth
+            label="First Name *"
+            variant="outlined"
+            value={formData.firstName}
+            onChange={handleInputChange('firstName')}
+            required
+          />
+          <TextField
+            fullWidth
+            label="Last Name *"
+            variant="outlined"
+            value={formData.lastName}
+            onChange={handleInputChange('lastName')}
+            required
+          />
+        </Box>
+        <TextField
+          fullWidth
+          label="Email *"
+          variant="outlined"
+          value={formData.email}
+          onChange={handleInputChange('email')}
+          required
+          sx={{ mb: 2 }}
+        />
+      </Box>
+
+      {/* Store Information */}
+
+
+      {/* Delivery Time */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Delivery Time</Typography>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
+          <TextField
+            fullWidth
+            label="Minimum Delivery Time (min)"
+            variant="outlined"
+            value={formData.minimumDeliveryTime}
+            onChange={handleInputChange('minimumDeliveryTime')}
+          />
+          <TextField
+            fullWidth
+            label="Maximum Delivery Time (min)"
+            variant="outlined"
+            value={formData.maximumDeliveryTime}
+            onChange={handleInputChange('maximumDeliveryTime')}
+          />
         </Box>
       </Box>
 
-      {/* Account Info */}
-      {/* <Box sx={{ mt: 3 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>Account Information</Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="Password" variant="outlined" type="password" value={formData.password} onChange={handleInputChange('password')} />
-          <TextField fullWidth label="Confirm Password" variant="outlined" type="password" value={formData.confirmPassword} onChange={handleInputChange('confirmPassword')} />
+      {/* Location */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Location</Typography>
+        <Box sx={{ mb: 2 }}>
+          {modulesLoading ? (
+            <CircularProgress size={20} />
+          ) : modules.length > 0 ? (
+            <Select
+              fullWidth
+              variant="outlined"
+              value={formData.module}
+              onChange={handleModuleChange}
+              displayEmpty
+              disabled={modules.length <= 1}
+            >
+              <MenuItem value="" disabled>Select Module</MenuItem>
+              {modules.map((m) => (
+                <MenuItem key={m._id} value={m._id}>
+                  {m.title}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography>No modules available</Typography>
+          )}
         </Box>
-      </Box> */}
+
+        <Box sx={{ mb: 2 }}>
+          {zonesLoading ? (
+            <CircularProgress size={20} />
+          ) : zones.length > 0 ? (
+            <Select
+              fullWidth
+              variant="outlined"
+              value={selectedZone}
+              onChange={handleZoneChange}
+              displayEmpty
+            >
+              <MenuItem value="" disabled>Select Zone</MenuItem>
+              {zones.map((zone) => (
+                <MenuItem key={zone._id} value={zone._id}>
+                  {zone.name}
+                </MenuItem>
+              ))}
+            </Select>
+          ) : (
+            <Typography>No zones available</Typography>
+          )}
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Street"
+            variant="outlined"
+            value={formData.storeAddress.street}
+            onChange={handleAddressChange('street')}
+          />
+          <TextField
+            fullWidth
+            label="City"
+            variant="outlined"
+            value={formData.storeAddress.city}
+            onChange={handleAddressChange('city')}
+          />
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="State"
+            variant="outlined"
+            value={formData.storeAddress.state}
+            onChange={handleAddressChange('state')}
+          />
+          <TextField
+            fullWidth
+            label="Zip Code"
+            variant="outlined"
+            value={formData.storeAddress.zipCode}
+            onChange={handleAddressChange('zipCode')}
+          />
+
+        </Box>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Full Address"
+            variant="outlined"
+            value={formData.storeAddress.fullAddress}
+            onChange={handleAddressChange('fullAddress')}
+          />
+        </Box>
+
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Latitude"
+            variant="outlined"
+            value={formData.latitude}
+            onChange={handleInputChange('latitude')}
+          />
+          <TextField
+            fullWidth
+            label="Longitude"
+            variant="outlined"
+            value={formData.longitude}
+            onChange={handleInputChange('longitude')}
+          />
+        </Box>
+      </Box>
+
+      {/* Owner Information */}
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Owner Information</Typography>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Owner First Name *"
+            variant="outlined"
+            value={formData.ownerFirstName}
+            onChange={handleInputChange('ownerFirstName')}
+            required
+          />
+          <TextField
+            fullWidth
+            label="Owner Last Name *"
+            variant="outlined"
+            value={formData.ownerLastName}
+            onChange={handleInputChange('ownerLastName')}
+            required
+          />
+        </Box>
+        <TextField
+          fullWidth
+          label="Owner Email *"
+          variant="outlined"
+          value={formData.ownerEmail}
+          onChange={handleInputChange('ownerEmail')}
+          required
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Owner Phone"
+          variant="outlined"
+          value={formData.ownerPhone}
+          onChange={handleInputChange('ownerPhone')}
+          sx={{ mb: 2 }}
+        />
+      </Box>
 
       {/* Business TIN */}
-      <Box sx={{ mt: 3 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>Business TIN</Typography>
-        <TextField fullWidth label="TIN *" variant="outlined" value={formData.businessTIN} onChange={handleInputChange('businessTIN')} sx={{ mb: 2 }} />
-        <TextField fullWidth label="Expire Date *" type="date" value={formData.tinExpireDate} onChange={handleInputChange('tinExpireDate')} InputLabelProps={{ shrink: true }} sx={{ mb: 2 }} />
+      <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Business TIN</Typography>
+        <TextField
+          fullWidth
+          label="TIN"
+          variant="outlined"
+          value={formData.businessTIN}
+          onChange={handleInputChange('businessTIN')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="TIN Expire Date"
+          type="date"
+          value={formData.tinExpireDate}
+          onChange={handleInputChange('tinExpireDate')}
+          InputLabelProps={{ shrink: true }}
+          sx={{ mb: 2 }}
+        />
 
         {tinCertificatePreview && (
           <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
@@ -401,23 +609,117 @@ function AddAuditorium() {
             )}
           </Box>
         )}
-
         <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
-          <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
-            {tinCertificatePreview ? 'Change File' : 'Upload File'}
-            <input type="file" hidden accept=".pdf,.doc,.docx,.jpg,.jpeg,.png" onChange={(e) => handleImageUpload(e, 'tinCertificate')} />
-          </Button>
-        </Box>
-
-        <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
-          <Button variant="outlined" onClick={handleReset} disabled={loading}>Reset</Button>
-          <Button variant="contained" color="primary" onClick={handleSubmit} disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : null}>
-            {loading ? 'Submitting...' : 'Submit'}
+          <Button
+            variant="outlined"
+            component="label"
+            startIcon={<CloudUploadIcon />}
+            sx={{ mt: 1, width: '100%' }}
+          >
+            {tinCertificatePreview ? 'Change File' : 'Upload TIN Certificate'}
+            <input
+              type="file"
+              hidden
+              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+              onChange={(e) => handleImageUpload(e, 'tinCertificate')}
+            />
           </Button>
         </Box>
       </Box>
 
-      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      {/* Admin-Controlled Fields (Optional, typically managed by backend) */}
+      {/* <Box sx={{ mb: 3 }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Admin Information</Typography>
+        <Select
+          fullWidth
+          variant="outlined"
+          value={formData.status}
+          onChange={handleInputChange('status')}
+          displayEmpty
+          sx={{ mb: 2 }}
+        >
+          <MenuItem value="pending">Pending</MenuItem>
+          <MenuItem value="under_review">Under Review</MenuItem>
+          <MenuItem value="approved">Approved</MenuItem>
+          <MenuItem value="rejected">Rejected</MenuItem>
+        </Select>
+        <TextField
+          fullWidth
+          label="Reviewed By (User ID)"
+          variant="outlined"
+          value={formData.reviewedBy}
+          onChange={handleInputChange('reviewedBy')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Reviewed At"
+          type="datetime-local"
+          value={formData.reviewedAt}
+          onChange={handleInputChange('reviewedAt')}
+          InputLabelProps={{ shrink: true }}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Rejection Reason"
+          variant="outlined"
+          value={formData.rejectionReason}
+          onChange={handleInputChange('rejectionReason')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Admin Notes"
+          variant="outlined"
+          value={formData.adminNotes}
+          onChange={handleInputChange('adminNotes')}
+          multiline
+          rows={4}
+          sx={{ mb: 2 }}
+        />
+        <Select
+          fullWidth
+          variant="outlined"
+          value={formData.isActive}
+          onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
+          sx={{ mb: 2 }}
+        >
+          <MenuItem value={true}>Active</MenuItem>
+          <MenuItem value={false}>Inactive</MenuItem>
+        </Select>
+        <TextField
+          fullWidth
+          label="Approved Provider (User ID)"
+          variant="outlined"
+          value={formData.approvedProvider}
+          onChange={handleInputChange('approvedProvider')}
+          sx={{ mb: 2 }}
+        />
+      </Box> */}
+
+      {/* Submit and Reset Buttons */}
+      <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
+        <Button variant="outlined" onClick={handleReset} disabled={loading}>
+          Reset
+        </Button>
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}
+        >
+          {loading ? 'Submitting...' : 'Submit'}
+        </Button>
+      </Box>
+
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
         <Alert onClose={() => setOpen(false)} severity={alertSeverity} sx={{ width: '100%' }}>
           {alertMessage}
         </Alert>
@@ -428,7 +730,6 @@ function AddAuditorium() {
         <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
           Existing Providers
         </Typography>
-
         {vendorsLoading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <CircularProgress size={20} />
@@ -438,26 +739,48 @@ function AddAuditorium() {
           <Grid container spacing={3}>
             {vendors.map((vendor) => (
               <Grid item xs={12} sm={6} md={4} key={vendor._id}>
-                <Card sx={{ height: "100%", borderRadius: 3, overflow: "hidden", boxShadow: "0 4px 20px rgba(0,0,0,0.08)", transition: "transform 0.2s ease, box-shadow 0.2s ease", "&:hover": { transform: "translateY(-6px)", boxShadow: "0 8px 28px rgba(0,0,0,0.15)" } }}>
+                <Card
+                  sx={{
+                    height: '100%',
+                    borderRadius: 3,
+                    overflow: 'hidden',
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
+                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                    '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 8px 28px rgba(0,0,0,0.15)' }
+                  }}
+                >
                   <CardMedia
                     component="img"
                     height="160"
-                    image={logoErrors[vendor._id] || !vendor.logo ? "https://via.placeholder.com/150?text=No+Logo" : vendor.logo}
+                    image={logoErrors[vendor._id] || !vendor.logo ? 'https://via.placeholder.com/150?text=No+Logo' : vendor.logo}
                     alt={`${vendor.storeName} logo`}
-                    sx={{ objectFit: "contain", bgcolor: "#fafafa", p: 2 }}
+                    sx={{ objectFit: 'contain', bgcolor: '#fafafa', p: 2 }}
                     onError={() => handleLogoError(vendor._id)}
                   />
-                  <CardContent sx={{ display: "flex", flexDirection: "column", height: "100%" }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>{vendor.storeName}</Typography>
-                    <Typography variant="body2" color="text.secondary">Owner: {vendor.ownerFirstName} {vendor.ownerLastName}</Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>📍 {formatAddress(vendor.storeAddress)}</Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1, mb: 2 }}>
-                      <Chip label={`Zone: ${vendor.zone?.name || "N/A"}`} size="small" color="primary" />
-                      <Chip label={`Delivery: ${vendor.minimumDeliveryTime}-${vendor.maximumDeliveryTime} min`} size="small" color="success" />
-                      <Chip label={`Module: ${vendor.module?.title || "N/A"}`} size="small" color="secondary" />
+                  <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                    <Typography variant="h6" fontWeight="bold" gutterBottom>
+                      {vendor.storeName || 'N/A'}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                      Owner: {vendor.ownerFirstName} {vendor.ownerLastName}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                      📍 {formatAddress(vendor.storeAddress)}
+                    </Typography>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
+                      <Chip label={`Zone: ${vendor.zone?.name || 'N/A'}`} size="small" color="primary" />
+                      <Chip
+                        label={`Delivery: ${vendor.minimumDeliveryTime || 'N/A'}-${vendor.maximumDeliveryTime || 'N/A'} min`}
+                        size="small"
+                        color="success"
+                      />
+                      <Chip label={`Module: ${vendor.module?.title || 'N/A'}`} size="small" color="secondary" />
+                      <Chip label={`Status: ${vendor.status || 'N/A'}`} size="small" color={vendor.status === 'approved' ? 'success' : 'default'} />
                     </Box>
-                    <Box sx={{ mt: "auto", display: "flex", justifyContent: "flex-end" }}>
-                      <Button variant="outlined" size="small">View Details</Button>
+                    <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
+                      <Button variant="outlined" size="small">
+                        View Details
+                      </Button>
                     </Box>
                   </CardContent>
                 </Card>
