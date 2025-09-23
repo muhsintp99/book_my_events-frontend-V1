@@ -407,7 +407,7 @@ function AddProvider() {
 
 
       {/* Delivery Time */}
-      <Box sx={{ mb: 3 }}>
+      {/* <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Delivery Time</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
           <TextField
@@ -424,8 +424,8 @@ function AddProvider() {
             value={formData.maximumDeliveryTime}
             onChange={handleInputChange('maximumDeliveryTime')}
           />
-        </Box>
-      </Box>
+        </Box> 
+      </Box>*/}
 
       {/* Location */}
       <Box sx={{ mb: 3 }}>

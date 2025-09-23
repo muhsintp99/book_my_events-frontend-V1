@@ -72,6 +72,12 @@ const Auditoriumbrands = Loadable(lazy(() => import('../audiviews/Auditoriumbran
 
 
 
+//Settings
+const ZoneSetup = Loadable(lazy(() => import('../views/ZoneSetup')));
+const ModuleSetup = Loadable(lazy(() => import('../views/ModuleSetup')));
+const SubscriptionList = Loadable(lazy(() => import('../views/SubscriptionList')));
+const Addpackage = Loadable(lazy(() => import('../views/Addpackage')));
+const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')));
 
 
 
@@ -115,6 +121,12 @@ const MainRoutes = {
     { path: 'trips/paymentfailed', element: <Paymentfailed /> },
 
     // { path: '/vehicles/create', element: <Createnew /> },
+    //setting
+    { path: 'settings/zone-setup', element: <ZoneSetup /> },
+    { path: '/settings/module-setup', element: <ModuleSetup /> },
+    { path: '/settings/sub/list', element: <SubscriptionList /> },
+    { path: '/settings/sub/add', element: <Addpackage /> },
+    { path: '/settings/sub/store', element: <SubscribedStore /> },
 
 
     // Bookingssss

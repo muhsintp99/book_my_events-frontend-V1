@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Avatar from '@mui/material/Avatar';
 import Box from '@mui/material/Box';
 import Button from '@mui/material/Button';
 import Menu from '@mui/material/Menu';
+import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
@@ -18,11 +19,21 @@ import NotificationSection from './NotificationSection';
 import { handlerDrawerOpen, useGetMenuMaster } from 'api/menu';
 
 // icons
-import { IconMenu2, IconPlus } from '@tabler/icons-react';
+import {
+  IconMenu2,
+  IconPlus,
+  IconSettings,
+  IconChevronDown,
+  IconMapPinFilled,
+  IconTool,
+  IconCreditCard,
+  IconUsers
+} from '@tabler/icons-react';
 
 export default function Header() {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const downMD = useMediaQuery(theme.breakpoints.down('md'));
   const { menuMaster } = useGetMenuMaster();
   const drawerOpen = menuMaster.isDashboardDrawerOpened;
@@ -31,12 +42,32 @@ export default function Header() {
   const [modules, setModules] = useState([]);
   const open = Boolean(anchorEl);
 
+  const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+  const settingsOpen = Boolean(settingsAnchorEl);
+
   // --- Static modules ---
   const staticModules = [
     { title: 'Rental', moduleId: 'rental-001', type: 'crm', icon: '/icons/rental.svg' },
     { title: 'Events', moduleId: 'events-001', type: 'crm', icon: '/icons/events.svg' },
     { title: 'Auditorium', moduleId: 'auditorium-001', type: 'auditorium', icon: '/icons/auditorium.svg' }
   ];
+
+  // --- Default module setup on entry ---
+  useEffect(() => {
+    if (
+      location.pathname === '/' ||
+      location.pathname === '/rental/dashboard' ||
+      location.pathname === '/events/dashboard' ||
+      location.pathname === '/auditorium/dashboard'
+    ) {
+      localStorage.setItem('activeModule', 'crm');
+      localStorage.setItem('sidebarType', 'crm');
+      window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: 'crm', sidebarType: 'crm' } }));
+      window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: 'crm' } }));
+      window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: 'crm' } }));
+      window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: 'crm' } }));
+    }
+  }, [location.pathname]);
 
   // --- Fetch & Deduplicate API modules ---
   useEffect(() => {
@@ -64,7 +95,7 @@ export default function Header() {
             }
 
             return {
-              _id: m._id.$oid || m._id, // use API _id
+              _id: m._id?.$oid || m._id,
               title,
               moduleId: m.moduleId,
               type: title === 'Auditorium' ? 'auditorium' : 'crm',
@@ -72,18 +103,9 @@ export default function Header() {
             };
           });
 
-        // Merge static + API modules (API overrides static)
         const allModulesMap = new Map();
-
-        // Add static modules first
-        staticModules.forEach((m) => {
-          allModulesMap.set(m.title.toLowerCase(), m);
-        });
-
-        // Add API modules (overrides static if same title)
-        formattedModules.forEach((m) => {
-          allModulesMap.set(m.title.toLowerCase(), m);
-        });
+        staticModules.forEach((m) => allModulesMap.set(m.title.toLowerCase(), m));
+        formattedModules.forEach((m) => allModulesMap.set(m.title.toLowerCase(), m));
 
         setModules(Array.from(allModulesMap.values()));
       } catch (err) {
@@ -94,32 +116,50 @@ export default function Header() {
     fetchModules();
   }, []);
 
+  // --- Menu handlers ---
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
+  const handleSettingsClick = (event) => setSettingsAnchorEl(event.currentTarget);
+  const handleSettingsClose = () => setSettingsAnchorEl(null);
+
   const handleAddModule = () => {
-    navigate('/module/add');
+    navigate('/settings/module-setup');
     handleClose();
+  };
+
+  const handleSettingsNavigation = (route) => {
+    if (route.startsWith('/settings/')) {
+      localStorage.setItem('activeModule', 'setting');
+      localStorage.setItem('sidebarType', 'setting');
+
+      window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: 'setting', sidebarType: 'setting' } }));
+      window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: 'setting' } }));
+      window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: 'setting' } }));
+      window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: 'setting' } }));
+
+      setTimeout(() => window.location.reload(), 100);
+      handleClose();
+    }
+    navigate(route);
+    handleSettingsClose();
   };
 
   const handleModuleClick = (module) => {
     const moduleName = (module.title || '').toLowerCase();
     const moduleId = module.moduleId;
     const sidebarType = module.type || 'crm';
-    const moduleDbId = module._id; // take API _id
+    const moduleDbId = module._id;
 
-    // Store all needed info in localStorage
     localStorage.setItem('activeModule', moduleName);
     localStorage.setItem('moduleId', moduleId);
     localStorage.setItem('sidebarType', sidebarType);
     localStorage.setItem('moduleDbId', moduleDbId);
 
-    // Dispatch events for other components
     window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: moduleName, sidebarType } }));
     window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType } }));
     window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: moduleName } }));
 
-    // Navigate
     switch (moduleName) {
       case 'rental': navigate('/rental/dashboard'); break;
       case 'event':
@@ -133,6 +173,13 @@ export default function Header() {
     setTimeout(() => window.location.reload(), 100);
     handleClose();
   };
+
+  const settingsMenuItems = [
+    { label: 'Zone Setup', icon: <IconMapPinFilled size={20} />, route: '/settings/zone-setup' },
+    { label: 'Module Setup', icon: <IconTool size={20} />, route: '/settings/module-setup' },
+    { label: 'Subscription Settings', icon: <IconCreditCard size={20} />, route: '/settings/sub/list' },
+    { label: 'Employee Management', icon: <IconUsers size={20} />, route: '/settings/employee' }
+  ];
 
   return (
     <>
@@ -150,7 +197,7 @@ export default function Header() {
             transition: 'all .2s ease-in-out',
             bgcolor: 'secondary.light',
             color: 'secondary.dark',
-            '&:hover': { bgcolor: 'secondary.dark', color: 'secondary.light' },
+            '&:hover': { bgcolor: 'secondary.dark', color: 'secondary.light' }
           }}
           onClick={() => handlerDrawerOpen(!drawerOpen)}
           color="inherit"
@@ -160,6 +207,59 @@ export default function Header() {
       </Box>
 
       <Box sx={{ flexGrow: 1 }} />
+
+      {/* Settings Button */}
+      <Button
+        variant="outlined"
+        size="large"
+        startIcon={<IconSettings size={20} />}
+        endIcon={<IconChevronDown size={16} />}
+        sx={{
+          textTransform: 'none',
+          borderRadius: '50px',
+          px: 3,
+          py: 1.5,
+          fontSize: '1rem',
+          borderColor: '#e0e0e0',
+          color: '#666',
+          '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
+        }}
+        onClick={handleSettingsClick}
+      >
+        Settings
+      </Button>
+
+      {/* Settings dropdown menu */}
+      <Menu
+        anchorEl={settingsAnchorEl}
+        open={settingsOpen}
+        onClose={handleSettingsClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        sx={{
+          mt: 1,
+          '& .MuiPaper-root': {
+            minWidth: 200,
+            borderRadius: 2,
+            boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
+          }
+        }}
+      >
+        {settingsMenuItems.map((item) => (
+          <MenuItem
+            key={item.label}
+            onClick={() => handleSettingsNavigation(item.route)}
+            sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>
+              {item.icon}
+            </ListItemIcon>
+            <Typography variant="body2" sx={{ color: '#333' }}>
+              {item.label}
+            </Typography>
+          </MenuItem>
+        ))}
+      </Menu>
 
       {/* Modules Dropdown */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
@@ -243,7 +343,7 @@ export default function Header() {
                   py: 2,
                   fontSize: '0.95rem',
                   border: '1px dashed #4caf50',
-                  '&:hover': { bgcolor: '#f1f8e9', borderColor: '#388e3c' },
+                  '&:hover': { bgcolor: '#f1f8e9', borderColor: '#388e3c' }
                 }}
               >
                 <IconPlus size={20} />

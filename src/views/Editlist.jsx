@@ -402,7 +402,7 @@ function EditList() {
         <Typography variant="h4" fontWeight="bold" sx={{ mb: 2 }}>
           Store Information
         </Typography>
-        <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
+        {/* <Box sx={{ display: 'flex', gap: 2, mb: 2, flexDirection: { xs: 'column', sm: 'row' } }}>
           <TextField
             fullWidth
             label="Min Delivery Time (minutes)"
@@ -421,7 +421,7 @@ function EditList() {
             onChange={handleInputChange('maximumDeliveryTime')}
             type="number"
           />
-        </Box>
+        </Box> */}
 
         {zonesLoading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>

@@ -26,8 +26,11 @@ import bookings from './auditorium/vehiclemanagement';
 import Providermanagement from './auditorium/providermanagement';
 import management from './auditorium/management';
 import auditoriumsections from './auditorium/auditoriumsections';
-
-// ==============================|| DYNAMIC MENU ITEMS ||============================== //
+import zonemanagement from './settings-items/zonemanagement';
+import modulemanagement from './settings-items/modulemanagement';// ==============================|| DYNAMIC MENU ITEMS ||============================== //
+import subscriptionmanagement from './settings-items/subscriptionmanage';
+import taxmanagement from './settings-items/taxmanagement';
+import employeemanagement from './settings-items/employeemanage';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -45,6 +48,10 @@ const moduleMenuItems = {
   
   auditorium: {
     items: [dashboard,management,auditoriummanagement,auditoriumsections,Providermanagement] 
+  },
+
+  setting:{
+    items: [zonemanagement,modulemanagement,subscriptionmanagement,taxmanagement,employeemanagement]
   }
 };
 
