@@ -23,7 +23,7 @@ const Providermanagement = {
     },
     {
       id: 'auditoriumadd',
-      title: 'Add Auditorium',
+      title: 'Add Providers',
       type: 'item',
       url: '/auditorium/AddProvider',
       icon: icons.IconSettings,
