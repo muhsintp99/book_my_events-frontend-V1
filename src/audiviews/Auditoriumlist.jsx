@@ -28,14 +28,14 @@ import {
 import { VisibilityOutlined, Edit, Delete, Download } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const AuditoriumsList = () => {
+const ProvidersList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [auditoriums, setAuditoriums] = useState([]);
+  const [providers, setProviders] = useState([]);
   const [selectedZone, setSelectedZone] = useState('All Zones');
   const [searchTerm, setSearchTerm] = useState('');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [auditoriumToDelete, setAuditoriumToDelete] = useState(null);
+  const [providerToDelete, setProviderToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({
@@ -45,6 +45,7 @@ const AuditoriumsList = () => {
   });
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_URL = `${API_BASE_URL}/users?role=vendor`;
 
   const getToken = () => {
     try {
@@ -126,7 +127,7 @@ const AuditoriumsList = () => {
         if (error.name === 'AbortError') {
           throw new Error('Request timed out - please check your connection');
         } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Network error - please check if the server is running at http://localhost:5000 and CORS is properly configured');
+          throw new Error('Network error - please check if the server is running and CORS is properly configured');
         }
 
         throw error;
@@ -134,35 +135,8 @@ const AuditoriumsList = () => {
     }
   };
 
-  useEffect(() => {
-    fetchAuditoriums();
-    if (location.state?.updatedAuditorium) {
-      const updatedAuditorium = location.state.updatedAuditorium;
-      setAuditoriums((prev) =>
-        prev.map((auditorium) =>
-          auditorium._id === updatedAuditorium._id
-            ? {
-                ...auditorium,
-                ...updatedAuditorium,
-                storeInfo: updatedAuditorium.storeName,
-                ownerInfo: `${updatedAuditorium.ownerFirstName || ''} ${updatedAuditorium.ownerLastName || ''} (${updatedAuditorium.ownerPhone || 'N/A'})`,
-                zone: zones.find((zone) => zone._id === updatedAuditorium.zone)?.name || 'N/A',
-                ownerEmail: updatedAuditorium.ownerEmail || '',
-                password: updatedAuditorium.password || '********', // Mask password for security
-                confirmPassword: updatedAuditorium.confirmPassword || '********' // Mask confirm password
-              }
-            : auditorium
-        )
-      );
-      setNotification({
-        open: true,
-        message: 'Auditorium updated successfully!',
-        severity: 'success'
-      });
-    }
-  }, [location.state]);
-
   const [zones, setZones] = useState([]);
+  
   useEffect(() => {
     const fetchZones = async () => {
       try {
@@ -182,64 +156,46 @@ const AuditoriumsList = () => {
           { _id: '2', name: 'North Zone' },
           { _id: '3', name: 'South Zone' },
           { _id: '4', name: 'East Zone' },
-          { _id: '5', name: 'West Zone' },
-          { _id: '6', name: 'Airport Zone' },
-          { _id: '7', name: 'Industrial Zone' }
+          { _id: '5', name: 'West Zone' }
         ]);
       }
     };
     fetchZones();
   }, []);
 
-  const fetchAuditoriums = async () => {
+  const fetchProviders = async () => {
     try {
       setLoading(true);
-      const url = `${API_BASE_URL}/auditoriums`;
+      const url = API_URL;
       const options = getFetchOptions();
       const data = await makeAPICall(url, options);
 
-      if (data.success) {
-        const auditoriumsData = data.data.auditoriums || [];
-        const mappedAuditoriums = auditoriumsData.map((auditorium, index) => ({
+      if (data && Array.isArray(data.users)) {
+        const mappedProviders = data.users.map((provider, index) => ({
           id: index + 1,
-          _id: auditorium._id,
-          storeInfo: auditorium.storeName || 'Unknown Auditorium',
-          ownerInfo: `${auditorium.ownerFirstName || ''} ${auditorium.ownerLastName || ''} (${auditorium.ownerPhone || 'N/A'})`,
-          zone: auditorium.zone?.name || 'N/A',
-          zoneId: auditorium.zone?._id || '',
-          featured: auditorium.isFeatured || false,
-          status: auditorium.isActive || false,
-          storeName: auditorium.storeName || '',
-          storeAddress: auditorium.storeAddress || '',
-          minimumDeliveryTime: auditorium.minimumDeliveryTime || '',
-          maximumDeliveryTime: auditorium.maximumDeliveryTime || '',
-          latitude: auditorium.latitude || '',
-          longitude: auditorium.longitude || '',
-          ownerFirstName: auditorium.ownerFirstName || '',
-          ownerLastName: auditorium.ownerLastName || '',
-          ownerPhone: auditorium.ownerPhone || '',
-          ownerEmail: auditorium.ownerEmail || '',
-          password: '********', // Mask password for security
-          confirmPassword: '********', // Mask confirm password
-          businessTIN: auditorium.businessTIN || '',
-          tinExpireDate: auditorium.tinExpireDate || '',
-          logo: auditorium.logo
-            ? auditorium.logo.startsWith('http')
-              ? auditorium.logo
-              : `${API_BASE_URL}/${auditorium.logo.replace(/^\//, '')}`
-            : null,
-          coverImage: auditorium.coverImage || null,
-          tinCertificate: auditorium.tinCertificate || null
+          _id: provider._id,
+          storeInfo: provider.storeName || 'Unknown Store',
+          ownerInfo: `${provider.firstName || ''} ${provider.lastName || ''} (${provider.phone || 'N/A'})`,
+          zone: provider.zone?.name || 'N/A',
+          zoneId: provider.zone?._id || '',
+          featured: provider.isFeatured || false,
+          status: provider.isActive || false,
+          email: provider.email || '',
+          phone: provider.phone || '',
+          firstName: provider.firstName || '',
+          lastName: provider.lastName || '',
+          storeName: provider.storeName || '',
+          password: '********'
         }));
-        setAuditoriums(mappedAuditoriums);
+        setProviders(mappedProviders);
       } else {
-        throw new Error(data.message || 'Failed to fetch auditoriums');
+        throw new Error('Invalid data format');
       }
     } catch (error) {
-      console.error('Error fetching auditoriums:', error);
+      console.error('Error fetching vendors:', error);
       setNotification({
         open: true,
-        message: `Error fetching auditoriums: ${error.message}`,
+        message: `Error fetching vendors: ${error.message}`,
         severity: 'error'
       });
     } finally {
@@ -247,27 +203,53 @@ const AuditoriumsList = () => {
     }
   };
 
+  useEffect(() => {
+    fetchProviders();
+    
+    if (location.state?.updatedProvider) {
+      const updatedProvider = location.state.updatedProvider;
+      setProviders((prev) =>
+        prev.map((provider) =>
+          provider._id === updatedProvider._id
+            ? {
+                ...provider,
+                ...updatedProvider,
+                storeInfo: updatedProvider.storeName,
+                ownerInfo: `${updatedProvider.firstName || ''} ${updatedProvider.lastName || ''} (${updatedProvider.phone || 'N/A'})`,
+                zone: zones.find((zone) => zone._id === updatedProvider.zone)?.name || 'N/A'
+              }
+            : provider
+        )
+      );
+      setNotification({
+        open: true,
+        message: 'Provider updated successfully!',
+        severity: 'success'
+      });
+    }
+  }, [location.state]);
+
   const handleFeaturedToggle = useCallback(
     async (_id) => {
       const toggleKey = `${_id}-featured`;
       if (toggleLoading[toggleKey]) return;
 
-      const auditorium = auditoriums.find((a) => a._id === _id);
-      if (!auditorium) {
+      const provider = providers.find((p) => p._id === _id);
+      if (!provider) {
         setNotification({
           open: true,
-          message: 'Auditorium not found',
+          message: 'Provider not found',
           severity: 'error'
         });
         return;
       }
 
-      const newValue = !auditorium.featured;
+      const newValue = !provider.featured;
       setToggleLoading((prev) => ({ ...prev, [toggleKey]: true }));
-      setAuditoriums((prev) => prev.map((a) => (a._id === _id ? { ...a, featured: newValue } : a)));
+      setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, featured: newValue } : p)));
 
       try {
-        const endpoint = `${API_BASE_URL}/auditoriums/${_id}/toggle-featured`;
+        const endpoint = `${API_BASE_URL}/users/${_id}/toggle-featured`;
         const options = getFetchOptions('PATCH');
         const response = await fetch(endpoint, options);
 
@@ -279,25 +261,22 @@ const AuditoriumsList = () => {
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Update failed');
 
-        setAuditoriums((prev) =>
-          prev.map((a) =>
-            a._id === _id
-              ? { ...a, featured: data.data.auditorium.isFeatured ?? a.featured }
-              : a
+        setProviders((prev) =>
+          prev.map((p) =>
+            p._id === _id
+              ? { ...p, featured: data.data.user?.isFeatured ?? p.featured }
+              : p
           )
         );
 
         setNotification({
           open: true,
-          message: `${auditorium.storeInfo} featured status updated successfully`,
+          message: `${provider.storeInfo} featured status updated successfully`,
           severity: 'success'
         });
       } catch (error) {
-        console.error('❌ Featured toggle error:', {
-          message: error.message,
-          stack: error.stack
-        });
-        setAuditoriums((prev) => prev.map((a) => (a._id === _id ? { ...a, featured: !newValue } : a)));
+        console.error('❌ Featured toggle error:', error);
+        setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, featured: !newValue } : p)));
 
         setNotification({
           open: true,
@@ -312,7 +291,7 @@ const AuditoriumsList = () => {
         });
       }
     },
-    [auditoriums, API_BASE_URL, toggleLoading]
+    [providers, API_BASE_URL, toggleLoading]
   );
 
   const handleStatusToggle = useCallback(
@@ -320,22 +299,22 @@ const AuditoriumsList = () => {
       const toggleKey = `${_id}-status`;
       if (toggleLoading[toggleKey]) return;
 
-      const auditorium = auditoriums.find((a) => a._id === _id);
-      if (!auditorium) {
+      const provider = providers.find((p) => p._id === _id);
+      if (!provider) {
         setNotification({
           open: true,
-          message: 'Auditorium not found',
+          message: 'Provider not found',
           severity: 'error'
         });
         return;
       }
 
-      const newValue = !auditorium.status;
+      const newValue = !provider.status;
       setToggleLoading((prev) => ({ ...prev, [toggleKey]: true }));
-      setAuditoriums((prev) => prev.map((a) => (a._id === _id ? { ...a, status: newValue } : a)));
+      setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, status: newValue } : p)));
 
       try {
-        const endpoint = `${API_BASE_URL}/auditoriums/${_id}/toggle-status`;
+        const endpoint = `${API_BASE_URL}/users/${_id}/toggle-status`;
         const options = getFetchOptions('PATCH');
         const response = await fetch(endpoint, options);
 
@@ -347,25 +326,22 @@ const AuditoriumsList = () => {
         const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Update failed');
 
-        setAuditoriums((prev) =>
-          prev.map((a) =>
-            a._id === _id
-              ? { ...a, status: data.data.auditorium.isActive ?? a.status }
-              : a
+        setProviders((prev) =>
+          prev.map((p) =>
+            p._id === _id
+              ? { ...p, status: data.data.user?.isActive ?? p.status }
+              : p
           )
         );
 
         setNotification({
           open: true,
-          message: `${auditorium.storeInfo} status updated successfully`,
+          message: `${provider.storeInfo} status updated successfully`,
           severity: 'success'
         });
       } catch (error) {
-        console.error('❌ Status toggle error:', {
-          message: error.message,
-          stack: error.stack
-        });
-        setAuditoriums((prev) => prev.map((a) => (a._id === _id ? { ...a, status: !newValue } : a)));
+        console.error('❌ Status toggle error:', error);
+        setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, status: !newValue } : p)));
 
         setNotification({
           open: true,
@@ -380,47 +356,47 @@ const AuditoriumsList = () => {
         });
       }
     },
-    [auditoriums, API_BASE_URL, toggleLoading]
+    [providers, API_BASE_URL, toggleLoading]
   );
 
+  const handleDeleteClick = (provider) => {
+    setProviderToDelete(provider);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteCancel = () => {
+    setOpenDeleteDialog(false);
+    setProviderToDelete(null);
+  };
+
   const handleDeleteConfirm = async () => {
-    const storeName = auditoriumToDelete.storeInfo;
+    const storeName = providerToDelete.storeInfo;
     try {
-      const url = `${API_BASE_URL}/auditoriums/${auditoriumToDelete._id}`;
+      const url = `${API_BASE_URL}/users/${providerToDelete._id}`;
       const options = getFetchOptions('DELETE');
       const data = await makeAPICall(url, options);
 
       if (data.success) {
-        setAuditoriums((prev) => prev.filter((a) => a._id !== auditoriumToDelete._id));
+        setProviders((prev) => prev.filter((p) => p._id !== providerToDelete._id));
         setNotification({
           open: true,
           message: `${storeName} has been deleted successfully`,
           severity: 'success'
         });
       } else {
-        throw new Error(data.message || 'Failed to delete auditorium');
+        throw new Error(data.message || 'Failed to delete provider');
       }
     } catch (error) {
-      console.error('Error deleting auditorium:', error);
+      console.error('Error deleting provider:', error);
       setNotification({
         open: true,
-        message: `Error deleting auditorium: ${error.message}`,
+        message: `Error deleting provider: ${error.message}`,
         severity: 'error'
       });
     } finally {
       setOpenDeleteDialog(false);
-      setAuditoriumToDelete(null);
+      setProviderToDelete(null);
     }
-  };
-
-  const handleDeleteClick = (auditorium) => {
-    setAuditoriumToDelete(auditorium);
-    setOpenDeleteDialog(true);
-  };
-
-  const handleDeleteCancel = () => {
-    setOpenDeleteDialog(false);
-    setAuditoriumToDelete(null);
   };
 
   const [anchorEl, setAnchorEl] = useState(null);
@@ -433,26 +409,25 @@ const AuditoriumsList = () => {
     setNotification({ ...notification, open: false });
   };
 
-  const filteredAuditoriums = auditoriums.filter((auditorium) => {
-    const matchesZone = selectedZone === 'All Zones' || auditorium.zone === selectedZone;
+  const filteredProviders = providers.filter((provider) => {
+    const matchesZone = selectedZone === 'All Zones' || provider.zone === selectedZone;
     const matchesSearch =
-      auditorium.storeInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      auditorium.ownerInfo.toLowerCase().includes(searchTerm.toLowerCase());
+      provider.storeInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      provider.ownerInfo.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesZone && matchesSearch;
   });
 
   const exportToCSV = () => {
-    const headers = ['Sl', 'Auditorium Name', 'Owner Information', 'Zone', 'Featured', 'Status', 'Email', 'Password', 'Confirm Password'];
-    const csvData = filteredAuditoriums.map((auditorium) => [
-      auditorium.id,
-      `"${auditorium.storeInfo}"`,
-      `"${auditorium.ownerInfo}"`,
-      `"${auditorium.zone}"`,
-      auditorium.featured ? 'Yes' : 'No',
-      auditorium.status ? 'Active' : 'Inactive',
-      `"${auditorium.ownerEmail}"`,
-      `"${auditorium.password}"`,
-      `"${auditorium.confirmPassword}"`
+    const headers = ['Sl', 'Store Name', 'Owner Information', 'Email', 'Phone', 'Zone', 'Featured', 'Status'];
+    const csvData = filteredProviders.map((provider) => [
+      provider.id,
+      `"${provider.storeInfo}"`,
+      `"${provider.ownerInfo}"`,
+      `"${provider.email}"`,
+      `"${provider.phone}"`,
+      `"${provider.zone}"`,
+      provider.featured ? 'Yes' : 'No',
+      provider.status ? 'Active' : 'Inactive'
     ]);
 
     const csvContent = [headers.join(','), ...csvData.map((row) => row.join(','))].join('\n');
@@ -461,7 +436,7 @@ const AuditoriumsList = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `auditoriums_list_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `providers_list_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -476,26 +451,25 @@ const AuditoriumsList = () => {
   };
 
   const exportToExcel = () => {
-    const headers = ['Sl', 'Auditorium Name', 'Owner Information', 'Zone', 'Featured', 'Status', 'Email', 'Password', 'Confirm Password'];
+    const headers = ['Sl', 'Store Name', 'Owner Information', 'Email', 'Phone', 'Zone', 'Featured', 'Status'];
     let excelContent = `
       <table border="1">
         <thead>
           <tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr>
         </thead>
         <tbody>
-          ${filteredAuditoriums
+          ${filteredProviders
             .map(
-              (auditorium) => `
+              (provider) => `
             <tr>
-              <td>${auditorium.id}</td>
-              <td>${auditorium.storeInfo}</td>
-              <td>${auditorium.ownerInfo}</td>
-              <td>${auditorium.zone}</td>
-              <td>${auditorium.featured ? 'Yes' : 'No'}</td>
-              <td>${auditorium.status ? 'Active' : 'Inactive'}</td>
-              <td>${auditorium.ownerEmail}</td>
-              <td>${auditorium.password}</td>
-              <td>${auditorium.confirmPassword}</td>
+              <td>${provider.id}</td>
+              <td>${provider.storeInfo}</td>
+              <td>${provider.ownerInfo}</td>
+              <td>${provider.email}</td>
+              <td>${provider.phone}</td>
+              <td>${provider.zone}</td>
+              <td>${provider.featured ? 'Yes' : 'No'}</td>
+              <td>${provider.status ? 'Active' : 'Inactive'}</td>
             </tr>
           `
             )
@@ -508,7 +482,7 @@ const AuditoriumsList = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `auditoriums_list_${new Date().toISOString().split('T')[0]}.xls`);
+    link.setAttribute('download', `providers_list_${new Date().toISOString().split('T')[0]}.xls`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -524,57 +498,42 @@ const AuditoriumsList = () => {
 
   return (
     <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+      {/* Stats bar */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', p: 2, bgcolor: '#f5f5f5', gap: 1 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total auditoriums: {auditoriums.length}</Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active auditoriums: {auditoriums.filter((a) => a.status).length}</Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive auditoriums: {auditoriums.filter((a) => !a.status).length}</Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Newly joined auditoriums: 0</Box>
-        </Box>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: 'green.50', p: 1, borderRadius: 1 }}>Total Transactions: 0</Box>
-          <Box sx={{ bgcolor: 'green.50', p: 1, borderRadius: 1 }}>Commission Earned: $0</Box>
-          <Box sx={{ bgcolor: '#ffebee', p: 1, borderRadius: 1 }}>Total Auditorium Withdraws: $0</Box>
+          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total vendors: {providers.length}</Box>
+          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active vendors: {providers.filter((p) => p.status).length}</Box>
+          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive vendors: {providers.filter((p) => !p.status).length}</Box>
+          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Featured vendors: {providers.filter((p) => p.featured).length}</Box>
         </Box>
       </Box>
 
-      <Box
-        sx={{ p: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: '#f5f5f5' }}
-      >
+      {/* Filters */}
+      <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: '#f5f5f5' }}>
         <TextField
           select
           value={selectedZone}
           onChange={(e) => setSelectedZone(e.target.value)}
-          variant="outlined"
           size="small"
-          sx={{ minWidth: 150, bgcolor: 'white', borderRadius: 1 }}
+          sx={{ minWidth: 150, bgcolor: 'white' }}
         >
           <MenuItem value="All Zones">All Zones</MenuItem>
-          {[...new Set(auditoriums.map((a) => a.zone))].map((zone) => (
+          {[...new Set(providers.map((p) => p.zone))].map((zone) => (
             <MenuItem key={zone} value={zone}>
               {zone}
             </MenuItem>
           ))}
         </TextField>
-
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <TextField
-            placeholder="Search Auditorium Name"
-            variant="outlined"
+            placeholder="Search Vendor"
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{ startAdornment: <InputAdornment position="start">🔍</InputAdornment> }}
-            sx={{ bgcolor: 'white', borderRadius: 1 }}
+            sx={{ bgcolor: 'white' }}
           />
-          <Button
-            variant="contained"
-            color="primary"
-            size="small"
-            endIcon={<Download />}
-            onClick={handleClick}
-            sx={{ textTransform: 'none' }}
-          >
+          <Button variant="contained" color="primary" size="small" endIcon={<Download />} onClick={handleClick}>
             Export
           </Button>
           <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
@@ -584,10 +543,11 @@ const AuditoriumsList = () => {
         </Box>
       </Box>
 
+      {/* Table */}
       {loading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
           <CircularProgress size={20} />
-          <Typography>Loading auditoriums...</Typography>
+          <Typography>Loading vendors...</Typography>
         </Box>
       ) : (
         <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
@@ -595,60 +555,54 @@ const AuditoriumsList = () => {
             <TableHead sx={{ position: 'sticky', top: 0, bgcolor: '#f5f5f5', zIndex: 1 }}>
               <TableRow>
                 <TableCell>Sl</TableCell>
-                <TableCell>Auditorium Name</TableCell>
+                <TableCell>Store Information</TableCell>
                 <TableCell>Owner Information</TableCell>
+                <TableCell>Email</TableCell>
+                <TableCell>Phone</TableCell>
                 <TableCell>Zone</TableCell>
                 <TableCell>Featured</TableCell>
                 <TableCell>Status</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Password</TableCell>
-                <TableCell>Confirm Password</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredAuditoriums.map((auditorium) => {
-                const featuredToggleKey = `${auditorium._id}-featured`;
-                const statusToggleKey = `${auditorium._id}-status`;
-
+              {filteredProviders.map((provider) => {
+                const featuredToggleKey = `${provider._id}-featured`;
+                const statusToggleKey = `${provider._id}-status`;
                 return (
-                  <TableRow key={auditorium.id}>
-                    <TableCell>{auditorium.id}</TableCell>
-                    <TableCell>{auditorium.storeInfo}</TableCell>
-                    <TableCell>{auditorium.ownerInfo}</TableCell>
-                    <TableCell>{auditorium.zone}</TableCell>
+                  <TableRow key={provider._id}>
+                    <TableCell>{provider.id}</TableCell>
+                    <TableCell>{provider.storeInfo}</TableCell>
+                    <TableCell>{provider.ownerInfo}</TableCell>
+                    <TableCell>{provider.email}</TableCell>
+                    <TableCell>{provider.phone}</TableCell>
+                    <TableCell>{provider.zone}</TableCell>
                     <TableCell>
                       <Switch
-                        checked={auditorium.featured}
-                        color="primary"
-                        onChange={() => handleFeaturedToggle(auditorium._id)}
+                        checked={provider.featured}
+                        onChange={() => handleFeaturedToggle(provider._id)}
                         disabled={toggleLoading[featuredToggleKey]}
+                        color="primary"
                       />
                       {toggleLoading[featuredToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
                     </TableCell>
                     <TableCell>
                       <Switch
-                        checked={auditorium.status}
-                        color="primary"
-                        onChange={() => handleStatusToggle(auditorium._id)}
+                        checked={provider.status}
+                        onChange={() => handleStatusToggle(provider._id)}
                         disabled={toggleLoading[statusToggleKey]}
+                        color="primary"
                       />
                       {toggleLoading[statusToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
                     </TableCell>
-                    <TableCell>{auditorium.ownerEmail}</TableCell>
-                    <TableCell>{auditorium.password}</TableCell>
-                    <TableCell>{auditorium.confirmPassword}</TableCell>
                     <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      <IconButton color="primary" onClick={() => alert(`Viewing auditorium: ${auditorium.storeInfo}`)}>
+                      <IconButton color="primary" onClick={() => alert(`Viewing: ${provider.storeInfo}`)}>
                         <VisibilityOutlined />
                       </IconButton>
-                      <IconButton
-                        color="primary"
-                        onClick={() => navigate('/auditoriums/edit', { state: { auditorium } })}
-                      >
+                      <IconButton color="primary" onClick={() => navigate('/providers/edit', { state: { provider } })}>
                         <Edit />
                       </IconButton>
-                      <IconButton color="error" onClick={() => handleDeleteClick(auditorium)}>
+                      <IconButton color="error" onClick={() => handleDeleteClick(provider)}>
                         <Delete />
                       </IconButton>
                     </TableCell>
@@ -660,21 +614,20 @@ const AuditoriumsList = () => {
         </Box>
       )}
 
+      {/* Delete dialog */}
       <Dialog
         open={openDeleteDialog}
         onClose={handleDeleteCancel}
-        aria-labelledby="delete-dialog-title"
-        aria-describedby="delete-dialog-description"
         sx={{ '& .MuiDialog-paper': { borderRadius: 2, padding: 2, maxWidth: 400 } }}
       >
-        <DialogTitle id="delete-dialog-title">
+        <DialogTitle>
           <Typography variant="h6" color="error">
             Confirm Delete
           </Typography>
         </DialogTitle>
         <DialogContent>
-          <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the auditorium "<strong>{auditoriumToDelete?.storeInfo}</strong>"? This action cannot be undone.
+          <DialogContentText>
+            Are you sure you want to delete vendor "<strong>{providerToDelete?.storeInfo}</strong>"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
@@ -687,6 +640,7 @@ const AuditoriumsList = () => {
         </DialogActions>
       </Dialog>
 
+      {/* Notifications */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
@@ -701,4 +655,4 @@ const AuditoriumsList = () => {
   );
 };
 
-export default AuditoriumsList;
+export default ProvidersList;

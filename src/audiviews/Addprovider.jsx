@@ -13,7 +13,9 @@ import {
   CardContent,
   CardMedia,
   Grid,
-  Chip
+  Chip,
+  InputLabel,
+  FormControl
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
@@ -27,6 +29,7 @@ function AddAuditorium() {
   const [vendorsLoading, setVendorsLoading] = useState(true);
 
   const activeModuleId = localStorage.getItem('moduleDbId');
+  const activeModuleName = localStorage.getItem('activeModule');
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -52,17 +55,18 @@ function AddAuditorium() {
     ownerEmail: '',
     businessTIN: '',
     tinExpireDate: '',
-    status: 'pending', // Default value, typically managed by backend
-    reviewedBy: '', // Admin-controlled, optional in form
-    reviewedAt: '', // Admin-controlled, optional in form
-    rejectionReason: '', // Admin-controlled, optional in form
-    adminNotes: '', // Admin-controlled, optional in form
-    isActive: true, // Default value, typically managed by backend
-    approvedProvider: '' // Admin-controlled, optional in form
+    status: 'pending',
+    reviewedBy: '',
+    reviewedAt: '',
+    rejectionReason: '',
+    adminNotes: '',
+    isActive: true,
+    approvedProvider: ''
   });
 
   const [zones, setZones] = useState([]);
   const [modules, setModules] = useState([]);
+  const [allModules, setAllModules] = useState([]); // Store all modules for reference
   const [vendors, setVendors] = useState([]);
   const [selectedZone, setSelectedZone] = useState('');
   const [logoPreview, setLogoPreview] = useState(null);
@@ -105,13 +109,32 @@ function AddAuditorium() {
       setModulesLoading(true);
       const res = await fetch(`${API_BASE_URL}/modules`);
       const data = await res.json();
-      const activeModuleId = localStorage.getItem('moduleDbId');
+      
+      console.log('Fetched modules:', data);
+      console.log('Active module ID from localStorage:', activeModuleId);
+      console.log('Active module name from localStorage:', activeModuleName);
+      
+      // Store all modules for reference
+      setAllModules(Array.isArray(data) ? data : []);
+      
+      // If there's an active module ID, filter for it; otherwise show all modules
       const filtered = Array.isArray(data)
-        ? data.filter((m) => m._id === activeModuleId)
+        ? activeModuleId 
+          ? data.filter((m) => m._id === activeModuleId)
+          : data
         : [];
+      
+      console.log('Filtered modules:', filtered);
       setModules(filtered);
+      
+      // Set the initial module value if we have an active module
+      if (activeModuleId && filtered.length > 0) {
+        setFormData(prev => ({ ...prev, module: activeModuleId }));
+      }
     } catch (err) {
+      console.error('Error fetching modules:', err);
       setModules([]);
+      setAllModules([]);
     } finally {
       setModulesLoading(false);
     }
@@ -174,7 +197,9 @@ function AddAuditorium() {
   };
 
   const handleModuleChange = (event) => {
-    setFormData({ ...formData, module: event.target.value });
+    const selectedModuleId = event.target.value;
+    console.log('Module changed to:', selectedModuleId);
+    setFormData({ ...formData, module: selectedModuleId });
   };
 
   const handleImageUpload = (event, type) => {
@@ -212,6 +237,7 @@ function AddAuditorium() {
     if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.ownerEmail)) {
       errors.push('Owner email is invalid');
     }
+    if (!formData.module) errors.push('Module is required');
     return errors;
   };
 
@@ -246,7 +272,6 @@ function AddAuditorium() {
       formPayload.append('tinExpireDate', formData.tinExpireDate);
       formPayload.append('module', formData.module);
       formPayload.append('zone', formData.zone);
-      // Optional admin-controlled fields, included but typically managed by backend
       formPayload.append('status', formData.status);
       formPayload.append('reviewedBy', formData.reviewedBy);
       formPayload.append('reviewedAt', formData.reviewedAt);
@@ -258,6 +283,8 @@ function AddAuditorium() {
       if (files.coverImage) formPayload.append('coverImage', files.coverImage);
       if (files.tinCertificate) formPayload.append('tinCertificate', files.tinCertificate);
 
+      console.log('Submitting with module ID:', formData.module);
+
       const response = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
         body: formPayload
@@ -265,7 +292,7 @@ function AddAuditorium() {
       const result = await response.json();
       if (response.ok) {
         showAlert('Provider added successfully', 'success');
-        fetchVendors(); // Refresh vendors list
+        fetchVendors();
         handleReset();
       } else {
         showAlert(result.message || 'Failed to add provider', 'error');
@@ -326,8 +353,15 @@ function AddAuditorium() {
     return [address.street, address.city, address.state, address.zipCode].filter(Boolean).join(', ') || 'N/A';
   };
 
+  // Get the current selected module details for display
+  const getSelectedModuleName = () => {
+    if (!formData.module) return 'No module selected';
+    const selectedModule = allModules.find(m => m._id === formData.module);
+    return selectedModule ? selectedModule.title : 'Unknown module';
+  };
+
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f9f9f9',borderRadius: 2 }}>
+    <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
         Add Provider
       </Typography>
@@ -347,7 +381,7 @@ function AddAuditorium() {
       {logoPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Logo:</Typography>
-          <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100', maxHeight: '200px', objectFit: 'contain' }} />
+          <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100px', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
       <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
@@ -369,7 +403,6 @@ function AddAuditorium() {
           <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'coverImage')} />
         </Button>
       </Box>
-
 
       {/* User Information */}
       <Box sx={{ mb: 3 }}>
@@ -403,77 +436,78 @@ function AddAuditorium() {
         />
       </Box>
 
-      {/* Store Information */}
-
-
-      {/* Delivery Time */}
-      {/* <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Delivery Time</Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-          <TextField
-            fullWidth
-            label="Minimum Delivery Time (min)"
-            variant="outlined"
-            value={formData.minimumDeliveryTime}
-            onChange={handleInputChange('minimumDeliveryTime')}
-          />
-          <TextField
-            fullWidth
-            label="Maximum Delivery Time (min)"
-            variant="outlined"
-            value={formData.maximumDeliveryTime}
-            onChange={handleInputChange('maximumDeliveryTime')}
-          />
-        </Box>
-      </Box> */}
-
       {/* Location */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Location</Typography>
+        
+        {/* Module Selection */}
         <Box sx={{ mb: 2 }}>
           {modulesLoading ? (
-            <CircularProgress size={20} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Loading modules...</Typography>
+            </Box>
           ) : modules.length > 0 ? (
-            <Select
-              fullWidth
-              variant="outlined"
-              value={formData.module}
-              onChange={handleModuleChange}
-              displayEmpty
-              disabled={modules.length <= 1}
-            >
-              <MenuItem value="" disabled>Select Module</MenuItem>
-              {modules.map((m) => (
-                <MenuItem key={m._id} value={m._id}>
-                  {m.title}
-                </MenuItem>
-              ))}
-            </Select>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="module-select-label">Module *</InputLabel>
+              <Select
+                labelId="module-select-label"
+                id="module-select"
+                value={formData.module}
+                onChange={handleModuleChange}
+                label="Module *"
+                disabled={modules.length === 1}
+              >
+                {modules.map((m) => (
+                  <MenuItem key={m._id} value={m._id}>
+                    {m.title}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           ) : (
-            <Typography>No modules available</Typography>
+            <Alert severity="warning">No modules available. Please configure modules first.</Alert>
+          )}
+          
+          {/* Display current selection */}
+          {formData.module && (
+            <Box sx={{ mt: 1, p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                Selected Module: <strong>{getSelectedModuleName()}</strong>
+              </Typography>
+            </Box>
           )}
         </Box>
 
+        {/* Zone Selection */}
         <Box sx={{ mb: 2 }}>
           {zonesLoading ? (
-            <CircularProgress size={20} />
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Loading zones...</Typography>
+            </Box>
           ) : zones.length > 0 ? (
-            <Select
-              fullWidth
-              variant="outlined"
-              value={selectedZone}
-              onChange={handleZoneChange}
-              displayEmpty
-            >
-              <MenuItem value="" disabled>Select Zone</MenuItem>
-              {zones.map((zone) => (
-                <MenuItem key={zone._id} value={zone._id}>
-                  {zone.name}
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="zone-select-label">Zone</InputLabel>
+              <Select
+                labelId="zone-select-label"
+                id="zone-select"
+                value={selectedZone}
+                onChange={handleZoneChange}
+                label="Zone"
+              >
+                <MenuItem value="">
+                  <em>Select Zone</em>
                 </MenuItem>
-              ))}
-            </Select>
+                {zones.map((zone) => (
+                  <MenuItem key={zone._id} value={zone._id}>
+                    {zone.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
           ) : (
-            <Typography>No zones available</Typography>
+            <Alert severity="info">No zones available</Alert>
           )}
         </Box>
 
@@ -508,7 +542,6 @@ function AddAuditorium() {
             value={formData.storeAddress.zipCode}
             onChange={handleAddressChange('zipCode')}
           />
-
         </Box>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
           <TextField
@@ -627,77 +660,6 @@ function AddAuditorium() {
         </Box>
       </Box>
 
-      {/* Admin-Controlled Fields (Optional, typically managed by backend) */}
-      {/* <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Admin Information</Typography>
-        <Select
-          fullWidth
-          variant="outlined"
-          value={formData.status}
-          onChange={handleInputChange('status')}
-          displayEmpty
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="pending">Pending</MenuItem>
-          <MenuItem value="under_review">Under Review</MenuItem>
-          <MenuItem value="approved">Approved</MenuItem>
-          <MenuItem value="rejected">Rejected</MenuItem>
-        </Select>
-        <TextField
-          fullWidth
-          label="Reviewed By (User ID)"
-          variant="outlined"
-          value={formData.reviewedBy}
-          onChange={handleInputChange('reviewedBy')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Reviewed At"
-          type="datetime-local"
-          value={formData.reviewedAt}
-          onChange={handleInputChange('reviewedAt')}
-          InputLabelProps={{ shrink: true }}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Rejection Reason"
-          variant="outlined"
-          value={formData.rejectionReason}
-          onChange={handleInputChange('rejectionReason')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Admin Notes"
-          variant="outlined"
-          value={formData.adminNotes}
-          onChange={handleInputChange('adminNotes')}
-          multiline
-          rows={4}
-          sx={{ mb: 2 }}
-        />
-        <Select
-          fullWidth
-          variant="outlined"
-          value={formData.isActive}
-          onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value={true}>Active</MenuItem>
-          <MenuItem value={false}>Inactive</MenuItem>
-        </Select>
-        <TextField
-          fullWidth
-          label="Approved Provider (User ID)"
-          variant="outlined"
-          value={formData.approvedProvider}
-          onChange={handleInputChange('approvedProvider')}
-          sx={{ mb: 2 }}
-        />
-      </Box> */}
-
       {/* Submit and Reset Buttons */}
       <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
         <Button variant="outlined" onClick={handleReset} disabled={loading}>
@@ -765,7 +727,7 @@ function AddAuditorium() {
                       Owner: {vendor.ownerFirstName} {vendor.ownerLastName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      📍 {formatAddress(vendor.storeAddress)}
+                      {formatAddress(vendor.storeAddress)}
                     </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
                       <Chip label={`Zone: ${vendor.zone?.name || 'N/A'}`} size="small" color="primary" />

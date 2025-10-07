@@ -4,7 +4,7 @@ import {
   IconButton, Tooltip, Stack, Radio, RadioGroup, FormControlLabel,
   Select, MenuItem, FormControl, InputLabel, useTheme, useMediaQuery,
   Switch, Snackbar, Alert, Grid, Chip, Dialog, DialogTitle,
-  DialogContent, DialogActions, CircularProgress
+  DialogContent, DialogActions, CircularProgress, Divider
 } from '@mui/material';
 import {
   CloudUpload as CloudUploadIcon, Settings as SettingsIcon,
@@ -56,7 +56,7 @@ function a11yProps(index) {
 const CreateAuditorium = () => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
-  const API_BASE_URL = "http://localhost:5000/api"; // Replace with production URL
+  const API_BASE_URL = "https://api.bookmyevent.ae/api"; // Replace with production URL
 
   // State management
   const [currentView, setCurrentView] = useState('list'); // 'list', 'create', or 'edit'
@@ -143,11 +143,62 @@ const CreateAuditorium = () => {
 
       const data = await response.json();
       if (data.success) {
-        const updatedVenues = data.data.map(venue => ({
-          ...venue,
-          thumbnail: venue.thumbnail ? `${API_BASE_URL}/${venue.thumbnail.replace(/^\//, '')}` : null,
-          images: venue.images ? venue.images.map(img => `${API_BASE_URL}/${img.replace(/^\//, '')}`) : []
-        }));
+        const updatedVenues = data.data.map(venue => {
+          // Helper function to construct proper image URL from file path
+          const constructImageUrl = (path) => {
+            if (!path) return null;
+            
+            // If path already starts with http, return as is
+            if (path.startsWith('http://') || path.startsWith('https://')) {
+              return path;
+            }
+            
+            // Handle Windows/Unix file paths - extract filename and construct URL
+            // Example: "D:\\...\\Uploads\\venues\\1759728905600-book.png"
+            // Should become: "https://api.bookmyevent.ae/uploads/venues/1759728905600-book.png"
+            
+            let filename;
+            
+            // Check if it's a full file system path (contains backslashes or full path)
+            if (path.includes('\\') || path.includes('Uploads')) {
+              // Extract everything after "Uploads" (case-insensitive)
+              const uploadsIndex = path.toLowerCase().indexOf('uploads');
+              if (uploadsIndex !== -1) {
+                filename = path.substring(uploadsIndex).replace(/\\/g, '/');
+              } else {
+                // If no "Uploads" found, just use the filename
+                filename = path.split(/[\\\/]/).pop();
+                filename = `uploads/venues/${filename}`;
+              }
+            } else if (path.startsWith('/uploads/') || path.startsWith('uploads/')) {
+              // Already a relative path
+              filename = path.replace(/^\//, '');
+            } else {
+              // Unknown format, try to use as-is
+              filename = path.replace(/^\//, '');
+            }
+            
+            // Construct final URL
+            // Remove /api from base URL if present, then add the path
+            const baseUrl = API_BASE_URL.replace('/api', '');
+            const finalUrl = `${baseUrl}/${filename.toLowerCase()}`;
+            
+            console.log('Path conversion:', { original: path, final: finalUrl });
+            return finalUrl;
+          };
+
+          return {
+            ...venue,
+            thumbnail: constructImageUrl(venue.thumbnail),
+            images: venue.images ? venue.images.map(img => constructImageUrl(img)) : []
+          };
+        });
+        
+        console.log('Sample venue URLs:', {
+          thumbnail: updatedVenues[0]?.thumbnail,
+          firstImage: updatedVenues[0]?.images?.[0]
+        });
+        
         setVenues(updatedVenues);
         setTotalItems(data.count || 0);
         setTotalPages(Math.ceil(data.count / 10));
@@ -262,6 +313,19 @@ const CreateAuditorium = () => {
     setLoading(true);
     setErrorMessage('');
 
+
+
+      // Check for token first
+    const token = localStorage.getItem('token');
+    if (!token) {
+      setErrorMessage('Authentication required. Please log in again.');
+      setAlertSeverity('error');
+      setOpenToast(true);
+      setLoading(false);
+      return;
+    }
+
+    
     const validationErrors = validateForm();
     if (validationErrors.length > 0) {
       setErrorMessage(validationErrors.join(', '));
@@ -427,13 +491,26 @@ const CreateAuditorium = () => {
           {venues.map((venue) => (
             <Grid item xs={12} sm={6} md={4} key={venue._id}>
               <Card sx={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-                <Box sx={{ position: 'relative', height: 200, overflow: 'hidden' }}>
-                  <img
-                    src={imageErrors[venue._id] || !venue.thumbnail ? 'https://via.placeholder.com/150?text=No+Image' : venue.thumbnail}
-                    alt={venue.venueName}
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                    onError={() => handleImageError(venue._id)}
-                  />
+                <Box sx={{ position: 'relative', height: 200, overflow: 'hidden', bgcolor: 'grey.200' }}>
+                  {!imageErrors[venue._id] && venue.thumbnail ? (
+                    <img
+                      src={venue.thumbnail}
+                      alt={venue.venueName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                      onError={() => handleImageError(venue._id)}
+                    />
+                  ) : (
+                    <Box sx={{ 
+                      width: '100%', 
+                      height: '100%', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center',
+                      bgcolor: 'grey.300'
+                    }}>
+                      <Typography variant="body2" color="text.secondary">No Image</Typography>
+                    </Box>
+                  )}
                   <Box sx={{
                     position: 'absolute',
                     top: 8,
@@ -550,9 +627,9 @@ const CreateAuditorium = () => {
           </DialogTitle>
           <DialogContent>
             <Box sx={{ mb: 2 }}>
-              {selectedVenue.thumbnail && (
+              {selectedVenue.thumbnail && !imageErrors[selectedVenue._id] ? (
                 <img
-                  src={imageErrors[selectedVenue._id] || !selectedVenue.thumbnail ? 'https://via.placeholder.com/150?text=No+Image' : selectedVenue.thumbnail}
+                  src={selectedVenue.thumbnail}
                   alt={selectedVenue.venueName}
                   style={{
                     width: '100%',
@@ -562,6 +639,18 @@ const CreateAuditorium = () => {
                   }}
                   onError={() => handleImageError(selectedVenue._id)}
                 />
+              ) : (
+                <Box sx={{ 
+                  width: '100%', 
+                  height: 300, 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  justifyContent: 'center',
+                  bgcolor: 'grey.200',
+                  borderRadius: theme.shape.borderRadius
+                }}>
+                  <Typography variant="body1" color="text.secondary">No Thumbnail</Typography>
+                </Box>
               )}
             </Box>
             <Typography variant="subtitle1" gutterBottom sx={{ fontWeight: 600 }}>
@@ -626,13 +715,30 @@ const CreateAuditorium = () => {
                 </Typography>
                 <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
                   {selectedVenue.images.map((image, index) => (
-                    <img
-                      key={index}
-                      src={imageErrors[`${selectedVenue._id}-${index}`] || !image ? 'https://via.placeholder.com/100?text=No+Image' : image}
-                      alt={`Gallery ${index + 1}`}
-                      style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: theme.shape.borderRadius }}
-                      onError={() => setImageErrors(prev => ({ ...prev, [`${selectedVenue._id}-${index}`]: true }))}
-                    />
+                    !imageErrors[`${selectedVenue._id}-${index}`] && image ? (
+                      <img
+                        key={index}
+                        src={image}
+                        alt={`Gallery ${index + 1}`}
+                        style={{ width: 100, height: 100, objectFit: 'cover', borderRadius: theme.shape.borderRadius }}
+                        onError={() => setImageErrors(prev => ({ ...prev, [`${selectedVenue._id}-${index}`]: true }))}
+                      />
+                    ) : (
+                      <Box 
+                        key={index}
+                        sx={{ 
+                          width: 100, 
+                          height: 100, 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'center',
+                          bgcolor: 'grey.200',
+                          borderRadius: theme.shape.borderRadius
+                        }}
+                      >
+                        <Typography variant="caption" color="text.secondary">No Image</Typography>
+                      </Box>
+                    )
                   ))}
                 </Box>
               </>
@@ -821,7 +927,6 @@ const CreateAuditorium = () => {
           </Card>
         </Box>
 
-        {/* Rest of the form sections */}
         <Box sx={{ mb: 4 }}>
           <Card sx={{ p: 2, boxShadow: 'none', border: `1px solid ${theme.palette.grey[200]}` }}>
             <CardContent>
