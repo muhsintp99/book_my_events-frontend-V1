@@ -118,9 +118,7 @@ const Createnew = () => {
         headers: { Authorization: `Bearer ${token}` }
       });
       if (!response.ok) throw new Error('Failed to fetch brands');
-      if (!response.ok) throw new Error('Failed to fetch brands');
       const data = await response.json();
-      setBrands(Array.isArray(data) ? data : []);
       setBrands(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
@@ -430,39 +428,6 @@ const Createnew = () => {
 
     // Validate all required fields
     if (
-    
-    // Trim and validate vehicle name
-    const trimmedVehicleName = vehicleName.trim();
-    if (!trimmedVehicleName) {
-      setToastMessage('Please enter a vehicle name.');
-      setToastSeverity('error');
-      setOpenToast(true);
-      return;
-    }
-
-    // Normalize VIN and License Plate
-    const normalizedVin = vinNumber.trim().toUpperCase().replace(/\s+/g, '');
-    const normalizedLicensePlate = licensePlateNumber.trim().toUpperCase();
-    const normalizedAdditionalVin = additionalVinNumber.trim().toUpperCase().replace(/\s+/g, '');
-    const normalizedAdditionalLicensePlate = additionalLicensePlateNumber.trim().toUpperCase();
-
-    // Validate VIN length
-    if (normalizedVin.length !== 17) {
-      setToastMessage('VIN Number must be exactly 17 characters');
-      setToastSeverity('error');
-      setOpenToast(true);
-      return;
-    }
-
-    if (sameModelMultipleVehicles && normalizedAdditionalVin.length !== 17) {
-      setToastMessage('Additional VIN Number must be exactly 17 characters');
-      setToastSeverity('error');
-      setOpenToast(true);
-      return;
-    }
-
-    // Validate all required fields
-    if (
       !brand ||
       !model ||
       !category ||
@@ -475,7 +440,6 @@ const Createnew = () => {
       !tripType ||
       (tripType === 'hourly' && !hourlyWisePrice) ||
       (tripType === 'perDay' && !perDayPrice) ||
-      (tripType === 'distanceWise' && !distanceWisePrice)
       (tripType === 'distanceWise' && !distanceWisePrice)
     ) {
       setToastMessage('Please fill all required fields.');
@@ -509,9 +473,7 @@ const Createnew = () => {
     }
 
     // Create FormData
-    // Create FormData
     const formData = new FormData();
-    formData.append('name', trimmedVehicleName);
     formData.append('name', trimmedVehicleName);
     formData.append('description', description);
     formData.append('brand', brand);
@@ -531,8 +493,6 @@ const Createnew = () => {
     formData.append('thumbnail', thumbnailFile);
     vehicleImages.forEach((image) => formData.append('images', image));
     vehicleDoc.forEach((doc) => formData.append('documents', doc));
-    formData.append('vinNumber', normalizedVin);
-    formData.append('licensePlateNumber', normalizedLicensePlate);
     formData.append('vinNumber', normalizedVin);
     formData.append('licensePlateNumber', normalizedLicensePlate);
     searchTags.forEach((tag) => formData.append('searchTags', tag));
@@ -557,10 +517,8 @@ const Createnew = () => {
 
       if (data.success) {
         // Handle additional vehicle if needed
-        // Handle additional vehicle if needed
         if (sameModelMultipleVehicles) {
           const additionalFormData = new FormData();
-          additionalFormData.append('name', trimmedVehicleName);
           additionalFormData.append('name', trimmedVehicleName);
           additionalFormData.append('description', description);
           additionalFormData.append('brand', brand);
@@ -582,8 +540,6 @@ const Createnew = () => {
           vehicleDoc.forEach((doc) => additionalFormData.append('documents', doc));
           additionalFormData.append('vinNumber', normalizedAdditionalVin);
           additionalFormData.append('licensePlateNumber', normalizedAdditionalLicensePlate);
-          additionalFormData.append('vinNumber', normalizedAdditionalVin);
-          additionalFormData.append('licensePlateNumber', normalizedAdditionalLicensePlate);
           searchTags.forEach((tag) => additionalFormData.append('searchTags', tag));
 
           const additionalResponse = await fetch(`${API_BASE_URL}/vehicles`, {
@@ -603,7 +559,6 @@ const Createnew = () => {
         setToastSeverity('success');
         setOpenToast(true);
         handleReset();
-        fetchVehicles();
         fetchVehicles();
       } else {
         throw new Error(data.message || 'Failed to create vehicle');
@@ -1063,7 +1018,6 @@ const Createnew = () => {
                     placeholder="Type your license plate number"
                     required
                     inputProps={{ maxLength: 15 }}
-                    inputProps={{ maxLength: 15 }}
                   />
                 </Box>
                 {sameModelMultipleVehicles && (
@@ -1093,7 +1047,6 @@ const Createnew = () => {
                         onChange={(e) => setAdditionalLicensePlateNumber(e.target.value)}
                         placeholder="Type additional license plate number"
                         required
-                        inputProps={{ maxLength: 15 }}
                         inputProps={{ maxLength: 15 }}
                       />
                     </Box>
