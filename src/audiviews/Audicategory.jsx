@@ -41,8 +41,8 @@ import {
   ExpandMore as ExpandMoreIcon,
   TableView as ExcelIcon,
   Description as CsvIcon,
-  CloudUploadIcon,
-  CloseIcon
+  CloudUpload as CloudUploadIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
