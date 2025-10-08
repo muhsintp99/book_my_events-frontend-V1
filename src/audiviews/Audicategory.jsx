@@ -34,15 +34,13 @@ import {
   Stack
 } from '@mui/material';
 import {
-  CloudUpload as CloudUploadIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   FileDownload as ExportIcon,
-  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
   TableView as ExcelIcon,
-  Description as CsvIcon,
-  ExpandMore as ExpandMoreIcon
+  Description as CsvIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -63,53 +61,42 @@ export default function CategoryManagement() {
     description: '',
     parentCategory: '',
     module: '',
+    module: '',
     displayOrder: 0,
     isActive: true,
     isFeatured: false,
     metaTitle: '',
     metaDescription: ''
   });
-
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
     itemsPerPage: 10
   });
-
-  // Notification states
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
-
-  // Delete confirmation dialog
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     categoryId: null,
     categoryName: ''
   });
-
-  // Export menu state
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const exportMenuOpen = Boolean(exportMenuAnchor);
-
   const navigate = useNavigate();
 
-  // Language tabs configuration
   const languageTabs = [
     { key: 'default', label: 'Default' },
     { key: 'english', label: 'English(EN)' },
     { key: 'arabic', label: 'Arabic - العربية(AR)' }
   ];
 
-  // Auth helper functions
   const getAuthToken = () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     console.log('Retrieved token:', token ? 'Token exists' : 'No token found');
@@ -126,6 +113,17 @@ export default function CategoryManagement() {
       const parsedUser = JSON.parse(user);
       console.log('User role:', parsedUser.role);
       return parsedUser.role;
+    } catch (e) {
+      console.error('Error parsing user data:', e);
+      return null;
+    }
+  };
+
+  const getUserId = () => {
+    const user = localStorage.getItem('user') || sessionStorage.getItem('user');
+    if (!user) return null;
+    try {
+      return JSON.parse(user)._id;
     } catch (e) {
       console.error('Error parsing user data:', e);
       return null;
@@ -224,6 +222,7 @@ export default function CategoryManagement() {
 
     try {
       const url = `${API_BASE_URL}/categories?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&search=${encodeURIComponent(searchTerm)}`;
+      const url = `${API_BASE_URL}/categories?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&search=${encodeURIComponent(searchTerm)}`;
 
       const response = await fetch(url, {
         headers: {
@@ -235,11 +234,13 @@ export default function CategoryManagement() {
       if (response.status === 401) {
         setError('Session expired. Please log in again.');
         navigate('/login');
+        navigate('/login');
         return;
       }
 
       if (response.status === 403) {
         setError("Access denied. You don't have permission to view categories.");
+        navigate('/dashboard');
         navigate('/dashboard');
         return;
       }
@@ -267,8 +268,12 @@ export default function CategoryManagement() {
       const baseURL = API_BASE_URL.replace('/api', '');
 
       const formattedCategories = categoriesList.map((cat) => ({
+      const formattedCategories = categoriesList.map((cat) => ({
         id: cat._id,
         names: {
+          default: cat.name || cat.title || '',
+          english: cat.name || cat.title || '',
+          arabic: cat.name || cat.title || ''
           default: cat.name || cat.title || '',
           english: cat.name || cat.title || '',
           arabic: cat.name || cat.title || ''
@@ -301,6 +306,7 @@ export default function CategoryManagement() {
       setLoading(false);
     }
   }, [searchTerm, pagination.currentPage, pagination.itemsPerPage, navigate]);
+  }, [searchTerm, pagination.currentPage, pagination.itemsPerPage, navigate]);
 
   // Check role and fetch data on component mount
   useEffect(() => {
@@ -320,9 +326,11 @@ export default function CategoryManagement() {
       setError('Access denied. Admin, Manager, or Superadmin role required.');
       setLoading(false);
       navigate('/dashboard');
+      navigate('/dashboard');
       return;
     }
 
+    fetchModules();
     fetchModules();
     fetchCategories();
   }, [fetchModules, fetchCategories, navigate]);
@@ -363,6 +371,7 @@ export default function CategoryManagement() {
     if (!token) {
       setError('You are not authenticated. Please log in.');
       navigate('/login');
+      navigate('/login');
       return;
     }
 
@@ -374,14 +383,16 @@ export default function CategoryManagement() {
       showNotification('Please select a valid module', 'error');
       return;
     }
-    if (!uploadedImage) {
-      showNotification('Please upload an image', 'error');
+    if (!formData.module || !/^[0-9a-fA-F]{24}$/.test(formData.module)) {
+      showNotification('Please select a valid module', 'error');
       return;
     }
 
     setLoading(true);
     try {
       const formDataToSend = new FormData();
+      formDataToSend.append('title', formData.name.trim());
+      formDataToSend.append('module', formData.module);
       formDataToSend.append('title', formData.name.trim());
       formDataToSend.append('module', formData.module);
       if (formData.description.trim()) {
@@ -403,7 +414,9 @@ export default function CategoryManagement() {
       formDataToSend.append('image', uploadedImage);
 
       console.log('Sending FormData with module:', formData.module);
+      console.log('Sending FormData with module:', formData.module);
 
+      const response = await fetch(`${API_BASE_URL}/categories`, {
       const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'POST',
         headers: {
@@ -413,6 +426,18 @@ export default function CategoryManagement() {
       });
 
       if (!response.ok) {
+        let errorMessage = 'Failed to add category';
+        const status = response.status;
+
+        try {
+          const text = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(text);
+            errorMessage = errorData.error || errorMessage;
+          } catch {
+            errorMessage = text || errorMessage;
+          }
         let errorMessage = 'Failed to add category';
         const status = response.status;
 
@@ -459,9 +484,12 @@ export default function CategoryManagement() {
         }
 
         throw new Error(errorMessage);
+        throw new Error(errorMessage);
       }
 
       const data = await response.json();
+      const addedCategory = data.data?.category || data.category;
+      showNotification(`Category "${addedCategory.title || addedCategory.name}" added successfully!`, 'success');
       const addedCategory = data.data?.category || data.category;
       showNotification(`Category "${addedCategory.title || addedCategory.name}" added successfully!`, 'success');
       handleReset();
@@ -473,14 +501,19 @@ export default function CategoryManagement() {
         errorMessage = 'Network error: Unable to reach the server. Please check your connection or try again later.';
       }
       showNotification(errorMessage, 'error');
+      let errorMessage = error.message || 'Failed to add category due to a network or server error. Please try again.';
+      if (error.message.includes('Failed to fetch')) {
+        errorMessage = 'Network error: Unable to reach the server. Please check your connection or try again later.';
+      }
+      showNotification(errorMessage, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle reset
   const handleReset = () => {
-    setFormData({
+    setFormData((prev) => ({
+      ...prev,
       name: '',
       description: '',
       parentCategory: '',
@@ -490,19 +523,13 @@ export default function CategoryManagement() {
       isFeatured: false,
       metaTitle: '',
       metaDescription: ''
-    });
-    setUploadedImage(null);
-    setImagePreview(null);
-    const fileInput = document.getElementById('image-upload-input');
-    if (fileInput) fileInput.value = '';
+    }));
   };
 
-  // Handle edit
   const handleEdit = (id) => {
     navigate(`/categories/edit/${id}`);
   };
 
-  // Handle delete confirmation
   const handleDeleteClick = (id) => {
     const category = categories.find((c) => c.id === id);
     setDeleteDialog({
@@ -512,17 +539,18 @@ export default function CategoryManagement() {
     });
   };
 
-  // Handle delete confirm
   const handleDeleteConfirm = async () => {
     const token = getAuthToken();
     if (!token) {
       setError('You are not authenticated. Please log in.');
+      navigate('/login');
       navigate('/login');
       return;
     }
 
     setLoading(true);
     try {
+      const response = await fetch(`${API_BASE_URL}/categories/${deleteDialog.categoryId}`, {
       const response = await fetch(`${API_BASE_URL}/categories/${deleteDialog.categoryId}`, {
         method: 'DELETE',
         headers: {
@@ -537,17 +565,21 @@ export default function CategoryManagement() {
           errorData = JSON.parse(text);
         } catch {
           errorData = { error: text || 'Unknown error' };
+          errorData = { error: text || 'Unknown error' };
         }
         if (response.status === 401) {
           setError('Session expired. Please log in again.');
+          navigate('/login');
           navigate('/login');
           return;
         }
         if (response.status === 403) {
           setError("Access denied. You don't have permission to delete categories.");
           navigate('/dashboard');
+          navigate('/dashboard');
           return;
         }
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
@@ -562,17 +594,18 @@ export default function CategoryManagement() {
     }
   };
 
-  // Handle status toggle
   const handleStatusToggle = async (id) => {
     const token = getAuthToken();
     if (!token) {
       setError('You are not authenticated. Please log in.');
+      navigate('/login');
       navigate('/login');
       return;
     }
 
     setLoading(true);
     try {
+      const response = await fetch(`${API_BASE_URL}/categories/${id}/toggle-status`, {
       const response = await fetch(`${API_BASE_URL}/categories/${id}/toggle-status`, {
         method: 'PATCH',
         headers: {
@@ -588,21 +621,28 @@ export default function CategoryManagement() {
           errorData = JSON.parse(text);
         } catch {
           errorData = { error: text || 'Unknown error' };
+          errorData = { error: text || 'Unknown error' };
         }
         if (response.status === 401) {
           setError('Session expired. Please log in again.');
+          navigate('/login');
           navigate('/login');
           return;
         }
         if (response.status === 403) {
           setError("Access denied. You don't have permission to update category status.");
           navigate('/dashboard');
+          navigate('/dashboard');
           return;
         }
+        throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
       const data = await response.json();
+      const updatedCategory = data.data?.category || data.category;
+      const newStatus = updatedCategory.isActive;
+      showNotification(`Category "${updatedCategory.name}" ${newStatus ? 'activated' : 'deactivated'}`, 'info');
       const updatedCategory = data.data?.category || data.category;
       const newStatus = updatedCategory.isActive;
       showNotification(`Category "${updatedCategory.name}" ${newStatus ? 'activated' : 'deactivated'}`, 'info');
@@ -615,17 +655,14 @@ export default function CategoryManagement() {
     }
   };
 
-  // Show notification
   const showNotification = (message, severity = 'success') => {
     setNotification({ open: true, message, severity });
   };
 
-  // Handle notification close
   const handleNotificationClose = () => {
     setNotification((prev) => ({ ...prev, open: false }));
   };
 
-  // Navigation helpers
   const handleLoginRedirect = () => {
     navigate('/login');
   };
@@ -636,19 +673,17 @@ export default function CategoryManagement() {
 
   const handleRetry = () => {
     fetchModules();
+    fetchModules();
     fetchCategories();
   };
 
-  // Get current selected language key
   const getCurrentLanguageKey = () => languageTabs[tabValue].key;
 
-  // Filter categories based on search term
   const filteredCategories = categories.filter((category) => {
     const currentLang = getCurrentLanguageKey();
     return category.names[currentLang].toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // Export menu handlers
   const handleExportMenuOpen = (event) => {
     setExportMenuAnchor(event.currentTarget);
   };
@@ -657,17 +692,18 @@ export default function CategoryManagement() {
     setExportMenuAnchor(null);
   };
 
-  // CSV Export function
   const exportToCSV = () => {
     const currentLang = getCurrentLanguageKey();
     const currentLangLabel = languageTabs[tabValue].label;
 
+    const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
     const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
 
     const csvData = filteredCategories.map((category, index) => [
       index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage,
       category.id,
       category.names[currentLang],
+      category.module ? category.module.title || 'N/A' : 'None',
       category.module ? category.module.title || 'N/A' : 'None',
       category.status ? 'Active' : 'Inactive'
     ]);
@@ -691,17 +727,18 @@ export default function CategoryManagement() {
     showNotification('CSV file downloaded successfully!', 'success');
   };
 
-  // Excel Export function
   const exportToExcel = () => {
     const currentLang = getCurrentLanguageKey();
     const currentLangLabel = languageTabs[tabValue].label;
 
+    const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
     const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
 
     const excelData = filteredCategories.map((category, index) => [
       index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage,
       category.id,
       category.names[currentLang],
+      category.module ? category.module.title || 'N/A' : 'None',
       category.module ? category.module.title || 'N/A' : 'None',
       category.status ? 'Active' : 'Inactive'
     ]);
@@ -728,9 +765,10 @@ export default function CategoryManagement() {
   // Show loading state during initial fetch
   if (loading && categories.length === 0 && modulesLoading) {
     return (
-      <Box p={2} display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
         <Stack alignItems="center" spacing={2}>
           <CircularProgress />
+          <Typography>Loading categories and modules...</Typography>
           <Typography>Loading categories and modules...</Typography>
         </Stack>
       </Box>
@@ -744,18 +782,22 @@ export default function CategoryManagement() {
         <Alert
           severity="error"
           onClose={() => { setError(null); setModulesError(null); }}
+          onClose={() => { setError(null); setModulesError(null); }}
           action={
             <Stack direction="row" spacing={1}>
+              {(error || modulesError) && (error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && (
               {(error || modulesError) && (error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && (
                 <Button color="inherit" size="small" onClick={handleLoginRedirect}>
                   Go to Login
                 </Button>
               )}
               {(error || modulesError) && (error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
+              {(error || modulesError) && (error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
                 <Button color="inherit" size="small" onClick={handleDashboardRedirect}>
                   Go to Dashboard
                 </Button>
               )}
+              {(error || modulesError) && !(error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && !(error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
               {(error || modulesError) && !(error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && !(error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
                 <Button color="inherit" size="small" onClick={handleRetry}>
                   Retry
@@ -765,14 +807,13 @@ export default function CategoryManagement() {
           }
         >
           {error || modulesError}
+          {error || modulesError}
         </Alert>
       </Snackbar>
 
-      {/* Add Category Form */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            {/* Tabs */}
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -786,18 +827,20 @@ export default function CategoryManagement() {
               }}
             >
               {languageTabs.map((tab) => (
+              {languageTabs.map((tab) => (
                 <Tab key={tab.key} label={tab.label} />
               ))}
             </Tabs>
 
-            {/* Dynamic Name Input */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
+              Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
               Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
             </Typography>
             <TextField
               fullWidth
               value={languageTabs[tabValue].key === 'default' ? formData.name : ''}
               onChange={(e) => languageTabs[tabValue].key === 'default' && handleFormDataChange('name', e.target.value)}
+              placeholder={`Enter category title in ${languageTabs[tabValue].label}`}
               placeholder={`Enter category title in ${languageTabs[tabValue].label}`}
               variant="outlined"
               disabled={languageTabs[tabValue].key !== 'default'}
@@ -933,6 +976,7 @@ export default function CategoryManagement() {
                   '&:hover': { borderColor: '#bdbdbd', backgroundColor: '#f5f5f5' }
                 }}
                 disabled={loading || modulesLoading}
+                disabled={loading || modulesLoading}
               >
                 Reset
               </Button>
@@ -956,11 +1000,9 @@ export default function CategoryManagement() {
         </Card>
       </Box>
 
-      {/* Category List */}
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="h6" fontWeight={600}>
@@ -1014,7 +1056,6 @@ export default function CategoryManagement() {
                   Export
                 </Button>
 
-                {/* Export Menu */}
                 <Menu
                   anchorEl={exportMenuAnchor}
                   open={exportMenuOpen}
@@ -1053,7 +1094,6 @@ export default function CategoryManagement() {
               </Box>
             </Box>
 
-            {/* Loading indicator for search/pagination */}
             {loading && categories.length > 0 && (
               <Box display="flex" justifyContent="center" p={2}>
                 <CircularProgress size={24} />
@@ -1217,7 +1257,6 @@ export default function CategoryManagement() {
               </Table>
             </TableContainer>
 
-            {/* Pagination */}
             {pagination.totalPages > 1 && (
               <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" p={2}>
                 <Button
@@ -1244,7 +1283,6 @@ export default function CategoryManagement() {
         </Card>
       </Box>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
@@ -1270,7 +1308,6 @@ export default function CategoryManagement() {
         </DialogActions>
       </Dialog>
 
-      {/* Notification Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
