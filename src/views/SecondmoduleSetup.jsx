@@ -17,26 +17,21 @@ import {
   Grid,
   Menu,
   MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
+  useTheme,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   MoreVert as MoreVertIcon,
   CloudUpload as CloudUploadIcon,
-  Delete as DeleteIcon,
   Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
-
-// Import CKEditor
 import { CKEditor } from '@ckeditor/ckeditor5-react';
 import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 const SecondModuleSetup = () => {
+  const theme = useTheme();
+
   // State for module list
   const [searchTerm, setSearchTerm] = useState('');
   const [modules, setModules] = useState([]);
@@ -46,7 +41,7 @@ const SecondModuleSetup = () => {
   // State for adding/editing module
   const [moduleForm, setModuleForm] = useState({
     name: '',
-    description: '', // CKEditor content
+    description: '',
     appIcon: null,
     thumbnail: null,
   });
@@ -62,11 +57,6 @@ const SecondModuleSetup = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
 
-  // State for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [moduleToDelete, setModuleToDelete] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
   // State for image previews
   const [imagePreview, setImagePreview] = useState({
     appIcon: null,
@@ -76,15 +66,16 @@ const SecondModuleSetup = () => {
   // Fetch secondary modules
   useEffect(() => {
     const fetchModules = async () => {
+      setLoading(true);
+      setError(null);
       try {
-        setLoading(true);
-        const res = await fetch('http://localhost:5000/api/secondary-modules');
-        if (!res.ok) throw new Error('Failed to fetch modules');
+        const res = await fetch('https://api.bookmyevent.ae/api/secondary-modules');
+        if (!res.ok) throw new Error('Failed to fetch secondary modules');
         const data = await res.json();
         setModules(data || []);
       } catch (err) {
         console.error('Fetch error:', err);
-        setError('Failed to fetch secondary modules');
+        setError(err.message);
       } finally {
         setLoading(false);
       }
@@ -99,7 +90,7 @@ const SecondModuleSetup = () => {
     setImagePreview({ appIcon: null, thumbnail: null });
     setFormError(null);
     setEditingModule(null);
-    
+
     // Reset file inputs
     const iconInput = document.getElementById('app-icon-upload');
     const thumbnailInput = document.getElementById('thumbnail-upload');
@@ -121,16 +112,16 @@ const SecondModuleSetup = () => {
     setModuleForm({
       name: module.title || '',
       description: module.description || '',
-      appIcon: null, // Keep as null, existing images will be shown separately
+      appIcon: null,
       thumbnail: null,
     });
-    
-    // Set existing image previews if they exist
+
+    // Set existing image previews
     setImagePreview({
-      appIcon: module.iconUrl ? `http://localhost:5000${module.iconUrl}` : null,
-      thumbnail: module.thumbnailUrl ? `http://localhost:5000${module.thumbnailUrl}` : null,
+      appIcon: module.iconUrl ? `https://api.bookmyevent.ae/api${module.iconUrl}` : null,
+      thumbnail: module.thumbnailUrl ? `https://api.bookmyevent.ae/api${module.thumbnailUrl}` : null,
     });
-    
+
     setShowForm(true);
     handleActionClose();
   };
@@ -139,26 +130,23 @@ const SecondModuleSetup = () => {
   const handleAppIconUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setFormError('Please upload only image files for app icon');
         return;
       }
-      // Validate file size (2MB)
       if (file.size > 2 * 1024 * 1024) {
         setFormError('App icon file size should be less than 2MB');
         return;
       }
-      
+
       setModuleForm({ ...moduleForm, appIcon: file });
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(prev => ({ ...prev, appIcon: reader.result }));
+        setImagePreview((prev) => ({ ...prev, appIcon: reader.result }));
       };
       reader.readAsDataURL(file);
-      
+
       setFormError(null);
     }
   };
@@ -166,36 +154,32 @@ const SecondModuleSetup = () => {
   const handleThumbnailUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         setFormError('Please upload only image files for thumbnail');
         return;
       }
-      // Validate file size (2MB)
       if (file.size > 2 * 1024 * 1024) {
         setFormError('Thumbnail file size should be less than 2MB');
         return;
       }
-      
+
       setModuleForm({ ...moduleForm, thumbnail: file });
-      
-      // Create preview
+
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImagePreview(prev => ({ ...prev, thumbnail: reader.result }));
+        setImagePreview((prev) => ({ ...prev, thumbnail: reader.result }));
       };
       reader.readAsDataURL(file);
-      
+
       setFormError(null);
     }
   };
 
   // Remove image preview
   const removeImagePreview = (type) => {
-    setModuleForm(prev => ({ ...prev, [type]: null }));
-    setImagePreview(prev => ({ ...prev, [type]: null }));
-    
-    // Reset file input
+    setModuleForm((prev) => ({ ...prev, [type]: null }));
+    setImagePreview((prev) => ({ ...prev, [type]: null }));
+
     const inputId = type === 'appIcon' ? 'app-icon-upload' : 'thumbnail-upload';
     const input = document.getElementById(inputId);
     if (input) input.value = '';
@@ -204,22 +188,18 @@ const SecondModuleSetup = () => {
   // Handle module status toggle
   const toggleModuleStatus = async (moduleId, currentStatus) => {
     try {
-      const endpoint = currentStatus ? 'block' : 'reactivate';
-      const res = await fetch(`http://localhost:5000/api/secondary-modules/${moduleId}/${endpoint}`, {
+      const res = await fetch(`https://api.bookmyevent.ae/api/secondary-modules/${moduleId}/toggle-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ updatedBy: 'admin' }),
+        body: JSON.stringify({ isActive: !currentStatus }),
       });
 
       if (!res.ok) throw new Error('Failed to update module status');
 
-      const data = await res.json();
-      
-      // Update the module in the list
-      setModules(modules.map(module => 
-        module._id === moduleId ? data.module : module
+      setModules(modules.map((module) =>
+        module._id === moduleId ? { ...module, isActive: !currentStatus } : module
       ));
     } catch (err) {
       console.error('Status toggle error:', err);
@@ -238,49 +218,12 @@ const SecondModuleSetup = () => {
     setSelectedModule(null);
   };
 
-  // Handle delete confirmation
-  const handleDeleteClick = () => {
-    setModuleToDelete(selectedModule);
-    setDeleteDialogOpen(true);
-    handleActionClose();
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setModuleToDelete(null);
-  };
-
-  // Handle actual delete
-  const handleDeleteConfirm = async () => {
-    if (!moduleToDelete) return;
-
-    setDeleteLoading(true);
-    try {
-      const res = await fetch(`http://localhost:5000/api/secondary-modules/${moduleToDelete._id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to delete secondary module');
-
-      // Remove module from local state
-      setModules(modules.filter(m => m._id !== moduleToDelete._id));
-      
-      setDeleteDialogOpen(false);
-      setModuleToDelete(null);
-    } catch (err) {
-      console.error('Delete error:', err);
-      setError(err.message);
-    } finally {
-      setDeleteLoading(false);
-    }
-  };
-
   // Filtered modules by search term
   const filteredModules = modules.filter((module) =>
     module.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Handle form submit (both add and edit)
+  // Handle form submit
   const handleSubmit = async () => {
     if (!moduleForm.name.trim()) {
       setFormError('Module name is required');
@@ -292,25 +235,17 @@ const SecondModuleSetup = () => {
       const formData = new FormData();
       formData.append('title', moduleForm.name.trim());
       formData.append('description', moduleForm.description);
-      
-      if (moduleForm.appIcon) {
-        formData.append('icon', moduleForm.appIcon);
-      }
-      
-      if (moduleForm.thumbnail) {
-        formData.append('thumbnail', moduleForm.thumbnail);
-      }
+      if (moduleForm.appIcon) formData.append('icon', moduleForm.appIcon);
+      if (moduleForm.thumbnail) formData.append('thumbnail', moduleForm.thumbnail);
 
       let res;
       if (formMode === 'add') {
-        // Create new module
-        res = await fetch('http://localhost:5000/api/secondary-modules', {
+        res = await fetch('https://api.bookmyevent.ae/api/secondary-modules', {
           method: 'POST',
           body: formData,
         });
       } else {
-        // Update existing module
-        res = await fetch(`http://localhost:5000/api/secondary-modules/${editingModule._id}`, {
+        res = await fetch(`https://api.bookmyevent.ae/api/secondary-modules/${editingModule._id}`, {
           method: 'PUT',
           body: formData,
         });
@@ -322,19 +257,16 @@ const SecondModuleSetup = () => {
       }
 
       const responseData = await res.json();
-      
       if (formMode === 'add') {
-        setModules([responseData.module, ...modules]); // Add to top of list
+        setModules([...modules, responseData.module]);
       } else {
-        // Update existing module in list
-        setModules(modules.map(module => 
+        setModules(modules.map((module) =>
           module._id === editingModule._id ? responseData.module : module
         ));
       }
-      
+
       resetForm();
       setShowForm(false);
-      
     } catch (err) {
       console.error(`${formMode} module error:`, err);
       setFormError(err.message || `Failed to ${formMode} module`);
@@ -351,7 +283,7 @@ const SecondModuleSetup = () => {
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+    <Box sx={{ p: 3, backgroundColor: theme.palette.grey[100], minHeight: '100vh' }}>
       {!showForm ? (
         <Paper sx={{ p: 3, borderRadius: 2, mb: 3, backgroundColor: 'white' }} elevation={2}>
           <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
@@ -374,9 +306,9 @@ const SecondModuleSetup = () => {
                 sx={{
                   minWidth: 40,
                   height: 40,
-                  backgroundColor: '#9e9e9e',
+                  backgroundColor: theme.palette.grey[400],
                   color: 'white',
-                  '&:hover': { backgroundColor: '#757575' },
+                  '&:hover': { backgroundColor: theme.palette.grey[500] },
                 }}
               >
                 <SearchIcon />
@@ -387,8 +319,8 @@ const SecondModuleSetup = () => {
               variant="contained"
               onClick={handleAddModule}
               sx={{
-                backgroundColor: '#1976d2',
-                '&:hover': { backgroundColor: '#1565c0' },
+                backgroundColor: theme.palette.primary.main,
+                '&:hover': { backgroundColor: theme.palette.primary.dark },
               }}
             >
               Add Module
@@ -400,7 +332,7 @@ const SecondModuleSetup = () => {
               <CircularProgress />
             </Box>
           )}
-          
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
@@ -411,11 +343,10 @@ const SecondModuleSetup = () => {
           {!loading && !error && (
             <Table>
               <TableHead>
-                <TableRow sx={{ backgroundColor: '#f5f5f5' }}>
+                <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
                   <TableCell sx={{ fontWeight: 600 }}>Sl No</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Module Id</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Total Vendors</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
                 </TableRow>
@@ -423,11 +354,10 @@ const SecondModuleSetup = () => {
               <TableBody>
                 {filteredModules.length > 0 ? (
                   filteredModules.map((module, index) => (
-                    <TableRow key={module._id} sx={{ '&:hover': { backgroundColor: '#f5f5f5' } }}>
+                    <TableRow key={module._id} sx={{ '&:hover': { backgroundColor: theme.palette.grey[50] } }}>
                       <TableCell>{index + 1}</TableCell>
                       <TableCell>{module.moduleId || 'N/A'}</TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>{module.title}</TableCell>
-                      <TableCell>{module.totalVendors || 0}</TableCell>
                       <TableCell>
                         <Switch
                           checked={module.isActive}
@@ -436,31 +366,19 @@ const SecondModuleSetup = () => {
                         />
                       </TableCell>
                       <TableCell>
-                        <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleEditModule(module)}
-                            sx={{ color: 'primary.main' }}
-                          >
-                            <EditIcon />
-                          </IconButton>
-                          <IconButton 
-                            size="small"
-                            onClick={() => {
-                              setModuleToDelete(module);
-                              setDeleteDialogOpen(true);
-                            }}
-                            sx={{ color: 'error.main' }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
-                        </Box>
+                        <IconButton
+                          size="small"
+                          onClick={(e) => handleActionClick(e, module)}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          <MoreVertIcon />
+                        </IconButton>
                       </TableCell>
                     </TableRow>
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={6} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
                       {searchTerm ? 'No modules found matching your search.' : 'No modules available.'}
                     </TableCell>
                   </TableRow>
@@ -476,56 +394,14 @@ const SecondModuleSetup = () => {
             onClose={handleActionClose}
             PaperProps={{
               elevation: 3,
-              sx: {
-                mt: 1,
-                minWidth: 120,
-              },
+              sx: { mt: 1, minWidth: 120 },
             }}
           >
             <MenuItem onClick={() => handleEditModule(selectedModule)} sx={{ py: 1 }}>
               <EditIcon sx={{ mr: 2, fontSize: 20 }} />
               Edit
             </MenuItem>
-            <MenuItem onClick={handleDeleteClick} sx={{ py: 1, color: 'error.main' }}>
-              <DeleteIcon sx={{ mr: 2, fontSize: 20 }} />
-              Delete
-            </MenuItem>
           </Menu>
-
-          {/* Delete Confirmation Dialog */}
-          <Dialog
-            open={deleteDialogOpen}
-            onClose={handleDeleteCancel}
-            aria-labelledby="delete-dialog-title"
-            aria-describedby="delete-dialog-description"
-          >
-            <DialogTitle id="delete-dialog-title">
-              Confirm Delete
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText id="delete-dialog-description">
-                Are you sure you want to delete the secondary module "{moduleToDelete?.title}"? 
-                This action cannot be undone and will remove all associated data.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button 
-                onClick={handleDeleteCancel} 
-                disabled={deleteLoading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleDeleteConfirm} 
-                color="error" 
-                variant="contained"
-                disabled={deleteLoading}
-                startIcon={deleteLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
-              </Button>
-            </DialogActions>
-          </Dialog>
         </Paper>
       ) : (
         <Paper sx={{ p: 3, borderRadius: 2, backgroundColor: 'white' }} elevation={2}>
@@ -572,7 +448,7 @@ const SecondModuleSetup = () => {
               <Paper
                 sx={{
                   height: 200,
-                  border: '2px dashed #ddd',
+                  border: `2px dashed ${theme.palette.grey[300]}`,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -580,33 +456,33 @@ const SecondModuleSetup = () => {
                   cursor: 'pointer',
                   position: 'relative',
                   '&:hover': {
-                    borderColor: '#1976d2',
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: theme.palette.primary.light + '20',
                   },
                 }}
                 onClick={() => document.getElementById('app-icon-upload').click()}
               >
                 {imagePreview.appIcon ? (
                   <Box sx={{ position: 'relative', textAlign: 'center' }}>
-                    <img 
-                      src={imagePreview.appIcon} 
-                      alt="App Icon Preview" 
-                      style={{ 
-                        maxWidth: '120px', 
-                        maxHeight: '120px', 
+                    <img
+                      src={imagePreview.appIcon}
+                      alt="App Icon Preview"
+                      style={{
+                        maxWidth: '120px',
+                        maxHeight: '120px',
                         objectFit: 'contain',
-                        marginBottom: '8px'
-                      }} 
+                        marginBottom: '8px',
+                      }}
                     />
                     <IconButton
                       size="small"
-                      sx={{ 
-                        position: 'absolute', 
-                        top: -10, 
-                        right: -10, 
+                      sx={{
+                        position: 'absolute',
+                        top: -10,
+                        right: -10,
                         backgroundColor: 'error.main',
                         color: 'white',
-                        '&:hover': { backgroundColor: 'error.dark' }
+                        '&:hover': { backgroundColor: 'error.dark' },
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -621,7 +497,7 @@ const SecondModuleSetup = () => {
                   </Box>
                 ) : (
                   <>
-                    <CloudUploadIcon sx={{ fontSize: 50, color: '#9e9e9e', mb: 1 }} />
+                    <CloudUploadIcon sx={{ fontSize: 50, color: theme.palette.grey[400], mb: 1 }} />
                     <Typography variant="body1" fontWeight={500}>
                       Upload App Icon
                     </Typography>
@@ -645,7 +521,7 @@ const SecondModuleSetup = () => {
               <Paper
                 sx={{
                   height: 200,
-                  border: '2px dashed #ddd',
+                  border: `2px dashed ${theme.palette.grey[300]}`,
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
@@ -653,33 +529,33 @@ const SecondModuleSetup = () => {
                   cursor: 'pointer',
                   position: 'relative',
                   '&:hover': {
-                    borderColor: '#1976d2',
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    borderColor: theme.palette.primary.main,
+                    backgroundColor: theme.palette.primary.light + '20',
                   },
                 }}
                 onClick={() => document.getElementById('thumbnail-upload').click()}
               >
                 {imagePreview.thumbnail ? (
                   <Box sx={{ position: 'relative', textAlign: 'center' }}>
-                    <img 
-                      src={imagePreview.thumbnail} 
-                      alt="Thumbnail Preview" 
-                      style={{ 
-                        maxWidth: '120px', 
-                        maxHeight: '120px', 
+                    <img
+                      src={imagePreview.thumbnail}
+                      alt="Thumbnail Preview"
+                      style={{
+                        maxWidth: '120px',
+                        maxHeight: '120px',
                         objectFit: 'contain',
-                        marginBottom: '8px'
-                      }} 
+                        marginBottom: '8px',
+                      }}
                     />
                     <IconButton
                       size="small"
-                      sx={{ 
-                        position: 'absolute', 
-                        top: -10, 
-                        right: -10, 
+                      sx={{
+                        position: 'absolute',
+                        top: -10,
+                        right: -10,
                         backgroundColor: 'error.main',
                         color: 'white',
-                        '&:hover': { backgroundColor: 'error.dark' }
+                        '&:hover': { backgroundColor: 'error.dark' },
                       }}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -694,7 +570,7 @@ const SecondModuleSetup = () => {
                   </Box>
                 ) : (
                   <>
-                    <CloudUploadIcon sx={{ fontSize: 50, color: '#9e9e9e', mb: 1 }} />
+                    <CloudUploadIcon sx={{ fontSize: 50, color: theme.palette.grey[400], mb: 1 }} />
                     <Typography variant="body1" fontWeight={500}>
                       Upload Thumbnail
                     </Typography>
@@ -731,15 +607,11 @@ const SecondModuleSetup = () => {
               sx={{
                 px: 4,
                 py: 1,
-                backgroundColor: '#1976d2',
-                '&:hover': { backgroundColor: '#1565c0' },
+                backgroundColor: theme.palette.primary.main,
+                '&:hover': { backgroundColor: theme.palette.primary.dark },
               }}
             >
-              {formLoading ? (
-                <CircularProgress size={20} color="inherit" />
-              ) : (
-                formMode === 'add' ? 'Submit' : 'Update'
-              )}
+              {formLoading ? <CircularProgress size={20} color="inherit" /> : formMode === 'add' ? 'Submit' : 'Update'}
             </Button>
           </Box>
         </Paper>

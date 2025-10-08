@@ -35,7 +35,7 @@ import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
 
 // API base URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.bookmyevent.ae/api";
 
 const Coupons = () => {
   const [coupons, setCoupons] = useState([]);

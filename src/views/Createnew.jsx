@@ -38,7 +38,6 @@ import {
 } from '@mui/icons-material';
 import { styled } from '@mui/system';
 
-// Styled component for the upload area
 const UploadDropArea = styled(Box)(({ theme }) => ({
   border: '2px dashed #e0e0e0',
   borderRadius: theme.shape.borderRadius,
@@ -63,7 +62,6 @@ const Createnew = () => {
   const theme = useTheme();
   const isSmallScreen = useMediaQuery(theme.breakpoints.down('md'));
 
-  // State for form fields
   const [vehicleName, setVehicleName] = useState('');
   const [description, setDescription] = useState('');
   const [thumbnailFile, setThumbnailFile] = useState(null);
@@ -92,7 +90,6 @@ const Createnew = () => {
   const [giveDiscount, setGiveDiscount] = useState('');
   const [searchTags, setSearchTags] = useState([]);
 
-  // State for fetching data
   const [brands, setBrands] = useState([]);
   const [categories, setCategories] = useState([]);
   const [rentalModuleId, setRentalModuleId] = useState(null);
@@ -103,17 +100,14 @@ const Createnew = () => {
   const [toastMessage, setToastMessage] = useState('');
   const [toastSeverity, setToastSeverity] = useState('success');
 
-  // Pagination and search state
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Base API URL
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'https://api.bookmyevent.ae/api';
 
-  // Fetch brands
   const fetchBrands = async () => {
     try {
       setLoading(true);
@@ -123,9 +117,9 @@ const Createnew = () => {
       const response = await fetch(`${API_BASE_URL}/brands`, {
         headers: { Authorization: `Bearer ${token}` }
       });
+      if (!response.ok) throw new Error('Failed to fetch brands');
       const data = await response.json();
-      if (!response.ok) throw new Error(data.error || 'Failed to fetch brands');
-      setBrands(data || []);
+      setBrands(Array.isArray(data) ? data : []);
     } catch (err) {
       setError(err.message);
       setToastMessage(err.message);
@@ -136,7 +130,6 @@ const Createnew = () => {
     }
   };
 
-  // Fetch Rental module ID
   const fetchRentalModule = async () => {
     try {
       const token = localStorage.getItem('token');
@@ -156,19 +149,14 @@ const Createnew = () => {
 
       if (rentalModule) {
         setRentalModuleId(rentalModule._id);
-        console.log('Rental Module ID:', rentalModule._id); // Debug log
       } else {
-        console.warn('Rental module not found');
         setError('Rental module not found. Please create the Rental module first.');
       }
     } catch (err) {
-      console.error('Error fetching rental module:', err);
       setError(err.message);
     }
   };
 
-  // Fetch Rental categories only
-  // In your React component, update the fetchCategories function
   const fetchCategories = async () => {
     try {
       setLoading(true);
@@ -177,12 +165,9 @@ const Createnew = () => {
       if (!token) throw new Error('Authentication token not found. Please log in.');
 
       if (!rentalModuleId) {
-        console.warn('Rental module ID not available yet');
         setCategories([]);
         return;
       }
-
-      console.log('Fetching categories for Rental module:', rentalModuleId);
 
       const response = await fetch(`${API_BASE_URL}/categories/modules/${rentalModuleId}`, {
         headers: {
@@ -197,17 +182,9 @@ const Createnew = () => {
       }
 
       const data = await response.json();
-      console.log('API Response:', data);
-      console.log('Categories found:', Array.isArray(data) ? data.length : 0);
-
       const categoriesArray = Array.isArray(data) ? data : data.data || [];
       setCategories(categoriesArray);
-
-      if (categoriesArray.length === 0) {
-        console.warn('No categories found for Rental module. Please create categories first.');
-      }
     } catch (err) {
-      console.error('Error fetching categories:', err);
       setError(err.message);
       setCategories([]);
       setToastMessage('Failed to load rental categories. Please try again.');
@@ -217,7 +194,7 @@ const Createnew = () => {
       setLoading(false);
     }
   };
-  // Fetch vehicles
+
   const fetchVehicles = async () => {
     try {
       setLoading(true);
@@ -253,58 +230,21 @@ const Createnew = () => {
     }
   };
 
-  // Validate VIN and License Plate Number
-  const validateVehicleIdentity = async (vin, licensePlate, additionalVin = '', additionalLicensePlate = '') => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) throw new Error('Authentication token not found. Please log in.');
-      const response = await fetch(`${API_BASE_URL}/vehicles/validate`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          vinNumber: vin || undefined,
-          licensePlateNumber: licensePlate || undefined,
-          ...(sameModelMultipleVehicles && {
-            additionalVinNumber: additionalVin || undefined,
-            additionalLicensePlateNumber: additionalLicensePlate || undefined
-          })
-        })
-      });
-      const data = await response.json();
-      if (!response.ok || !data.success) {
-        throw new Error(data.message || 'Invalid VIN or License Plate Number');
-      }
-      return true;
-    } catch (err) {
-      setToastMessage(err.message);
-      setToastSeverity('error');
-      setOpenToast(true);
-      return false;
-    }
-  };
-
-  // Fetch data on mount
   useEffect(() => {
     fetchBrands();
     fetchRentalModule();
   }, []);
 
-  // Fetch categories when rentalModuleId is available
   useEffect(() => {
     if (rentalModuleId) {
       fetchCategories();
     }
   }, [rentalModuleId]);
 
-  // Refetch vehicles when pagination/search changes
   useEffect(() => {
     fetchVehicles();
   }, [currentPage, itemsPerPage, searchTerm]);
 
-  // Handlers
   const handleSearch = () => {
     setCurrentPage(1);
     fetchVehicles();
@@ -454,9 +394,39 @@ const Createnew = () => {
 
   const handleSubmit = async (event) => {
     event.preventDefault();
-    // Validation
+    
+    // Trim and validate vehicle name
+    const trimmedVehicleName = vehicleName.trim();
+    if (!trimmedVehicleName) {
+      setToastMessage('Please enter a vehicle name.');
+      setToastSeverity('error');
+      setOpenToast(true);
+      return;
+    }
+
+    // Normalize VIN and License Plate
+    const normalizedVin = vinNumber.trim().toUpperCase().replace(/\s+/g, '');
+    const normalizedLicensePlate = licensePlateNumber.trim().toUpperCase();
+    const normalizedAdditionalVin = additionalVinNumber.trim().toUpperCase().replace(/\s+/g, '');
+    const normalizedAdditionalLicensePlate = additionalLicensePlateNumber.trim().toUpperCase();
+
+    // Validate VIN length
+    if (normalizedVin.length !== 17) {
+      setToastMessage('VIN Number must be exactly 17 characters');
+      setToastSeverity('error');
+      setOpenToast(true);
+      return;
+    }
+
+    if (sameModelMultipleVehicles && normalizedAdditionalVin.length !== 17) {
+      setToastMessage('Additional VIN Number must be exactly 17 characters');
+      setToastSeverity('error');
+      setOpenToast(true);
+      return;
+    }
+
+    // Validate all required fields
     if (
-      !vehicleName ||
       !brand ||
       !model ||
       !category ||
@@ -469,27 +439,28 @@ const Createnew = () => {
       !tripType ||
       (tripType === 'hourly' && !hourlyWisePrice) ||
       (tripType === 'perDay' && !perDayPrice) ||
-      (tripType === 'distanceWise' && !distanceWisePrice) ||
-      !vinNumber ||
-      !licensePlateNumber
+      (tripType === 'distanceWise' && !distanceWisePrice)
     ) {
       setToastMessage('Please fill all required fields.');
       setToastSeverity('error');
       setOpenToast(true);
       return;
     }
+
     if (!thumbnailFile) {
       setToastMessage('Please upload a thumbnail image.');
       setToastSeverity('error');
       setOpenToast(true);
       return;
     }
+
     if (vehicleImages.length === 0) {
       setToastMessage('Please upload at least one vehicle image.');
       setToastSeverity('error');
       setOpenToast(true);
       return;
     }
+
     if (sameModelMultipleVehicles && (!additionalVinNumber || !additionalLicensePlateNumber)) {
       setToastMessage('Please provide additional VIN and License Plate Number.');
       setToastSeverity('error');
@@ -497,13 +468,9 @@ const Createnew = () => {
       return;
     }
 
-    // Validate VIN and License Plate Numbers
-    const isValid = await validateVehicleIdentity(vinNumber, licensePlateNumber, additionalVinNumber, additionalLicensePlateNumber);
-    if (!isValid) return;
-
-    // Prepare form data for primary vehicle
+    // Create FormData
     const formData = new FormData();
-    formData.append('name', vehicleName);
+    formData.append('name', trimmedVehicleName);
     formData.append('description', description);
     formData.append('brand', brand);
     formData.append('model', model);
@@ -522,8 +489,8 @@ const Createnew = () => {
     formData.append('thumbnail', thumbnailFile);
     vehicleImages.forEach((image) => formData.append('images', image));
     vehicleDoc.forEach((doc) => formData.append('documents', doc));
-    formData.append('vinNumber', vinNumber);
-    formData.append('licensePlateNumber', licensePlateNumber);
+    formData.append('vinNumber', normalizedVin);
+    formData.append('licensePlateNumber', normalizedLicensePlate);
     searchTags.forEach((tag) => formData.append('searchTags', tag));
 
     try {
@@ -532,7 +499,6 @@ const Createnew = () => {
       const token = localStorage.getItem('token');
       if (!token) throw new Error('Authentication token not found. Please log in.');
 
-      // Create primary vehicle
       const response = await fetch(`${API_BASE_URL}/vehicles`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
@@ -546,13 +512,10 @@ const Createnew = () => {
       }
 
       if (data.success) {
-        setVehicles([data.data, ...vehicles]);
-        setCurrentPage(1);
-
-        // Handle additional vehicle if sameModelMultipleVehicles is true
+        // Handle additional vehicle if needed
         if (sameModelMultipleVehicles) {
           const additionalFormData = new FormData();
-          additionalFormData.append('name', vehicleName);
+          additionalFormData.append('name', trimmedVehicleName);
           additionalFormData.append('description', description);
           additionalFormData.append('brand', brand);
           additionalFormData.append('model', model);
@@ -571,8 +534,8 @@ const Createnew = () => {
           additionalFormData.append('thumbnail', thumbnailFile);
           multipleVehicleImages.forEach((image) => additionalFormData.append('images', image));
           vehicleDoc.forEach((doc) => additionalFormData.append('documents', doc));
-          additionalFormData.append('vinNumber', additionalVinNumber);
-          additionalFormData.append('licensePlateNumber', additionalLicensePlateNumber);
+          additionalFormData.append('vinNumber', normalizedAdditionalVin);
+          additionalFormData.append('licensePlateNumber', normalizedAdditionalLicensePlate);
           searchTags.forEach((tag) => additionalFormData.append('searchTags', tag));
 
           const additionalResponse = await fetch(`${API_BASE_URL}/vehicles`, {
@@ -586,22 +549,17 @@ const Createnew = () => {
           if (!additionalResponse.ok) {
             throw new Error(additionalData.message || 'Failed to create additional vehicle');
           }
-
-          if (additionalData.success) {
-            setVehicles([additionalData.data, ...vehicles]);
-          }
         }
 
         setToastMessage('Vehicle(s) created successfully!');
         setToastSeverity('success');
         setOpenToast(true);
         handleReset();
-        fetchVehicles(); // Refresh the vehicle list
+        fetchVehicles();
       } else {
         throw new Error(data.message || 'Failed to create vehicle');
       }
     } catch (err) {
-      console.error('Error creating vehicle:', err);
       setToastMessage(err.message || 'Error creating vehicle. Please try again.');
       setToastSeverity('error');
       setOpenToast(true);
@@ -628,7 +586,6 @@ const Createnew = () => {
           overflowX: 'hidden'
         }}
       >
-        {/* Header Section */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center' }}>
             <img src="https://via.placeholder.com/24" alt="Vehicle Icon" style={{ marginRight: 8 }} />
@@ -662,14 +619,12 @@ const Createnew = () => {
           Insert the basic information of the rental vehicle (Categories limited to Rental module)
         </Typography>
 
-        {/* Error Alert */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {/* Vehicles Table */}
         <Box sx={{ mb: 4 }}>
           <Card sx={{ p: 2, boxShadow: 'none', border: `1px solid ${theme.palette.grey[200]}` }}>
             <CardContent>
@@ -736,7 +691,6 @@ const Createnew = () => {
         </Box>
 
         <Box component="form" onSubmit={handleSubmit}>
-          {/* General Information & Vehicle Thumbnail */}
           <Box sx={{ display: 'flex', flexDirection: isSmallScreen ? 'column' : 'row', gap: 3, mb: 4 }}>
             <Card sx={{ flex: isSmallScreen ? 'auto' : 2, p: 2, boxShadow: 'none', border: `1px solid ${theme.palette.grey[200]}` }}>
               <CardContent sx={{ '&:last-child': { pb: 2 } }}>
@@ -1059,7 +1013,7 @@ const Createnew = () => {
                     onChange={(e) => setLicensePlateNumber(e.target.value)}
                     placeholder="Type your license plate number"
                     required
-                    inputProps={{ maxLength: 10 }}
+                    inputProps={{ maxLength: 15 }}
                   />
                 </Box>
                 {sameModelMultipleVehicles && (
@@ -1089,7 +1043,7 @@ const Createnew = () => {
                         onChange={(e) => setAdditionalLicensePlateNumber(e.target.value)}
                         placeholder="Type additional license plate number"
                         required
-                        inputProps={{ maxLength: 10 }}
+                        inputProps={{ maxLength: 15 }}
                       />
                     </Box>
                     <Box sx={{ mt: 3 }}>

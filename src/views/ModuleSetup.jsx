@@ -18,17 +18,11 @@ import {
   Grid,
   Menu,
   MenuItem,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
 } from '@mui/material';
 import {
   Search as SearchIcon,
   MoreVert as MoreVertIcon,
   CloudUpload as CloudUploadIcon,
-  Delete as DeleteIcon,
   Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
@@ -49,7 +43,7 @@ const ModuleSetup = () => {
   // State for adding/editing module
   const [moduleForm, setModuleForm] = useState({
     name: '',
-    description: '', // CKEditor content
+    description: '',
     appIcon: null,
     thumbnail: null,
   });
@@ -65,11 +59,6 @@ const ModuleSetup = () => {
   const [anchorEl, setAnchorEl] = useState(null);
   const [selectedModule, setSelectedModule] = useState(null);
 
-  // State for delete confirmation dialog
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [moduleToDelete, setModuleToDelete] = useState(null);
-  const [deleteLoading, setDeleteLoading] = useState(false);
-
   // State for image previews
   const [imagePreview, setImagePreview] = useState({
     appIcon: null,
@@ -82,7 +71,7 @@ const ModuleSetup = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('http://localhost:5000/api/modules');
+        const res = await fetch('https://api.bookmyevent.ae/api/modules');
         if (!res.ok) throw new Error('Failed to fetch modules');
         const data = await res.json();
         setModules(data);
@@ -123,14 +112,14 @@ const ModuleSetup = () => {
     setModuleForm({
       name: module.title || '',
       description: module.description || '',
-      appIcon: null, // Keep as null, existing images will be shown separately
+      appIcon: null,
       thumbnail: null,
     });
     
     // Set existing image previews if they exist
     setImagePreview({
-      appIcon: module.iconUrl ? `http://localhost:5000${module.iconUrl}` : null,
-      thumbnail: module.thumbnailUrl ? `http://localhost:5000${module.thumbnailUrl}` : null,
+      appIcon: module.iconUrl ? `https://api.bookmyevent.ae/api${module.iconUrl}` : null,
+      thumbnail: module.thumbnailUrl ? `https://api.bookmyevent.ae/api${module.thumbnailUrl}` : null,
     });
     
     setShowForm(true);
@@ -206,7 +195,7 @@ const ModuleSetup = () => {
   // Handle module status toggle
   const toggleModuleStatus = async (moduleId, currentStatus) => {
     try {
-      const res = await fetch(`http://localhost:5000/api/modules/${moduleId}/toggle-status`, {
+      const res = await fetch(`https://api.bookmyevent.ae/api/modules/${moduleId}/toggle-status`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -235,42 +224,6 @@ const ModuleSetup = () => {
   const handleActionClose = () => {
     setAnchorEl(null);
     setSelectedModule(null);
-  };
-
-  // Handle delete confirmation
-  const handleDeleteClick = () => {
-    setModuleToDelete(selectedModule);
-    setDeleteDialogOpen(true);
-    handleActionClose();
-  };
-
-  const handleDeleteCancel = () => {
-    setDeleteDialogOpen(false);
-    setModuleToDelete(null);
-  };
-
-  // Handle actual delete
-  const handleDeleteConfirm = async () => {
-    if (!moduleToDelete) return;
-
-    setDeleteLoading(true);
-    try {
-      const res = await fetch(`http://localhost:5000/api/modules/${moduleToDelete._id}`, {
-        method: 'DELETE',
-      });
-
-      if (!res.ok) throw new Error('Failed to delete module');
-
-      // Remove module from local state
-      setModules(modules.filter(m => m._id !== moduleToDelete._id));
-      
-      setDeleteDialogOpen(false);
-      setModuleToDelete(null);
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setDeleteLoading(false);
-    }
   };
 
   // Filtered modules by search term
@@ -302,13 +255,13 @@ const ModuleSetup = () => {
       let res;
       if (formMode === 'add') {
         // Create new module
-        res = await fetch('http://localhost:5000/api/modules', {
+        res = await fetch('https://api.bookmyevent.ae/api/modules', {
           method: 'POST',
           body: formData,
         });
       } else {
         // Update existing module
-        res = await fetch(`http://localhost:5000/api/modules/${editingModule._id}`, {
+        res = await fetch(`https://api.bookmyevent.ae/api/modules/${editingModule._id}`, {
           method: 'PUT',
           body: formData,
         });
@@ -322,9 +275,8 @@ const ModuleSetup = () => {
       const responseData = await res.json();
       
       if (formMode === 'add') {
-        setModules([...modules, responseData.module]); // Add to list
+        setModules([...modules, responseData.module]);
       } else {
-        // Update existing module in list
         setModules(modules.map(module => 
           module._id === editingModule._id ? responseData.module : module
         ));
@@ -441,16 +393,6 @@ const ModuleSetup = () => {
                           >
                             <EditIcon />
                           </IconButton>
-                          <IconButton 
-                            size="small"
-                            onClick={() => {
-                              setModuleToDelete(module);
-                              setDeleteDialogOpen(true);
-                            }}
-                            sx={{ color: 'error.main' }}
-                          >
-                            <DeleteIcon />
-                          </IconButton>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -483,46 +425,7 @@ const ModuleSetup = () => {
               <EditIcon sx={{ mr: 2, fontSize: 20 }} />
               Edit
             </MenuItem>
-            <MenuItem onClick={handleDeleteClick} sx={{ py: 1, color: 'error.main' }}>
-              <DeleteIcon sx={{ mr: 2, fontSize: 20 }} />
-              Delete
-            </MenuItem>
           </Menu>
-
-          {/* Delete Confirmation Dialog */}
-          <Dialog
-            open={deleteDialogOpen}
-            onClose={handleDeleteCancel}
-            aria-labelledby="delete-dialog-title"
-            aria-describedby="delete-dialog-description"
-          >
-            <DialogTitle id="delete-dialog-title">
-              Confirm Delete
-            </DialogTitle>
-            <DialogContent>
-              <DialogContentText id="delete-dialog-description">
-                Are you sure you want to delete the module "{moduleToDelete?.title}"? 
-                This action cannot be undone and will remove all associated data.
-              </DialogContentText>
-            </DialogContent>
-            <DialogActions>
-              <Button 
-                onClick={handleDeleteCancel} 
-                disabled={deleteLoading}
-              >
-                Cancel
-              </Button>
-              <Button 
-                onClick={handleDeleteConfirm} 
-                color="error" 
-                variant="contained"
-                disabled={deleteLoading}
-                startIcon={deleteLoading ? <CircularProgress size={16} /> : <DeleteIcon />}
-              >
-                {deleteLoading ? 'Deleting...' : 'Delete'}
-              </Button>
-            </DialogActions>
-          </Dialog>
         </Paper>
       ) : (
         <Paper sx={{ p: 3, borderRadius: 2, backgroundColor: 'white' }} elevation={2}>

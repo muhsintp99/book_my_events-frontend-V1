@@ -50,7 +50,7 @@ const Brandlist = () => {
   const [createError, setCreateError] = useState(null);
 
   // Base API URL - adjust this to match your backend URL
-  const API_BASE_URL = 'http://localhost:5000/api';
+  const API_BASE_URL = 'https://api.bookmyevent.ae/api';
 
   // Fetch brands from API
   const fetchBrands = async () => {
