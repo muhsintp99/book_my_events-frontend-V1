@@ -371,8 +371,6 @@
 
 
 
-
-
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -421,78 +419,88 @@ export default function Header() {
   const open = Boolean(anchorEl);
   const settingsOpen = Boolean(settingsAnchorEl);
 
-  // --- Default module setup on entry ---
+  // Utility function to dispatch module events
+  const dispatchModuleEvents = (moduleName, sidebarType) => {
+    localStorage.setItem('activeModule', moduleName);
+    localStorage.setItem('sidebarType', sidebarType);
+    
+    const events = [
+      { name: 'moduleChanged', detail: { module: moduleName, sidebarType } },
+      { name: 'sidebarTypeChanged', detail: { sidebarType } },
+      { name: 'menuItemsChanged', detail: { moduleType: moduleName } },
+      { name: 'refreshSidebar', detail: { moduleType: moduleName } }
+    ];
+    
+    events.forEach(({ name, detail }) => {
+      window.dispatchEvent(new CustomEvent(name, { detail }));
+    });
+  };
+
+  // Utility function to format module titles
+  const formatModuleTitle = (title) => {
+    const trimmed = title.trim();
+    const titleLower = trimmed.toLowerCase();
+    
+    const specialCases = {
+      'mehandi': 'Mehandi',
+      'mahandi': 'Mehandi',
+      'photography': 'Photography',
+      'catering': 'Catering',
+      'makeup': 'Makeup',
+      'dj': 'DJ',
+      'music': 'Music',
+      'invitation and printing': 'Invitation & Printing',
+      'stage decoration': 'Stage Decoration'
+    };
+    
+    if (specialCases[titleLower]) {
+      return specialCases[titleLower];
+    }
+    
+    return trimmed.split(' ')
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+      .join(' ');
+  };
+
+  // Default module setup on entry
   useEffect(() => {
-    const path = location.pathname.split('/')[1] || '';
-    localStorage.setItem('activeModule', path);
-    localStorage.setItem('sidebarType', path);
-    window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: path, sidebarType: path } }));
-    window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: path } }));
-    window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: path } }));
-    window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: path } }));
+    const path = location.pathname.split('/')[1];
+    dispatchModuleEvents(path || '', path || '');
   }, [location.pathname]);
 
-  // --- Fetch API modules ---
+  // Fetch modules
   useEffect(() => {
     const fetchModules = async () => {
       try {
         const res = await fetch('https://api.bookmyevent.ae/api/modules/');
-        if (!res.ok) throw new Error('Failed to fetch modules');
         const data = await res.json();
 
         const formattedApiModules = data
           .filter((m) => m.isActive)
-          .map((m) => {
-            let title = m.title.trim();
-            const titleLower = title.toLowerCase();
-            switch (titleLower) {
-              case 'mehandi':
-              case 'mahandi':
-                title = 'Mehandi';
-                break;
-              case 'photography':
-                title = 'Photography';
-                break;
-              case 'catering':
-                title = 'Catering';
-                break;
-              case 'makeup':
-                title = 'Makeup';
-                break;
-              case 'dj':
-                title = 'DJ';
-                break;
-              case 'music':
-                title = 'Music';
-                break;
-              default:
-                title = title
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
-            }
-
-            return {
-              _id: m._id?.$oid || m._id,
-              title,
-              moduleId: m.moduleId,
-              type: 'crm',
-              icon: m.icon,
-              isStatic: false
-            };
-          });
+          .map((m) => ({
+            _id: m._id?.$oid || m._id,
+            title: formatModuleTitle(m.title),
+            moduleId: m.moduleId,
+            type: 'crm',
+            icon: m.icon,
+            isStatic: false
+          }));
 
         // Reorder modules to prioritize Rental, Events, Auditorium
+        const priorityOrder = ['Rental', 'Events', 'Auditorium'];
         const reorderedModules = [];
-        const priorityModules = ['Rental', 'Events', 'Auditorium'];
-        priorityModules.forEach((priority) => {
-          const index = formattedApiModules.findIndex((m) => m.title === priority);
-          if (index !== -1) reorderedModules.push(formattedApiModules[index]);
+        
+        priorityOrder.forEach(title => {
+          const module = formattedApiModules.find(m => m.title === title);
+          if (module) reorderedModules.push(module);
         });
-        formattedApiModules.forEach((m) => {
-          if (!reorderedModules.some((rm) => rm.title === m.title)) reorderedModules.push(m);
+        
+        formattedApiModules.forEach(m => {
+          if (!reorderedModules.some(rm => rm.title === m.title)) {
+            reorderedModules.push(m);
+          }
         });
-
+        
         setModules(reorderedModules);
       } catch (err) {
         console.error('Error fetching modules:', err);
@@ -502,40 +510,17 @@ export default function Header() {
     const fetchSecondaryModules = async () => {
       try {
         const res = await fetch('https://api.bookmyevent.ae/api/secondary-modules/');
-        if (!res.ok) throw new Error('Failed to fetch secondary modules');
         const data = await res.json();
 
         const formattedSecondaryModules = data
           .filter((m) => m.isActive)
-          .map((m) => {
-            let title = m.title.trim();
-            const titleLower = title.toLowerCase();
-            switch (titleLower) {
-              case 'invitation and printing':
-                title = 'Invitation & Printing';
-                break;
-              case 'stage decoration':
-                title = 'Stage Decoration';
-                break;
-              case 'mehandi':
-              case 'mahandi':
-                title = 'Mehandi';
-                break;
-              default:
-                title = title
-                  .split(' ')
-                  .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-                  .join(' ');
-            }
-
-            return {
-              _id: m._id?.$oid || m._id,
-              title,
-              moduleId: m.moduleId,
-              type: 'secondary',
-              icon: m.icon
-            };
-          });
+          .map((m) => ({
+            _id: m._id?.$oid || m._id,
+            title: formatModuleTitle(m.title),
+            moduleId: m.moduleId,
+            type: 'secondary',
+            icon: m.icon
+          }));
 
         setSecondaryModules(formattedSecondaryModules);
       } catch (err) {
@@ -547,42 +532,28 @@ export default function Header() {
     fetchSecondaryModules();
   }, []);
 
-  // --- Menu handlers ---
+  // Menu handlers
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleSettingsClick = (event) => setSettingsAnchorEl(event.currentTarget);
   const handleSettingsClose = () => setSettingsAnchorEl(null);
 
   const handleAddModule = () => {
-    localStorage.setItem('activeModule', 'setting');
-    localStorage.setItem('sidebarType', 'setting');
-    window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: 'setting', sidebarType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: 'setting' } }));
+    dispatchModuleEvents('setting', 'setting');
     navigate('/settings/module-setup');
     handleClose();
+    setTimeout(() => window.location.reload(), 100);
   };
 
   const handleAddSecondaryModule = () => {
-    localStorage.setItem('activeModule', 'setting');
-    localStorage.setItem('sidebarType', 'setting');
-    window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: 'setting', sidebarType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: 'setting' } }));
-    window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: 'setting' } }));
-    navigate('/settings/secondary-module-setup');
+    navigate('/settings/secondery-module-setup');
     handleClose();
   };
 
   const handleSettingsNavigation = (route) => {
     if (route.startsWith('/settings/')) {
-      localStorage.setItem('activeModule', 'setting');
-      localStorage.setItem('sidebarType', 'setting');
-      window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: 'setting', sidebarType: 'setting' } }));
-      window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType: 'setting' } }));
-      window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: 'setting' } }));
-      window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: 'setting' } }));
+      dispatchModuleEvents('setting', 'setting');
+      setTimeout(() => window.location.reload(), 100);
     }
     navigate(route);
     handleSettingsClose();
@@ -594,35 +565,30 @@ export default function Header() {
     const sidebarType = module.type || 'crm';
     const moduleDbId = module._id;
 
-    localStorage.setItem('activeModule', moduleName);
     localStorage.setItem('moduleId', moduleId);
-    localStorage.setItem('sidebarType', sidebarType);
-    if (moduleDbId && !module.isStatic) localStorage.setItem('moduleDbId', moduleDbId);
+    if (moduleDbId && !module.isStatic) {
+      localStorage.setItem('moduleDbId', moduleDbId);
+    }
 
-    window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: moduleName, sidebarType } }));
-    window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType } }));
-    window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: moduleName } }));
-    window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: moduleName } }));
+    dispatchModuleEvents(moduleName, sidebarType);
     navigate(`/${moduleName}/dashboard`);
+    setTimeout(() => window.location.reload(), 100);
     handleClose();
   };
 
   const handleSecondaryModuleClick = (module) => {
     const moduleName = (module.title || '').toLowerCase();
     const moduleId = module.moduleId;
-    const sidebarType = 'secondary';
     const moduleDbId = module._id;
 
-    localStorage.setItem('activeModule', moduleName);
     localStorage.setItem('moduleId', moduleId);
-    localStorage.setItem('sidebarType', sidebarType);
-    if (moduleDbId) localStorage.setItem('moduleDbId', moduleDbId);
+    if (moduleDbId) {
+      localStorage.setItem('moduleDbId', moduleDbId);
+    }
 
-    window.dispatchEvent(new CustomEvent('moduleChanged', { detail: { module: moduleName, sidebarType } }));
-    window.dispatchEvent(new CustomEvent('sidebarTypeChanged', { detail: { sidebarType } }));
-    window.dispatchEvent(new CustomEvent('menuItemsChanged', { detail: { moduleType: moduleName } }));
-    window.dispatchEvent(new CustomEvent('refreshSidebar', { detail: { moduleType: moduleName } }));
+    dispatchModuleEvents(moduleName, 'secondary');
     navigate(`/${moduleName}/dashboard`);
+    setTimeout(() => window.location.reload(), 100);
     handleClose();
   };
 
@@ -633,8 +599,93 @@ export default function Header() {
     { label: 'Employee Management', icon: <IconUsers size={20} />, route: '/settings/employee' }
   ];
 
+  const getImageUrl = (icon, isSecondary = false) => {
+    if (!icon) return '/default-icon.png';
+    if (icon.startsWith('http') || icon.startsWith('/')) return icon;
+    return isSecondary 
+      ? `https://api.bookmyevent.ae/api/${icon}`
+      : `https://api.bookmyevent.ae/${icon}`;
+  };
+
+  const renderModuleGrid = (moduleList, handleClick, isSecondary = false) => (
+    <Grid container spacing={2} sx={{ px: 2, py: 2 }}>
+      {moduleList.length === 0 ? (
+        <Grid item xs={12}>
+          <Typography variant="body2" color="textSecondary">
+            No {isSecondary ? 'secondary ' : ''}modules available
+          </Typography>
+        </Grid>
+      ) : (
+        moduleList.map((item) => (
+          <Grid item xs={6} sm={4} md={3} key={item.moduleId}>
+            <Box
+              onClick={() => handleClick(item)}
+              sx={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                bgcolor: '#fff',
+                color: '#1976d2',
+                borderRadius: 2,
+                border: '1px solid #e0e0e0',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                aspectRatio: '1 / 1',
+                width: '100%',
+                p: 2,
+                '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)', boxShadow: 3 }
+              }}
+            >
+              <ListItemIcon sx={{ justifyContent: 'center', color: '#1976d2', minWidth: 0 }}>
+                <img
+                  src={getImageUrl(item.icon, isSecondary)}
+                  alt={item.title || 'Module'}
+                  style={{ width: 48, height: 48, objectFit: 'contain' }}
+                  onError={(e) => { e.currentTarget.src = '/default-icon.png'; }}
+                />
+              </ListItemIcon>
+              <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 500 }}>
+                {item.title || 'Untitled'}
+              </Typography>
+            </Box>
+          </Grid>
+        ))
+      )}
+    </Grid>
+  );
+
+  const renderAddButton = (onClick, label, color) => (
+    <Box sx={{ px: 1, py: 1 }}>
+      <Button
+        onClick={onClick}
+        sx={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          gap: 1,
+          width: '100%',
+          bgcolor: '#fff',
+          color,
+          borderRadius: '12px',
+          px: 3,
+          py: 2,
+          fontSize: '0.95rem',
+          border: `1px dashed ${color}`,
+          '&:hover': { 
+            bgcolor: color === '#4caf50' ? '#f1f8e9' : '#fff3e0',
+            borderColor: color === '#4caf50' ? '#388e3c' : '#f57c00'
+          }
+        }}
+      >
+        <IconPlus size={20} />
+        <Typography variant="body2">{label}</Typography>
+      </Button>
+    </Box>
+  );
+
   return (
-    <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+    <>
       {/* Logo & Drawer */}
       <Box sx={{ width: downMD ? 'auto' : 228, display: 'flex', alignItems: 'center' }}>
         <Box component="span" sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
@@ -660,28 +711,53 @@ export default function Header() {
 
       <Box sx={{ flexGrow: 1 }} />
 
-      {/* Settings & Modules Dropdown */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Button
-          variant="outlined"
-          size="large"
-          startIcon={<IconSettings size={20} />}
-          endIcon={<IconChevronDown size={16} />}
-          sx={{
-            textTransform: 'none',
-            borderRadius: '50px',
-            px: 3,
-            py: 1.5,
-            fontSize: '1rem',
-            borderColor: '#e0e0e0',
-            color: '#666',
-            '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
-          }}
-          onClick={handleSettingsClick}
-        >
-          Settings
-        </Button>
+      {/* Settings Button */}
+      <Button
+        variant="outlined"
+        size="large"
+        startIcon={<IconSettings size={20} />}
+        endIcon={<IconChevronDown size={16} />}
+        sx={{
+          textTransform: 'none',
+          borderRadius: '50px',
+          px: 3,
+          py: 1.5,
+          fontSize: '1rem',
+          borderColor: '#e0e0e0',
+          color: '#666',
+          '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
+        }}
+        onClick={handleSettingsClick}
+      >
+        Settings
+      </Button>
 
+      {/* Settings dropdown menu */}
+      <Menu
+        anchorEl={settingsAnchorEl}
+        open={settingsOpen}
+        onClose={handleSettingsClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
+        sx={{
+          mt: 1,
+          '& .MuiPaper-root': { minWidth: 200, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }
+        }}
+      >
+        {settingsMenuItems.map((item) => (
+          <MenuItem
+            key={item.label}
+            onClick={() => handleSettingsNavigation(item.route)}
+            sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
+          >
+            <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
+            <Typography variant="body2" sx={{ color: '#333' }}>{item.label}</Typography>
+          </MenuItem>
+        ))}
+      </Menu>
+
+      {/* Modules Dropdown and Notification */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
         <Button
           variant="contained"
           size="large"
@@ -691,37 +767,8 @@ export default function Header() {
           Demo Modules
         </Button>
 
-        {/* Settings Dropdown Menu */}
-        <Menu
-          anchorEl={settingsAnchorEl}
-          open={settingsOpen}
-          onClose={handleSettingsClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-          sx={{
-            mt: 1,
-            '& .MuiPaper-root': {
-              minWidth: 200,
-              borderRadius: 2,
-              boxShadow: '0 4px 20px rgba(0,0,0,0.1)'
-            }
-          }}
-        >
-          {settingsMenuItems.map((item) => (
-            <MenuItem
-              key={item.label}
-              onClick={() => handleSettingsNavigation(item.route)}
-              sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
-            >
-              <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
-              <Typography variant="body2" sx={{ color: '#333' }}>
-                {item.label}
-              </Typography>
-            </MenuItem>
-          ))}
-        </Menu>
+        <NotificationSection />
 
-        {/* Modules Dropdown Menu */}
         <Menu
           anchorEl={anchorEl}
           open={open}
@@ -730,169 +777,29 @@ export default function Header() {
           transformOrigin={{ vertical: 'top', horizontal: 'left' }}
           sx={{ p: 1 }}
         >
-          <Box sx={{ backgroundColor: '#fff', p: 2, minWidth: 300 }}>
-            {/* Main Modules Heading */}
+          <Box sx={{ backgroundColor: '#fff', p: 2, maxWidth: 600 }}>
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: 'left', color: '#333' }}>
               Main Modules
             </Typography>
 
-            {/* Main Modules Grid */}
-            <Grid container spacing={2} sx={{ px: 2, py: 2 }}>
-              {modules.map((item) => (
-                <Grid item xs={6} sm={4} md={3} lg={2} key={item._id || item.moduleId}>
-                  <Box
-                    onClick={() => handleModuleClick(item)}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: '#fff',
-                      color: '#1976d2',
-                      borderRadius: 2,
-                      border: '1px solid #e0e0e0',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      aspectRatio: '1 / 1',
-                      width: '100%',
-                      height: '100%',
-                      p: 1,
-                      '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)', boxShadow: 3 }
-                    }}
-                  >
-                    <ListItemIcon sx={{ justifyContent: 'center', color: '#1976d2', minWidth: 0 }}>
-                      <img
-                        src={
-                          item.icon
-                            ? item.icon.startsWith('http')
-                              ? item.icon
-                              : `https://api.bookmyevent.ae/${item.icon}`
-                            : '/default-icon.png'
-                        }
-                        alt={item.title || 'Module'}
-                        style={{ width: '40%', height: '40%', objectFit: 'contain' }}
-                      />
-                    </ListItemIcon>
-                    <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-                      {item.title || 'Untitled'}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
+            {renderModuleGrid(modules, handleModuleClick)}
+            {renderAddButton(handleAddModule, 'Add Module', '#4caf50')}
 
             <Divider sx={{ my: 2 }} />
 
-            {/* Add Module Button */}
-            <Box sx={{ px: 1, py: 1 }}>
-              <Button
-                onClick={handleAddModule}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  width: '100%',
-                  bgcolor: '#fff',
-                  color: '#4caf50',
-                  borderRadius: '12px',
-                  px: 3,
-                  py: 2,
-                  fontSize: '0.95rem',
-                  border: '1px dashed #4caf50',
-                  '&:hover': { bgcolor: '#f1f8e9', borderColor: '#388e3c' }
-                }}
-              >
-                <IconPlus size={20} />
-                <Typography variant="body2">Add Module</Typography>
-              </Button>
-            </Box>
-
-            <Divider sx={{ my: 2 }} />
-
-            {/* Secondary Modules Heading */}
             <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: 'left', color: '#333' }}>
               Secondary Modules
             </Typography>
 
-            {/* Secondary Modules Grid */}
-            <Grid container spacing={2} sx={{ px: 2, py: 2 }}>
-              {secondaryModules.map((item) => (
-                <Grid item xs={6} sm={4} md={3} lg={2} key={item._id || item.moduleId}>
-                  <Box
-                    onClick={() => handleSecondaryModuleClick(item)}
-                    sx={{
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      bgcolor: '#fff',
-                      color: '#1976d2',
-                      borderRadius: 2,
-                      border: '1px solid #e0e0e0',
-                      cursor: 'pointer',
-                      transition: 'all 0.3s ease',
-                      aspectRatio: '1 / 1',
-                      width: '100%',
-                      height: '100%',
-                      p: 1,
-                      '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)', boxShadow: 3 }
-                    }}
-                  >
-                    <ListItemIcon sx={{ justifyContent: 'center', color: '#1976d2', minWidth: 0 }}>
-                      <img
-                        src={
-                          item.icon
-                            ? item.icon.startsWith('http')
-                              ? item.icon
-                              : `https://api.bookmyevent.ae/${item.icon}`
-                            : '/default-icon.png'
-                        }
-                        alt={item.title || 'Module'}
-                        style={{ width: '40%', height: '40%', objectFit: 'contain' }}
-                      />
-                    </ListItemIcon>
-                    <Typography variant="body2" sx={{ mt: 1, textAlign: 'center' }}>
-                      {item.title || 'Untitled'}
-                    </Typography>
-                  </Box>
-                </Grid>
-              ))}
-            </Grid>
-
-            {/* Add Secondary Module Button */}
-            <Box sx={{ px: 1, py: 1 }}>
-              <Button
-                onClick={handleAddSecondaryModule}
-                sx={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  width: '100%',
-                  bgcolor: '#fff',
-                  color: '#ff9800',
-                  borderRadius: '12px',
-                  px: 3,
-                  py: 2,
-                  fontSize: '0.95rem',
-                  border: '1px dashed #ff9800',
-                  '&:hover': { bgcolor: '#fff3e0', borderColor: '#f57c00' }
-                }}
-              >
-                <IconPlus size={20} />
-                <Typography variant="body2">Add Secondary Module</Typography>
-              </Button>
-            </Box>
+            {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
+            {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')}
           </Box>
         </Menu>
       </Box>
 
-      {/* Right side: Notifications + Profile */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <NotificationSection />
+      <Box sx={{ ml: 2 }}>
         <ProfileSection />
       </Box>
-    </Box>
+    </>
   );
 }
