@@ -54,7 +54,6 @@ const isValidObjectId = (id) => {
 const getImageUrl = (imagePath) => {
   if (!imagePath) return null;
 
-  // Already a full URL
   if (imagePath.startsWith('http://') || imagePath.startsWith('https://') || imagePath.startsWith('data:image/')) {
     return imagePath;
   }
@@ -176,7 +175,7 @@ function TabPanel({ children, value, index, ...other }) {
   );
 }
 
-// Memoized TableRow component to prevent unnecessary re-renders
+// Memoized TableRow component
 const BannerTableRow = React.memo(({ banner, index, handleImagePreview, handleEdit, handleDelete, handleToggle, handleBannerClick, togglingStatus }) => {
   const imageUrl = useMemo(() => getImageUrl(banner.image), [banner.image]);
 
@@ -198,13 +197,13 @@ const BannerTableRow = React.memo(({ banner, index, handleImagePreview, handleEd
             }}
             onClick={() => {
               if (imageUrl) {
-                handleBannerClick(banner._id); // Record click
+                handleBannerClick(banner._id);
                 handleImagePreview(imageUrl, banner.title);
               }
             }}
             onError={(e) => {
               e.target.src = 'https://via.placeholder.com/50';
-              e.target.onerror = null; // Prevent infinite error loop
+              e.target.onerror = null;
             }}
           />
           <Typography>{banner.title}</Typography>
@@ -266,7 +265,7 @@ export default function Banner() {
     title: '',
     description: '',
     zone: '',
-    bannerType: 'default',
+    bannerType: 'top_deal',
     store: '',
     bannerImage: null,
     isFeatured: false,
@@ -275,17 +274,14 @@ export default function Banner() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Base API URL
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
-  // Fetch data on mount
   useEffect(() => {
     fetchBanners();
     fetchZones();
     fetchStores();
   }, []);
 
-  // Fetch banners
   const fetchBanners = async () => {
     try {
       setBannersLoading(true);
@@ -312,11 +308,10 @@ export default function Banner() {
     }
   };
 
-  // Fetch zones
   const fetchZones = async () => {
     try {
       setZonesLoading(true);
-      const response = await fetch(`${API_BASE_URL}/zones`, {
+      const response = await fetch(`${API_BASE_URL}/zone`, {
         headers: {
           Authorization: `Bearer ${localStorage.getItem('token')}`
         }
@@ -325,8 +320,8 @@ export default function Banner() {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
-      if (data.success) {
-        setZones(data.data.zones || data.data || []);
+      if (data.data) {
+        setZones(data.data || []);
       } else {
         throw new Error(data.message || 'Failed to fetch zones');
       }
@@ -339,7 +334,6 @@ export default function Banner() {
     }
   };
 
-  // Fetch stores
   const fetchStores = async () => {
     try {
       setStoresLoading(true);
@@ -366,7 +360,6 @@ export default function Banner() {
     }
   };
 
-  // Record banner click
   const handleBannerClick = async (id) => {
     try {
       const response = await fetch(`${API_BASE_URL}/auditorium-banner/${id}/click`, {
@@ -380,7 +373,6 @@ export default function Banner() {
       }
     } catch (error) {
       console.error('Error recording banner click:', error);
-      // Silently fail to avoid disrupting user experience
     }
   };
 
@@ -404,8 +396,8 @@ export default function Banner() {
         showAlert('Please select a valid image file', 'error');
         return;
       }
-      if (file.size > 5 * 1024 * 1024) {
-        showAlert('Image size should be less than 5MB', 'error');
+      if (file.size > 2 * 1024 * 1024) {
+        showAlert('Image size should be less than 2MB', 'error');
         return;
       }
       setFormData({ ...formData, bannerImage: file });
@@ -425,11 +417,8 @@ export default function Banner() {
     if (!formData.title.trim()) errors.push('Title is required');
     if (!formData.zone) errors.push('Zone is required');
     if (!formData.bannerImage && !editingId) errors.push('Banner image is required');
-    if (!['default', 'store_wise', 'zone_wise'].includes(formData.bannerType)) {
+    if (!['top_deal', 'cash_back', 'zone_wise'].includes(formData.bannerType)) {
       errors.push('Invalid banner type');
-    }
-    if (formData.bannerType === 'store_wise' && !formData.store) {
-      errors.push('Store is required for store-wise banners');
     }
     if (formData.store && !isValidObjectId(formData.store)) {
       errors.push('Invalid store ID');
@@ -457,12 +446,12 @@ export default function Banner() {
       if (formData.store && isValidObjectId(formData.store)) {
         submitFormData.append('store', formData.store);
       }
-      if (formData.bannerImage) submitFormData.append('bannerImage', formData.bannerImage);
+      if (formData.bannerImage) submitFormData.append('image', formData.bannerImage);
       submitFormData.append('isFeatured', formData.isFeatured);
       submitFormData.append('isActive', formData.isActive);
       submitFormData.append('displayOrder', formData.displayOrder);
 
-      const url = editingId ? `${API_BASE_URL}/auditorium-banner/${editingId}` : `${API_BASE_URL}/auditorium-banners`;
+      const url = editingId ? `${API_BASE_URL}/auditorium-banner/${editingId}` : `${API_BASE_URL}/auditorium-banner`;
       const method = editingId ? 'PUT' : 'POST';
 
       const response = await fetch(url, {
@@ -498,7 +487,7 @@ export default function Banner() {
       title: '',
       description: '',
       zone: '',
-      bannerType: 'default',
+      bannerType: 'top_deal',
       store: '',
       bannerImage: null,
       isFeatured: false,
@@ -577,7 +566,7 @@ export default function Banner() {
         setFormData({
           title: bannerData.title,
           description: bannerData.description || '',
-          zone: bannerData.zone?._id || '',
+          zone: bannerData.zone?._id || bannerData.zone || '',
           bannerType: bannerData.bannerType,
           store: bannerData.store?._id || '',
           bannerImage: null,
@@ -648,13 +637,13 @@ export default function Banner() {
       <StyledPaper elevation={0}>
         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2, flexWrap: 'wrap' }}>
           <Typography variant="h4" fontWeight="bold">
-            Add New Banner
+            {editingId ? 'Edit Banner' : 'Add New Banner'}
           </Typography>
         </Box>
 
-        <Typography variant="subtitle2" color="textSecondary" sx={{ mb: 2 }}>
-          Default
-        </Typography>
+        <StyledTabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)} aria-label="banner tabs">
+          <Tab label="Banner Details" id="tab-0" aria-controls="tabpanel-0" />
+        </StyledTabs>
 
         <TabPanel value={tabValue} index={0}>
           <Grid container rowSpacing={3} columnSpacing={3}>
@@ -685,24 +674,18 @@ export default function Banner() {
 
             <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
               <Typography variant="body2" sx={{ mb: 1, color: '#ef4444', fontWeight: 500 }}>
-                Banner image * (Ratio 3:1)
+                Banner image * (Ratio 3:1, Max 2MB)
               </Typography>
-              <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center' }}>
-                <Button
-                  variant="outlined"
-                  component="label"
-                  startIcon={<CloudUpload />}
-                  sx={{ width: '100%' }}
-                >
-                  {imagePreview ? 'Change Image' : 'Upload Image'}
-                  <input
-                    type="file"
-                    hidden
-                    accept="image/*"
-                    onChange={handleImageUpload}
-                  />
-                </Button>
-              </Box>
+              <ImageUploadArea component="label">
+                <CloudUpload sx={{ fontSize: 40, color: '#14b8a6', mb: 1 }} />
+                <Typography>{imagePreview ? 'Change Image' : 'Upload Image'}</Typography>
+                <input
+                  type="file"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageUpload}
+                />
+              </ImageUploadArea>
               {imagePreview && (
                 <ImagePreviewContainer>
                   <img
@@ -754,49 +737,46 @@ export default function Banner() {
 
             <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
               <FormControl fullWidth variant="outlined">
-                <InputLabel id="banner-type-label">Banner Type</InputLabel>
+                <InputLabel id="banner-type-label">Banner Type *</InputLabel>
                 <Select
                   labelId="banner-type-label"
                   value={formData.bannerType}
                   onChange={handleInputChange('bannerType')}
-                  label="Banner Type"
+                  label="Banner Type *"
+                  required
                 >
-                  <MenuItem value="default">Default</MenuItem>
-                  <MenuItem value="store_wise">Store Wise</MenuItem>
+                  <MenuItem value="top_deal">Top Deal</MenuItem>
+                  <MenuItem value="cash_back">Cash Back</MenuItem>
                   <MenuItem value="zone_wise">Zone Wise</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
             <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
-              {formData.bannerType === 'store_wise' && (
-                <>
-                  {storesLoading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <CircularProgress size={20} />
-                      <Typography>Loading stores...</Typography>
-                    </Box>
-                  ) : (
-                    <FormControl fullWidth variant="outlined">
-                      <InputLabel id="store-label">Store</InputLabel>
-                      <Select
-                        labelId="store-label"
-                        value={formData.store}
-                        onChange={handleInputChange('store')}
-                        label="Store"
-                      >
-                        <MenuItem value="">
-                          <em>---Select store---</em>
-                        </MenuItem>
-                        {stores.map((store) => (
-                          <MenuItem key={store._id} value={store._id}>
-                            {store.storeName}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                  )}
-                </>
+              {storesLoading ? (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                  <CircularProgress size={20} />
+                  <Typography>Loading stores...</Typography>
+                </Box>
+              ) : (
+                <FormControl fullWidth variant="outlined">
+                  <InputLabel id="store-label">Store</InputLabel>
+                  <Select
+                    labelId="store-label"
+                    value={formData.store}
+                    onChange={handleInputChange('store')}
+                    label="Store"
+                  >
+                    <MenuItem value="">
+                      <em>---Select store---</em>
+                    </MenuItem>
+                    {stores.map((store) => (
+                      <MenuItem key={store._id} value={store._id}>
+                        {store.storeName}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
               )}
             </Grid>
 
@@ -830,137 +810,91 @@ export default function Banner() {
           </Grid>
         </TabPanel>
 
-         <Box sx={{ mt: 5 }}>
-                  <Divider sx={{ mb: 3 }} />
-                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                      <Typography variant="h4" fontWeight="bold">
-                        Existing Banners
-                      </Typography>
-                      <Box
-                        sx={{
-                          backgroundColor: '#14b8a6',
-                          color: 'white',
-                          borderRadius: '50%',
-                          width: 24,
-                          height: 24,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '12px',
-                          fontWeight: 600,
-                        }}
-                      >
-                        {filteredBanners.length}
-                      </Box>
-                    </Box>
-                    <SearchTextField
-                      size="small"
-                      placeholder="Search by title"
-                      value={searchQuery}
-                      onChange={(e) => setSearchQuery(e.target.value)}
-                      slotProps={{
-                        input: {
-                          endAdornment: (
-                            <InputAdornment position="end">
-                              <IconButton size="small" sx={{ color: '#14b8a6' }}>
-                                <SearchIcon />
-                              </IconButton>
-                            </InputAdornment>
-                          ),
-                        },
-                      }}
-                      sx={{ width: 300 }}
+        <Box sx={{ mt: 5 }}>
+          <Divider sx={{ mb: 3 }} />
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+              <Typography variant="h4" fontWeight="bold">
+                Existing Banners
+              </Typography>
+              <Box
+                sx={{
+                  backgroundColor: '#14b8a6',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: 24,
+                  height: 24,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '12px',
+                  fontWeight: 600,
+                }}
+              >
+                {filteredBanners.length}
+              </Box>
+            </Box>
+            <SearchTextField
+              size="small"
+              placeholder="Search by title"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton size="small" sx={{ color: '#14b8a6' }}>
+                        <SearchIcon />
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
+              }}
+              sx={{ width: 300 }}
+            />
+          </Box>
+
+          {bannersLoading ? (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center', py: 4 }}>
+              <CircularProgress size={24} />
+              <Typography>Loading banners...</Typography>
+            </Box>
+          ) : filteredBanners.length > 0 ? (
+            <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 8 }}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ backgroundColor: '#f5f7fa' }}>
+                    <TableCell sx={{ fontWeight: 500 }}>SL</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>Featured</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 500 }}>Action</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {filteredBanners.map((banner, index) => (
+                    <BannerTableRow
+                      key={banner._id}
+                      banner={banner}
+                      index={index}
+                      handleImagePreview={handleImagePreview}
+                      handleEdit={handleEdit}
+                      handleDelete={handleDelete}
+                      handleToggle={handleToggle}
+                      handleBannerClick={handleBannerClick}
+                      togglingStatus={togglingStatus}
                     />
-                  </Box>
-        
-                  {bannersLoading ? (
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, justifyContent: 'center', py: 4 }}>
-                      <CircularProgress size={24} />
-                      <Typography>Loading banners...</Typography>
-                    </Box>
-                  ) : filteredBanners.length > 0 ? (
-                    <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 8 }}>
-                      <Table>
-                        <TableHead>
-                          <TableRow sx={{ backgroundColor: '#f5f7fa' }}>
-                            <TableCell sx={{ fontWeight: 500 }}>SL</TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>Title</TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>Type</TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>Featured</TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>Status</TableCell>
-                            <TableCell sx={{ fontWeight: 500 }}>Action</TableCell>
-                          </TableRow>
-                        </TableHead>
-                        <TableBody>
-                          {filteredBanners.map((banner, index) => {
-                            const imageUrl = getImageUrl(banner.image);
-                            return (
-                              <TableRow key={banner._id}>
-                                <TableCell>{index + 1}</TableCell>
-                                <TableCell>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                                    {/* <img
-                                      src={imageUrl || 'https://via.placeholder.com/50'}
-                                      alt={`${banner.title} preview`}
-                                      style={{
-                                        width: 50,
-                                        height: 30,
-                                        objectFit: 'cover',
-                                        borderRadius: 4,
-                                        cursor: imageUrl ? 'pointer' : 'default',
-                                      }}
-                                      onClick={() => imageUrl && handleImagePreview(imageUrl, banner.title)}
-                                      onError={(e) => {
-                                        e.target.src = 'https://via.placeholder.com/50';
-                                      }}
-                                    /> */}
-                                    <Typography>{banner.title}</Typography>
-                                  </Box>
-                                </TableCell>
-                                <TableCell>{banner.bannerType || 'Unknown'}</TableCell>
-                                <TableCell>
-                                  <Switch
-                                    checked={banner.isFeatured || false}
-                                    onChange={() => handleToggle(banner._id, 'isFeatured')}
-                                    color="primary"
-                                    disabled={togglingStatus[`${banner._id}-isFeatured`] || false}
-                                  />
-                                  {togglingStatus[`${banner._id}-isFeatured`] && (
-                                    <CircularProgress size={16} sx={{ ml: 1 }} />
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <Switch
-                                    checked={banner.isActive || false}
-                                    onChange={() => handleToggle(banner._id, 'isActive')}
-                                    color="success"
-                                    disabled={togglingStatus[`${banner._id}-isActive`] || false}
-                                  />
-                                  {togglingStatus[`${banner._id}-isActive`] && (
-                                    <CircularProgress size={16} sx={{ ml: 1 }} />
-                                  )}
-                                </TableCell>
-                                <TableCell>
-                                  <IconButton onClick={() => handleEdit(banner)} color="primary">
-                                    <EditIcon />
-                                  </IconButton>
-                                  <IconButton onClick={() => handleDelete(banner._id)} color="error">
-                                    <DeleteIcon />
-                                  </IconButton>
-                                </TableCell>
-                              </TableRow>
-                            );
-                          })}
-                        </TableBody>
-                      </Table>
-                    </TableContainer>
-                  ) : (
-                    <Typography sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-                      No banners found. Try adjusting your search or create a new banner.
-                    </Typography>
-                  )}
-                </Box>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          ) : (
+            <Typography sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
+              No banners found. Try adjusting your search or create a new banner.
+            </Typography>
+          )}
+        </Box>
       </StyledPaper>
 
       <Snackbar

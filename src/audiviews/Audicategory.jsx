@@ -251,20 +251,37 @@ export default function CategoryManagement() {
         categoriesList = data.data;
       }
 
-      // Process categories for display
-      const baseURL = API_BASE_URL.replace('/api', '');
+      // Process categories for display with proper image URL handling
+      const formattedCategories = categoriesList.map((cat) => {
+        let imageUrl = '';
+        if (cat.image) {
+          if (cat.image.startsWith('http://') || cat.image.startsWith('https://')) {
+            imageUrl = cat.image;
+          } else if (cat.image.startsWith('/uploads') || cat.image.startsWith('uploads')) {
+            const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
+            imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
+          } else {
+            imageUrl = `https://api.bookmyevent.ae/${cat.image}`;
+          }
+        }
 
-      const formattedCategories = categoriesList.map((cat) => ({
-        id: cat._id,
-        names: {
-          default: cat.name || cat.title || '',
-          english: cat.name || cat.title || '',
-          arabic: cat.name || cat.title || ''
-        },
-        status: cat.isActive !== undefined ? cat.isActive : true,
-        image: cat.image ? `${baseURL}/${cat.image}` : '',
-        module: cat.module || null
-      }));
+        console.log('Category image processing:', {
+          original: cat.image,
+          final: imageUrl
+        });
+
+        return {
+          id: cat._id,
+          names: {
+            default: cat.title || cat.name || '',
+            english: cat.title || cat.name || '',
+            arabic: cat.title || cat.name || ''
+          },
+          status: cat.isActive !== undefined ? cat.isActive : true,
+          image: imageUrl,
+          module: cat.module || null
+        };
+      });
 
       setCategories(formattedCategories);
 
@@ -475,6 +492,8 @@ export default function CategoryManagement() {
       metaTitle: '',
       metaDescription: ''
     }));
+    setUploadedImage(null);
+    setImagePreview(null);
   };
 
   const handleEdit = (id) => {
@@ -539,6 +558,7 @@ export default function CategoryManagement() {
     }
   };
 
+  // Updated handleStatusToggle to use /block or /reactivate endpoints
   const handleStatusToggle = async (id) => {
     const token = getAuthToken();
     if (!token) {
@@ -547,14 +567,27 @@ export default function CategoryManagement() {
       return;
     }
 
+    const category = categories.find((c) => c.id === id);
+    if (!category) {
+      showNotification('Category not found', 'error');
+      return;
+    }
+
+    const isActive = category.status;
+    const endpoint = isActive ? `/categories/${id}/block` : `/categories/${id}/reactivate`;
+    const action = isActive ? 'blocked' : 'reactivated';
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/categories/${id}/toggle-status`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          updatedBy: getUserId()
+        })
       });
 
       if (!response.ok) {
@@ -571,7 +604,7 @@ export default function CategoryManagement() {
           return;
         }
         if (response.status === 403) {
-          setError("Access denied. You don't have permission to update category status.");
+          setError(`Access denied. You don't have permission to ${action} categories.`);
           navigate('/dashboard');
           return;
         }
@@ -580,12 +613,11 @@ export default function CategoryManagement() {
 
       const data = await response.json();
       const updatedCategory = data.data?.category || data.category;
-      const newStatus = updatedCategory.isActive;
-      showNotification(`Category "${updatedCategory.name}" ${newStatus ? 'activated' : 'deactivated'}`, 'info');
+      showNotification(`Category "${updatedCategory.title || updatedCategory.name}" ${action} successfully`, 'info');
       fetchCategories();
     } catch (error) {
-      console.error('Error toggling category status:', error);
-      showNotification(`Failed to update category status: ${error.message}`, 'error');
+      console.error(`Error ${action} category:`, error);
+      showNotification(`Failed to ${action} category: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
@@ -1073,6 +1105,11 @@ export default function CategoryManagement() {
                                     width: '100%',
                                     height: '100%',
                                     objectFit: 'cover'
+                                  }}
+                                  onError={(e) => {
+                                    console.error('Image failed to load:', category.image);
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
                                   }}
                                 />
                               </Box>

@@ -369,8 +369,6 @@
 
 
 
-
-
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -384,6 +382,7 @@ import Typography from '@mui/material/Typography';
 import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
+import Paper from '@mui/material/Paper';
 
 // project imports
 import LogoSection from '../LogoSection';
@@ -603,52 +602,87 @@ export default function Header() {
     if (!icon) return '/default-icon.png';
     if (icon.startsWith('http') || icon.startsWith('/')) return icon;
     return isSecondary 
-      ? `https://api.bookmyevent.ae/api/${icon}`
+      ? `https://api.bookmyevent.ae/${icon}`
       : `https://api.bookmyevent.ae/${icon}`;
   };
 
   const renderModuleGrid = (moduleList, handleClick, isSecondary = false) => (
-    <Grid container spacing={2} sx={{ px: 2, py: 2 }}>
+    <Grid container spacing={2}>
       {moduleList.length === 0 ? (
         <Grid item xs={12}>
-          <Typography variant="body2" color="textSecondary">
-            No {isSecondary ? 'secondary ' : ''}modules available
-          </Typography>
+          <Box sx={{ 
+            textAlign: 'center', 
+            py: 4,
+            color: '#999'
+          }}>
+            <Typography variant="body2">
+              No {isSecondary ? 'secondary ' : ''}modules available
+            </Typography>
+          </Box>
         </Grid>
       ) : (
         moduleList.map((item) => (
           <Grid item xs={6} sm={4} md={3} key={item.moduleId}>
-            <Box
+            <Paper
+              elevation={0}
               onClick={() => handleClick(item)}
               sx={{
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                bgcolor: '#fff',
-                color: '#1976d2',
+                bgcolor: '#ffffff',
                 borderRadius: 2,
-                border: '1px solid #e0e0e0',
+                border: '1px solid #e8e8e8',
                 cursor: 'pointer',
-                transition: 'all 0.3s ease',
+                transition: 'all 0.2s ease',
                 aspectRatio: '1 / 1',
                 width: '100%',
-                p: 2,
-                '&:hover': { bgcolor: '#f5f5f5', transform: 'scale(1.05)', boxShadow: 3 }
+                p: 2.5,
+                '&:hover': { 
+                  bgcolor: '#f8f9fa',
+                  transform: 'translateY(-2px)',
+                  boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+                  borderColor: '#1976d2'
+                }
               }}
             >
-              <ListItemIcon sx={{ justifyContent: 'center', color: '#1976d2', minWidth: 0 }}>
+              <Box
+                sx={{
+                  width: 56,
+                  height: 56,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mb: 1.5
+                }}
+              >
                 <img
                   src={getImageUrl(item.icon, isSecondary)}
                   alt={item.title || 'Module'}
-                  style={{ width: 48, height: 48, objectFit: 'contain' }}
-                  onError={(e) => { e.currentTarget.src = '/default-icon.png'; }}
+                  style={{ 
+                    width: '100%', 
+                    height: '100%', 
+                    objectFit: 'contain'
+                  }}
+                  onError={(e) => { 
+                    e.currentTarget.src = '/default-icon.png'; 
+                  }}
                 />
-              </ListItemIcon>
-              <Typography variant="body2" sx={{ mt: 1, textAlign: 'center', fontWeight: 500 }}>
+              </Box>
+              <Typography 
+                variant="body2" 
+                sx={{ 
+                  textAlign: 'center', 
+                  fontWeight: 500,
+                  color: '#333',
+                  fontSize: '0.875rem',
+                  lineHeight: 1.4
+                }}
+              >
                 {item.title || 'Untitled'}
               </Typography>
-            </Box>
+            </Paper>
           </Grid>
         ))
       )}
@@ -656,149 +690,249 @@ export default function Header() {
   );
 
   const renderAddButton = (onClick, label, color) => (
-    <Box sx={{ px: 1, py: 1 }}>
+    <Box sx={{ mt: 2 }}>
       <Button
         onClick={onClick}
+        fullWidth
+        startIcon={<IconPlus size={18} />}
         sx={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 1,
-          width: '100%',
-          bgcolor: '#fff',
-          color,
-          borderRadius: '12px',
-          px: 3,
-          py: 2,
-          fontSize: '0.95rem',
-          border: `1px dashed ${color}`,
+          bgcolor: '#ffffff',
+          color: color,
+          borderRadius: 2,
+          py: 1.5,
+          fontSize: '0.875rem',
+          fontWeight: 500,
+          border: `1.5px dashed ${color}`,
+          textTransform: 'none',
+          transition: 'all 0.2s ease',
           '&:hover': { 
             bgcolor: color === '#4caf50' ? '#f1f8e9' : '#fff3e0',
-            borderColor: color === '#4caf50' ? '#388e3c' : '#f57c00'
+            borderColor: color === '#4caf50' ? '#388e3c' : '#f57c00',
+            transform: 'translateY(-1px)'
           }
         }}
       >
-        <IconPlus size={20} />
-        <Typography variant="body2">{label}</Typography>
+        {label}
       </Button>
     </Box>
   );
 
   return (
     <>
-      {/* Logo & Drawer */}
-      <Box sx={{ width: downMD ? 'auto' : 228, display: 'flex', alignItems: 'center' }}>
-        <Box component="span" sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
-          <LogoSection />
-        </Box>
-        <Avatar
-          variant="rounded"
-          sx={{
-            ...theme.typography.commonAvatar,
-            ...theme.typography.mediumAvatar,
-            overflow: 'hidden',
-            transition: 'all .2s ease-in-out',
-            bgcolor: 'secondary.light',
-            color: 'secondary.dark',
-            '&:hover': { bgcolor: 'secondary.dark', color: 'secondary.light' }
-          }}
-          onClick={() => handlerDrawerOpen(!drawerOpen)}
-          color="inherit"
-        >
-          <IconMenu2 stroke={1.5} size="20px" />
-        </Avatar>
-      </Box>
-
-      <Box sx={{ flexGrow: 1 }} />
-
-      {/* Settings Button */}
-      <Button
-        variant="outlined"
-        size="large"
-        startIcon={<IconSettings size={20} />}
-        endIcon={<IconChevronDown size={16} />}
-        sx={{
-          textTransform: 'none',
-          borderRadius: '50px',
-          px: 3,
-          py: 1.5,
-          fontSize: '1rem',
-          borderColor: '#e0e0e0',
-          color: '#666',
-          '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
-        }}
-        onClick={handleSettingsClick}
-      >
-        Settings
-      </Button>
-
-      {/* Settings dropdown menu */}
-      <Menu
-        anchorEl={settingsAnchorEl}
-        open={settingsOpen}
-        onClose={handleSettingsClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-        sx={{
-          mt: 1,
-          '& .MuiPaper-root': { minWidth: 200, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }
-        }}
-      >
-        {settingsMenuItems.map((item) => (
-          <MenuItem
-            key={item.label}
-            onClick={() => handleSettingsNavigation(item.route)}
-            sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
-          >
-            <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
-            <Typography variant="body2" sx={{ color: '#333' }}>{item.label}</Typography>
-          </MenuItem>
-        ))}
-      </Menu>
-
-      {/* Modules Dropdown and Notification */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-        <Button
-          variant="contained"
-          size="large"
-          sx={{ textTransform: 'none', borderRadius: '50px', px: 3, py: 1.5, fontSize: '1rem' }}
-          onClick={handleClick}
-        >
-          Demo Modules
-        </Button>
-
-        <NotificationSection />
-
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          anchorOrigin={{ vertical: 'bottom', horizontal: 'left' }}
-          transformOrigin={{ vertical: 'top', horizontal: 'left' }}
-          sx={{ p: 1 }}
-        >
-          <Box sx={{ backgroundColor: '#fff', p: 2, maxWidth: 600 }}>
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: 'left', color: '#333' }}>
-              Main Modules
-            </Typography>
-
-            {renderModuleGrid(modules, handleModuleClick)}
-            {renderAddButton(handleAddModule, 'Add Module', '#4caf50')}
-
-            <Divider sx={{ my: 2 }} />
-
-            <Typography variant="h6" sx={{ fontWeight: 600, mb: 2, textAlign: 'left', color: '#333' }}>
-              Secondary Modules
-            </Typography>
-
-            {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
-            {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
+        {/* Logo & Drawer */}
+        <Box sx={{ width: downMD ? 'auto' : 228, display: 'flex', alignItems: 'center' }}>
+          <Box component="span" sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
+            <LogoSection />
           </Box>
-        </Menu>
-      </Box>
+          <Avatar
+            variant="rounded"
+            sx={{
+              ...theme.typography.commonAvatar,
+              ...theme.typography.mediumAvatar,
+              overflow: 'hidden',
+              transition: 'all .2s ease-in-out',
+              bgcolor: 'secondary.light',
+              color: 'secondary.dark',
+              '&:hover': { bgcolor: 'secondary.dark', color: 'secondary.light' }
+            }}
+            onClick={() => handlerDrawerOpen(!drawerOpen)}
+            color="inherit"
+          >
+            <IconMenu2 stroke={1.5} size="20px" />
+          </Avatar>
+        </Box>
 
-      <Box sx={{ ml: 2 }}>
-        <ProfileSection />
+        {/* Right-aligned section */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Settings Button */}
+          <Button
+            variant="outlined"
+            size="large"
+            startIcon={<IconSettings size={20} />}
+            endIcon={<IconChevronDown size={16} />}
+            sx={{
+              textTransform: 'none',
+              borderRadius: '50px',
+              px: 3,
+              py: 1.5,
+              fontSize: '1rem',
+              borderColor: '#e0e0e0',
+              color: '#666',
+              '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
+            }}
+            onClick={handleSettingsClick}
+          >
+            Settings
+          </Button>
+
+          {/* Settings dropdown menu */}
+          <Menu
+            anchorEl={settingsAnchorEl}
+            open={settingsOpen}
+            onClose={handleSettingsClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Adjusted to align right
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            sx={{
+              mt: 1,
+              '& .MuiPaper-root': { minWidth: 200, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }
+            }}
+          >
+            {settingsMenuItems.map((item) => (
+              <MenuItem
+                key={item.label}
+                onClick={() => handleSettingsNavigation(item.route)}
+                sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
+              >
+                <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
+                <Typography variant="body2" sx={{ color: '#333' }}>{item.label}</Typography>
+              </MenuItem>
+            ))}
+          </Menu>
+
+          {/* Modules Dropdown and Notification */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Button
+              variant="contained"
+              size="large"
+              sx={{ textTransform: 'none', borderRadius: '50px', px: 3, py: 1.5, fontSize: '1rem' }}
+              onClick={handleClick}
+            >
+              Demo Modules
+            </Button>
+
+            <NotificationSection />
+
+            <Menu
+              anchorEl={anchorEl}
+              open={open}
+              onClose={handleClose}
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Adjusted to align right
+              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+              PaperProps={{
+                sx: {
+                  mt: 1.5,
+                  minWidth: 650,
+                  maxWidth: 750,
+                  maxHeight: '80vh',
+                  overflowY: 'auto',
+                  borderRadius: 3,
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                  right: 0, // Ensures the menu aligns to the right edge
+                  left: 'auto', // Overrides default left positioning
+                  '&::-webkit-scrollbar': {
+                    width: '8px'
+                  },
+                  '&::-webkit-scrollbar-track': {
+                    background: '#f1f1f1',
+                    borderRadius: '10px'
+                  },
+                  '&::-webkit-scrollbar-thumb': {
+                    background: '#c1c1c1',
+                    borderRadius: '10px',
+                    '&:hover': {
+                      background: '#a8a8a8'
+                    }
+                  }
+                }
+              }}
+            >
+              <Box sx={{ p: 3 }}>
+                {/* Main Modules Section */}
+                <Box sx={{ mb: 4 }}>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2.5,
+                    pb: 1,
+                    borderBottom: '2px solid #f0f0f0'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      Main Modules
+                    </Typography>
+                    <Box sx={{ 
+                      ml: 1.5,
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: '#e3f2fd',
+                      borderRadius: '12px'
+                    }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: '#1976d2',
+                          fontWeight: 600,
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        {modules.length}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {renderModuleGrid(modules, handleModuleClick)}
+                  {renderAddButton(handleAddModule, 'Add New Module', '#4caf50')}
+                </Box>
+
+                <Divider sx={{ my: 3 }} />
+
+                {/* Secondary Modules Section */}
+                <Box>
+                  <Box sx={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    mb: 2.5,
+                    pb: 1,
+                    borderBottom: '2px solid #f0f0f0'
+                  }}>
+                    <Typography 
+                      variant="h6" 
+                      sx={{ 
+                        fontWeight: 600,
+                        color: '#1a1a1a',
+                        fontSize: '1.1rem'
+                      }}
+                    >
+                      Secondary Modules
+                    </Typography>
+                    <Box sx={{ 
+                      ml: 1.5,
+                      px: 1.5,
+                      py: 0.5,
+                      bgcolor: '#fff3e0',
+                      borderRadius: '12px'
+                    }}>
+                      <Typography 
+                        variant="caption" 
+                        sx={{ 
+                          color: '#f57c00',
+                          fontWeight: 600,
+                          fontSize: '0.75rem'
+                        }}
+                      >
+                        {secondaryModules.length}
+                      </Typography>
+                    </Box>
+                  </Box>
+
+                  {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
+                  {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')}
+                </Box>
+              </Box>
+            </Menu>
+          </Box>
+
+          <Box sx={{ ml: 2 }}>
+            <ProfileSection />
+          </Box>
+        </Box>
       </Box>
     </>
   );
