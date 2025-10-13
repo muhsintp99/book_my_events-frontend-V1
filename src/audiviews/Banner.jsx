@@ -19,10 +19,6 @@ import {
   Typography,
   Paper,
   Grid,
-  Card,
-  CardContent,
-  CardMedia,
-  Chip,
   CircularProgress,
   Snackbar,
   Alert,
@@ -37,18 +33,11 @@ import {
 import { styled } from '@mui/material/styles';
 import {
   CloudUpload,
-  Image as ImageIcon,
-  Refresh,
   Search as SearchIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Close as CloseIcon
 } from '@mui/icons-material';
-
-// Custom ObjectId validator for the frontend
-const isValidObjectId = (id) => {
-  return /^[0-9a-fA-F]{24}$/.test(id);
-};
 
 // Utility to validate and construct image URLs
 const getImageUrl = (imagePath) => {
@@ -179,6 +168,13 @@ function TabPanel({ children, value, index, ...other }) {
 const BannerTableRow = React.memo(({ banner, index, handleImagePreview, handleEdit, handleDelete, handleToggle, handleBannerClick, togglingStatus }) => {
   const imageUrl = useMemo(() => getImageUrl(banner.image), [banner.image]);
 
+  // Format banner type for display
+  const formatBannerType = (type) => {
+    if (type === 'top_deal') return 'Top Deal';
+    if (type === 'cash_back') return 'Cash Back';
+    return type;
+  };
+
   return (
     <TableRow key={banner._id}>
       <TableCell>{index + 1}</TableCell>
@@ -209,7 +205,7 @@ const BannerTableRow = React.memo(({ banner, index, handleImagePreview, handleEd
           <Typography>{banner.title}</Typography>
         </Box>
       </TableCell>
-      <TableCell>{banner.bannerType || 'Unknown'}</TableCell>
+      <TableCell>{formatBannerType(banner.bannerType)}</TableCell>
       <TableCell>
         <Switch
           checked={banner.isFeatured || false}
@@ -233,10 +229,10 @@ const BannerTableRow = React.memo(({ banner, index, handleImagePreview, handleEd
         )}
       </TableCell>
       <TableCell>
-        <IconButton onClick={() => handleEdit(banner)} color="primary">
+        <IconButton onClick={() => handleEdit(banner)} color="primary" size="small">
           <EditIcon />
         </IconButton>
-        <IconButton onClick={() => handleDelete(banner._id)} color="error">
+        <IconButton onClick={() => handleDelete(banner._id)} color="error" size="small">
           <DeleteIcon />
         </IconButton>
       </TableCell>
@@ -251,7 +247,6 @@ export default function Banner() {
   const [imagePreview, setImagePreview] = useState(null);
   const [bannersLoading, setBannersLoading] = useState(true);
   const [zonesLoading, setZonesLoading] = useState(true);
-  const [storesLoading, setStoresLoading] = useState(true);
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
@@ -259,14 +254,12 @@ export default function Banner() {
   const [selectedPreviewImage, setSelectedPreviewImage] = useState(null);
   const [banners, setBanners] = useState([]);
   const [zones, setZones] = useState([]);
-  const [stores, setStores] = useState([]);
   const [togglingStatus, setTogglingStatus] = useState({});
   const [formData, setFormData] = useState({
     title: '',
     description: '',
     zone: '',
     bannerType: 'top_deal',
-    store: '',
     bannerImage: null,
     isFeatured: false,
     isActive: true,
@@ -279,7 +272,6 @@ export default function Banner() {
   useEffect(() => {
     fetchBanners();
     fetchZones();
-    fetchStores();
   }, []);
 
   const fetchBanners = async () => {
@@ -320,6 +312,7 @@ export default function Banner() {
         throw new Error(`HTTP error! Status: ${response.status}`);
       }
       const data = await response.json();
+      console.log('Zones response:', data); // Debug log
       if (data.data) {
         setZones(data.data || []);
       } else {
@@ -334,43 +327,14 @@ export default function Banner() {
     }
   };
 
-  const fetchStores = async () => {
-    try {
-      setStoresLoading(true);
-      const response = await fetch(`${API_BASE_URL}/stores`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('token')}`
-        }
-      });
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
-      const data = await response.json();
-      if (data.success) {
-        setStores(data.data.stores || data.data || []);
-      } else {
-        throw new Error(data.message || 'Failed to fetch stores');
-      }
-    } catch (error) {
-      console.error('Error fetching stores:', error);
-      showAlert('Error fetching stores. Please ensure the stores API is available.', 'error');
-      setStores([]);
-    } finally {
-      setStoresLoading(false);
-    }
-  };
-
   const handleBannerClick = async (id) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/auditorium-banner/${id}/click`, {
+      await fetch(`${API_BASE_URL}/auditorium-banner/${id}/click`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json'
         }
       });
-      if (!response.ok) {
-        throw new Error(`HTTP error! Status: ${response.status}`);
-      }
     } catch (error) {
       console.error('Error recording banner click:', error);
     }
@@ -417,11 +381,8 @@ export default function Banner() {
     if (!formData.title.trim()) errors.push('Title is required');
     if (!formData.zone) errors.push('Zone is required');
     if (!formData.bannerImage && !editingId) errors.push('Banner image is required');
-    if (!['top_deal', 'cash_back', 'zone_wise'].includes(formData.bannerType)) {
+    if (!['top_deal', 'cash_back'].includes(formData.bannerType)) {
       errors.push('Invalid banner type');
-    }
-    if (formData.store && !isValidObjectId(formData.store)) {
-      errors.push('Invalid store ID');
     }
     if (formData.displayOrder && isNaN(parseInt(formData.displayOrder))) {
       errors.push('Display order must be a valid number');
@@ -443,9 +404,6 @@ export default function Banner() {
       submitFormData.append('description', formData.description);
       submitFormData.append('zone', formData.zone);
       submitFormData.append('bannerType', formData.bannerType);
-      if (formData.store && isValidObjectId(formData.store)) {
-        submitFormData.append('store', formData.store);
-      }
       if (formData.bannerImage) submitFormData.append('image', formData.bannerImage);
       submitFormData.append('isFeatured', formData.isFeatured);
       submitFormData.append('isActive', formData.isActive);
@@ -488,7 +446,6 @@ export default function Banner() {
       description: '',
       zone: '',
       bannerType: 'top_deal',
-      store: '',
       bannerImage: null,
       isFeatured: false,
       isActive: true,
@@ -568,7 +525,6 @@ export default function Banner() {
           description: bannerData.description || '',
           zone: bannerData.zone?._id || bannerData.zone || '',
           bannerType: bannerData.bannerType,
-          store: bannerData.store?._id || '',
           bannerImage: null,
           isFeatured: bannerData.isFeatured,
           isActive: bannerData.isActive,
@@ -646,8 +602,8 @@ export default function Banner() {
         </StyledTabs>
 
         <TabPanel value={tabValue} index={0}>
-          <Grid container rowSpacing={3} columnSpacing={3}>
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+          <Grid container spacing={3}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Title *"
@@ -659,7 +615,7 @@ export default function Banner() {
               />
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Description"
@@ -672,7 +628,7 @@ export default function Banner() {
               />
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               <Typography variant="body2" sx={{ mb: 1, color: '#ef4444', fontWeight: 500 }}>
                 Banner image * (Ratio 3:1, Max 2MB)
               </Typography>
@@ -706,12 +662,14 @@ export default function Banner() {
               )}
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               {zonesLoading ? (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                   <CircularProgress size={20} />
                   <Typography>Loading zones...</Typography>
                 </Box>
+              ) : zones.length === 0 ? (
+                <Alert severity="warning">No zones available. Please create zones first.</Alert>
               ) : (
                 <FormControl fullWidth variant="outlined">
                   <InputLabel id="zone-label">Zone *</InputLabel>
@@ -723,7 +681,7 @@ export default function Banner() {
                     required
                   >
                     <MenuItem value="">
-                      <em>---Select---</em>
+                      <em>---Select Zone---</em>
                     </MenuItem>
                     {zones.map((zone) => (
                       <MenuItem key={zone._id} value={zone._id}>
@@ -735,7 +693,7 @@ export default function Banner() {
               )}
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               <FormControl fullWidth variant="outlined">
                 <InputLabel id="banner-type-label">Banner Type *</InputLabel>
                 <Select
@@ -747,40 +705,11 @@ export default function Banner() {
                 >
                   <MenuItem value="top_deal">Top Deal</MenuItem>
                   <MenuItem value="cash_back">Cash Back</MenuItem>
-                  <MenuItem value="zone_wise">Zone Wise</MenuItem>
                 </Select>
               </FormControl>
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
-              {storesLoading ? (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-                  <CircularProgress size={20} />
-                  <Typography>Loading stores...</Typography>
-                </Box>
-              ) : (
-                <FormControl fullWidth variant="outlined">
-                  <InputLabel id="store-label">Store</InputLabel>
-                  <Select
-                    labelId="store-label"
-                    value={formData.store}
-                    onChange={handleInputChange('store')}
-                    label="Store"
-                  >
-                    <MenuItem value="">
-                      <em>---Select store---</em>
-                    </MenuItem>
-                    {stores.map((store) => (
-                      <MenuItem key={store._id} value={store._id}>
-                        {store.storeName}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
-              )}
-            </Grid>
-
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               <TextField
                 fullWidth
                 label="Display Order"
@@ -792,7 +721,7 @@ export default function Banner() {
               />
             </Grid>
 
-            <Grid size={{ lg: 12, md: 12, sm: 12, xs: 12 }}>
+            <Grid item xs={12}>
               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 2 }}>
                 <ResetButton variant="outlined" onClick={handleReset} disabled={loading}>
                   Reset
@@ -801,7 +730,7 @@ export default function Banner() {
                   variant="contained"
                   onClick={handleSubmit}
                   disabled={loading}
-                  startIcon={loading ? <CircularProgress size={20} /> : null}
+                  startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
                 >
                   {loading ? 'Submitting...' : editingId ? 'Update' : 'Submit'}
                 </SubmitButton>
@@ -812,7 +741,7 @@ export default function Banner() {
 
         <Box sx={{ mt: 5 }}>
           <Divider sx={{ mb: 3 }} />
-          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+          <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3, flexWrap: 'wrap', gap: 2 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
               <Typography variant="h4" fontWeight="bold">
                 Existing Banners
@@ -822,12 +751,12 @@ export default function Banner() {
                   backgroundColor: '#14b8a6',
                   color: 'white',
                   borderRadius: '50%',
-                  width: 24,
-                  height: 24,
+                  width: 32,
+                  height: 32,
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: '12px',
+                  fontSize: '14px',
                   fontWeight: 600,
                 }}
               >
@@ -839,16 +768,14 @@ export default function Banner() {
               placeholder="Search by title"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              slotProps={{
-                input: {
-                  endAdornment: (
-                    <InputAdornment position="end">
-                      <IconButton size="small" sx={{ color: '#14b8a6' }}>
-                        <SearchIcon />
-                      </IconButton>
-                    </InputAdornment>
-                  ),
-                },
+              InputProps={{
+                endAdornment: (
+                  <InputAdornment position="end">
+                    <IconButton size="small" sx={{ color: '#14b8a6' }}>
+                      <SearchIcon />
+                    </IconButton>
+                  </InputAdornment>
+                ),
               }}
               sx={{ width: 300 }}
             />
@@ -860,16 +787,16 @@ export default function Banner() {
               <Typography>Loading banners...</Typography>
             </Box>
           ) : filteredBanners.length > 0 ? (
-            <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 8 }}>
+            <TableContainer component={Paper} sx={{ boxShadow: '0 2px 8px rgba(0,0,0,0.1)', borderRadius: 2 }}>
               <Table>
                 <TableHead>
                   <TableRow sx={{ backgroundColor: '#f5f7fa' }}>
-                    <TableCell sx={{ fontWeight: 500 }}>SL</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>Title</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>Type</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>Featured</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 500 }}>Action</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>SL</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Title</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Type</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Featured</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -890,9 +817,11 @@ export default function Banner() {
               </Table>
             </TableContainer>
           ) : (
-            <Typography sx={{ textAlign: 'center', py: 4, color: 'text.secondary' }}>
-              No banners found. Try adjusting your search or create a new banner.
-            </Typography>
+            <Paper sx={{ p: 4, textAlign: 'center' }}>
+              <Typography color="text.secondary">
+                No banners found. {searchQuery ? 'Try adjusting your search or ' : ''}Create a new banner to get started.
+              </Typography>
+            </Paper>
           )}
         </Box>
       </StyledPaper>
@@ -906,6 +835,7 @@ export default function Banner() {
         <Alert
           onClose={() => setOpen(false)}
           severity={alertSeverity}
+          variant="filled"
           sx={{ width: '100%' }}
         >
           {alertMessage}

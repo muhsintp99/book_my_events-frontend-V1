@@ -368,7 +368,6 @@
 
 
 
-
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -417,6 +416,12 @@ export default function Header() {
 
   const open = Boolean(anchorEl);
   const settingsOpen = Boolean(settingsAnchorEl);
+
+  // Module mapping: maps display titles to their target modules and routes
+  const moduleMapping = {
+    'venues': { targetModule: 'auditorium', route: '/auditorium/dashboard' },
+    'transport': { targetModule: 'rental', route: '/rental/dashboard' }
+  };
 
   // Utility function to dispatch module events
   const dispatchModuleEvents = (moduleName, sidebarType) => {
@@ -561,17 +566,38 @@ export default function Header() {
   const handleModuleClick = (module) => {
     const moduleName = (module.title || '').toLowerCase();
     const moduleId = module.moduleId;
-    const sidebarType = module.type || 'crm';
     const moduleDbId = module._id;
 
-    localStorage.setItem('moduleId', moduleId);
-    if (moduleDbId && !module.isStatic) {
-      localStorage.setItem('moduleDbId', moduleDbId);
-    }
+    // Check if this module has a mapping (like venues -> auditorium)
+    const mapping = moduleMapping[moduleName];
+    
+    if (mapping) {
+      // Use the mapped target module and route
+      const targetModule = mapping.targetModule;
+      const targetRoute = mapping.route;
+      
+      localStorage.setItem('moduleId', moduleId);
+      if (moduleDbId && !module.isStatic) {
+        localStorage.setItem('moduleDbId', moduleDbId);
+      }
 
-    dispatchModuleEvents(moduleName, sidebarType);
-    navigate(`/${moduleName}/dashboard`);
-    setTimeout(() => window.location.reload(), 100);
+      dispatchModuleEvents(targetModule, module.type || 'crm');
+      navigate(targetRoute);
+      setTimeout(() => window.location.reload(), 100);
+    } else {
+      // Default behavior for non-mapped modules
+      const sidebarType = module.type || 'crm';
+      
+      localStorage.setItem('moduleId', moduleId);
+      if (moduleDbId && !module.isStatic) {
+        localStorage.setItem('moduleDbId', moduleDbId);
+      }
+
+      dispatchModuleEvents(moduleName, sidebarType);
+      navigate(`/${moduleName}/dashboard`);
+      setTimeout(() => window.location.reload(), 100);
+    }
+    
     handleClose();
   };
 
@@ -580,14 +606,34 @@ export default function Header() {
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
-    localStorage.setItem('moduleId', moduleId);
-    if (moduleDbId) {
-      localStorage.setItem('moduleDbId', moduleDbId);
-    }
+    // Check if this secondary module has a mapping
+    const mapping = moduleMapping[moduleName];
+    
+    if (mapping) {
+      // Use the mapped target module and route
+      const targetModule = mapping.targetModule;
+      const targetRoute = mapping.route;
+      
+      localStorage.setItem('moduleId', moduleId);
+      if (moduleDbId) {
+        localStorage.setItem('moduleDbId', moduleDbId);
+      }
 
-    dispatchModuleEvents(moduleName, 'secondary');
-    navigate(`/${moduleName}/dashboard`);
-    setTimeout(() => window.location.reload(), 100);
+      dispatchModuleEvents(targetModule, 'secondary');
+      navigate(targetRoute);
+      setTimeout(() => window.location.reload(), 100);
+    } else {
+      // Default behavior for non-mapped secondary modules
+      localStorage.setItem('moduleId', moduleId);
+      if (moduleDbId) {
+        localStorage.setItem('moduleDbId', moduleDbId);
+      }
+
+      dispatchModuleEvents(moduleName, 'secondary');
+      navigate(`/${moduleName}/dashboard`);
+      setTimeout(() => window.location.reload(), 100);
+    }
+    
     handleClose();
   };
 
@@ -771,7 +817,7 @@ export default function Header() {
             anchorEl={settingsAnchorEl}
             open={settingsOpen}
             onClose={handleSettingsClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Adjusted to align right
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
             transformOrigin={{ vertical: 'top', horizontal: 'right' }}
             sx={{
               mt: 1,
@@ -807,7 +853,7 @@ export default function Header() {
               anchorEl={anchorEl}
               open={open}
               onClose={handleClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }} // Adjusted to align right
+              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               PaperProps={{
                 sx: {
@@ -818,8 +864,8 @@ export default function Header() {
                   overflowY: 'auto',
                   borderRadius: 3,
                   boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                  right: 0, // Ensures the menu aligns to the right edge
-                  left: 'auto', // Overrides default left positioning
+                  right: 0,
+                  left: 'auto',
                   '&::-webkit-scrollbar': {
                     width: '8px'
                   },
