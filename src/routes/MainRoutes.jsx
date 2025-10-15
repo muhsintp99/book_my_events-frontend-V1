@@ -15,7 +15,7 @@ const UtilsShadow = Loadable(lazy(() => import('views/utilities/Shadow')));
 const SamplePage = Loadable(lazy(() => import('views/sample-page')));
 
 // Promotions
-const Banners = Loadable(lazy(() => import('../views/Banner')));
+const Banners = Loadable(lazy(() => import('../views/RentalBanner')));
 const Coupons = Loadable(lazy(() => import('../views/Coupons')));
 const PushNotification = Loadable(lazy(() => import('../views/Pushnotifications')));
 
@@ -101,7 +101,7 @@ const MainRoutes = {
     { path: 'sample-page', element: <SamplePage /> },
 
     // Promotions
-    { path: 'promotions/Banners', element: <Banners /> },
+    { path: 'promotions/RentalBanners', element: <Banners /> },
     { path: 'promotions/Coupons', element: <Coupons /> },
     { path: 'promotions/PushNotification', element: <PushNotification /> },
 

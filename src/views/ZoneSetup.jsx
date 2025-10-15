@@ -16,40 +16,39 @@ import {
   Alert,
   CircularProgress,
   Grid,
-  Snackbar
+  Snackbar,
 } from "@mui/material";
-import { CloudUpload as CloudUploadIcon, Edit as EditIcon } from "@mui/icons-material";
+import {
+  CloudUpload as CloudUploadIcon,
+  Edit as EditIcon,
+  Favorite as FavoriteIcon,
+  FavoriteBorder as FavoriteBorderIcon,
+} from "@mui/icons-material";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
 const containerStyle = { width: "100%", height: "300px" };
-// const defaultCenter = { lat: 10.8505, lng: 76.2711 };
-const defaultPositions = [
-  { lat: 10.8505, lng: 76.2711 },
-  
-];
+const defaultPositions = [{ lat: 10.8505, lng: 76.2711 }];
+
 const ZoneSetup = () => {
   const theme = useTheme();
   const [zones, setZones] = useState([]);
   const [zoneName, setZoneName] = useState("");
   const [iconFile, setIconFile] = useState(null);
-  const [selectedPositions, setSelectedPositions] = useState(defaultPositions); // multiple points
+  const [selectedPositions, setSelectedPositions] = useState(defaultPositions);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState(null);
   const [editingZone, setEditingZone] = useState(null);
   const [toastOpen, setToastOpen] = useState(false);
-const [toastMessage, setToastMessage] = useState("");
-
-
-
+  const [toastMessage, setToastMessage] = useState("");
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78", // Replace with your API key
+    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78", // Replace with your key
   });
 
-  // Fetch zones from API
+  // Fetch zones
   useEffect(() => {
     const fetchZones = async () => {
       try {
@@ -69,7 +68,7 @@ const [toastMessage, setToastMessage] = useState("");
   }, []);
 
   const handleIconUpload = (event) => {
-    const file = event.target.files[0];
+    const file = event.target.files?.[0];
     if (file) setIconFile(file);
   };
 
@@ -101,7 +100,6 @@ const [toastMessage, setToastMessage] = useState("");
 
       let response;
       if (editingZone) {
-        // EDIT existing zone
         response = await axios.put(
           `https://api.bookmyevent.ae/api/zones/${editingZone._id}`,
           zoneData
@@ -110,18 +108,14 @@ const [toastMessage, setToastMessage] = useState("");
           zones.map((z) => (z._id === editingZone._id ? response.data.data : z))
         );
       } else {
-        // ADD new zone
-        response = await axios.post(
-          "https://api.bookmyevent.ae/api/zones",
-          zoneData
-        );
+        response = await axios.post("https://api.bookmyevent.ae/api/zones", zoneData);
         setZones([...zones, response.data.data]);
       }
 
       resetForm();
     } catch (err) {
       console.error(err);
-      setError(err.response.data.message);
+      setError(err.response?.data?.message || "Something went wrong");
     } finally {
       setLoading(false);
     }
@@ -145,12 +139,9 @@ const [toastMessage, setToastMessage] = useState("");
   const handleStatusToggle = async (zoneId) => {
     try {
       const zone = zones.find((z) => z._id === zoneId);
-      const updated = await axios.patch(
-        `https://api.bookmyevent.ae/api/zones/${zoneId}`,
-        {
-          isActive: !zone.isActive,
-        }
-      );
+      const updated = await axios.patch(`https://api.bookmyevent.ae/api/zones/${zoneId}`, {
+        isActive: !zone.isActive,
+      });
       setZones(zones.map((z) => (z._id === zoneId ? updated.data.data : z)));
     } catch (err) {
       console.error(err);
@@ -158,47 +149,60 @@ const [toastMessage, setToastMessage] = useState("");
     }
   };
 
-  // Handle map click to add marker
- // Handle map click to add marker
-const handleMapClick = (e) => {
-  if (selectedPositions.length >= 3) {
-    setToastMessage("You can add a maximum of 3 locations per zone");
-    setToastOpen(true);
-    return; // Prevent adding more than 3 markers
-  }
+  // ✅ Handle Favourite Toggle
+  const handleFavouriteToggle = async (zoneId) => {
+    try {
+      const zone = zones.find((z) => z._id === zoneId);
+      const updated = await axios.patch(`https://api.bookmyevent.ae/api/zones/${zoneId}`, {
+        isFavourite: !zone.isFavourite,
+      });
+      setZones(zones.map((z) => (z._id === zoneId ? updated.data.data : z)));
+      setToastMessage(
+        updated.data.data.isFavourite
+          ? `${updated.data.data.name} added to favourites`
+          : `${updated.data.data.name} removed from favourites`
+      );
+      setToastOpen(true);
+    } catch (err) {
+      console.error(err);
+      setError("Failed to update favourite");
+    }
+  };
 
-  setSelectedPositions([
-    ...selectedPositions,
-    { lat: e.latLng.lat(), lng: e.latLng.lng() },
-  ]);
-};
+  const handleMapClick = (e) => {
+    if (selectedPositions.length >= 3) {
+      setToastMessage("You can add a maximum of 3 locations per zone");
+      setToastOpen(true);
+      return;
+    }
 
+    if (e.latLng) {
+      setSelectedPositions([
+        ...selectedPositions,
+        { lat: e.latLng.lat(), lng: e.latLng.lng() },
+      ]);
+    }
+  };
 
-  // Remove marker on click
-const handleRemoveMarker = (index) => {
-  if (selectedPositions.length === 1) {
-    setToastMessage("At least one location must remain on the map");
-    setToastOpen(true);
-    return; // Prevent removing last marker
-  }
+  const handleRemoveMarker = (index) => {
+    if (selectedPositions.length === 1) {
+      setToastMessage("At least one location must remain on the map");
+      setToastOpen(true);
+      return;
+    }
 
-  const newPositions = [...selectedPositions];
-  newPositions.splice(index, 1);
-  setSelectedPositions(newPositions);
-};
-
-console.log(selectedPositions,"aaaa");
+    const newPositions = [...selectedPositions];
+    newPositions.splice(index, 1);
+    setSelectedPositions(newPositions);
+  };
 
   return (
-    
     <Box sx={{ p: 4, backgroundColor: theme.palette.grey[50], minHeight: "100vh" }}>
-      <Typography
-        variant="h4"
-        sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}
-      >
+      <Typography variant="h4" sx={{ fontWeight: 700, mb: 3, textAlign: "center" }}>
         Zone Setup
       </Typography>
 
+      {/* Add/Edit Form */}
       <Paper sx={{ p: 4, borderRadius: 3, mb: 4, backgroundColor: "white" }} elevation={3}>
         <Typography
           variant="h6"
@@ -208,7 +212,6 @@ console.log(selectedPositions,"aaaa");
         </Typography>
 
         <Grid container spacing={3}>
-          {/* Zone Name */}
           <Grid item xs={12} md={4}>
             <TextField
               fullWidth
@@ -219,7 +222,6 @@ console.log(selectedPositions,"aaaa");
             />
           </Grid>
 
-          {/* Icon Upload */}
           <Grid item xs={12} md={4}>
             <Paper
               sx={{
@@ -236,10 +238,12 @@ console.log(selectedPositions,"aaaa");
                   backgroundColor: theme.palette.primary.light + "10",
                 },
               }}
-              onClick={() => document.getElementById("icon-upload").click()}
+              onClick={() => document.getElementById("icon-upload")?.click()}
             >
               {iconFile ? (
-                <Typography variant="body2" color="primary">{iconFile.name}</Typography>
+                <Typography variant="body2" color="primary">
+                  {iconFile.name}
+                </Typography>
               ) : (
                 <>
                   <CloudUploadIcon sx={{ fontSize: 40, color: theme.palette.grey[400], mb: 1 }} />
@@ -258,13 +262,12 @@ console.log(selectedPositions,"aaaa");
             </Paper>
           </Grid>
 
-          {/* Google Map */}
           <Grid item xs={12} md={4}>
             <Paper sx={{ width: "100%", height: 300, borderRadius: 2, overflow: "hidden" }}>
               {isLoaded ? (
                 <GoogleMap
                   mapContainerStyle={containerStyle}
-                  center={selectedPositions[0] }
+                  center={selectedPositions[0]}
                   zoom={7}
                   onClick={handleMapClick}
                 >
@@ -294,14 +297,12 @@ console.log(selectedPositions,"aaaa");
           </Grid>
         </Grid>
 
-        {/* Error */}
         {error && (
           <Alert severity="error" sx={{ mt: 3 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        {/* Save Button */}
         <Box sx={{ mt: 3, textAlign: "right" }}>
           <Button
             variant="contained"
@@ -309,15 +310,23 @@ console.log(selectedPositions,"aaaa");
             disabled={loading}
             sx={{ px: 4, py: 1, borderRadius: 2, fontWeight: 600 }}
           >
-            {loading ? <CircularProgress size={20} color="inherit" /> : editingZone ? "Update" : "Save"}
+            {loading ? (
+              <CircularProgress size={20} color="inherit" />
+            ) : editingZone ? (
+              "Update"
+            ) : (
+              "Save"
+            )}
           </Button>
         </Box>
       </Paper>
 
-      {/* Zones Table */}
+      {/* Table */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden", backgroundColor: "white" }} elevation={2}>
         {fetching ? (
-          <Box sx={{ textAlign: "center", p: 2 }}><CircularProgress /></Box>
+          <Box sx={{ textAlign: "center", p: 2 }}>
+            <CircularProgress />
+          </Box>
         ) : (
           <Table>
             <TableHead>
@@ -327,18 +336,24 @@ console.log(selectedPositions,"aaaa");
                 <TableCell sx={{ fontWeight: 600 }}>Icon</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Coordinates</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Favourite</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {zones.map((zone, index) => (
-                <TableRow key={zone._id} sx={{ "&:hover": { backgroundColor: theme.palette.grey[50] } }}>
+                <TableRow
+                  key={zone._id}
+                  sx={{ "&:hover": { backgroundColor: theme.palette.grey[50] } }}
+                >
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{zone.name}</TableCell>
                   <TableCell>{zone.icon}</TableCell>
                   <TableCell>
                     {zone.coordinates?.map((c, i) => (
-                      <span key={i}>({parseFloat(c.lat).toFixed(4)}, {parseFloat(c.lng).toFixed(4)}) </span>
+                      <span key={i}>
+                        ({parseFloat(c.lat).toFixed(4)}, {parseFloat(c.lng).toFixed(4)}){" "}
+                      </span>
                     ))}
                   </TableCell>
                   <TableCell>
@@ -347,6 +362,11 @@ console.log(selectedPositions,"aaaa");
                       onChange={() => handleStatusToggle(zone._id)}
                       color="primary"
                     />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleFavouriteToggle(zone._id)} color="error">
+                      {zone.isFavourite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
+                    </IconButton>
                   </TableCell>
                   <TableCell>
                     <IconButton size="small" color="inherit" onClick={() => handleEdit(zone)}>
@@ -359,16 +379,17 @@ console.log(selectedPositions,"aaaa");
           </Table>
         )}
       </Paper>
+
       <Snackbar
-  open={toastOpen}
-  autoHideDuration={3000}
-  onClose={() => setToastOpen(false)}
-  anchorOrigin={{ vertical: "top", horizontal: "center" }}
->
-  <Alert onClose={() => setToastOpen(false)} severity="warning" sx={{ width: '100%' }}>
-    {toastMessage}
-  </Alert>
-</Snackbar>
+        open={toastOpen}
+        autoHideDuration={3000}
+        onClose={() => setToastOpen(false)}
+        anchorOrigin={{ vertical: "top", horizontal: "center" }}
+      >
+        <Alert onClose={() => setToastOpen(false)} severity="warning" sx={{ width: "100%" }}>
+          {toastMessage}
+        </Alert>
+      </Snackbar>
     </Box>
   );
 };

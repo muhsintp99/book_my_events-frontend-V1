@@ -25,7 +25,7 @@ const Promotionmgt = {
       id: 'promotion-banners',
       title: 'Banners',
       type: 'item',
-      url: '/promotions/Banners',  // Matches the route
+      url: '/promotions/RentalBanners',  // Matches the route
       icon: icons.IconPhoto,
       breadcrumbs: false
     },
