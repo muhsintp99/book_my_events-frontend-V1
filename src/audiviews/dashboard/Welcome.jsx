@@ -22,12 +22,14 @@ import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 const WelcomeCardWrapper = styled(MainCard)(({ theme }) => ({
   overflow: 'hidden',
   position: 'relative',
+  backgroundColor: '#F07470', // 🔥 Added this line
+  color: theme.palette.common.white, // Make text white for contrast
   '&:after': {
     content: '""',
     position: 'absolute',
     width: 250,
     height: 250,
-    background: `linear-gradient(210.04deg, ${theme.palette.warning.dark} -50.94%, rgba(144, 202, 249, 0) 83.49%)`,
+    background: `linear-gradient(210.04deg, rgba(255,255,255,0.3) -50.94%, rgba(234, 76, 70, 0) 83.49%)`,
     borderRadius: '50%',
     top: 65,
     right: -135
@@ -37,20 +39,22 @@ const WelcomeCardWrapper = styled(MainCard)(({ theme }) => ({
     position: 'absolute',
     width: 210,
     height: 210,
-    background: `linear-gradient(140.9deg, ${theme.palette.warning.dark} -14.02%, rgba(144, 202, 249, 0) 70.50%)`,
+    background: `linear-gradient(140.9deg, rgba(255,255,255,0.2) -14.02%, rgba(234, 76, 70, 0) 70.50%)`,
     borderRadius: '50%',
     top: -160,
     right: -130
   }
 }));
 
+
 const UserAvatar = styled(Avatar)(({ theme }) => ({
   width: 113,
   height: 113,
-  border: `4px solid ${alpha(theme.palette.common.black, 0.2)}`,
-  boxShadow: `${alpha(theme.palette.common.black, 0.1)}`,
+  border: `4px solid ${alpha('#EA4C46', 0.4)}`,
+  boxShadow: `0 4px 10px ${alpha('#EA4C46', 0.2)}`,
   fontSize: '2rem',
-  fontWeight: 600
+  fontWeight: 600,
+  color: '#EA4C46'
 }));
 
 const TimeChip = styled(Chip)(({ theme }) => ({
@@ -65,7 +69,7 @@ const TimeChip = styled(Chip)(({ theme }) => ({
   }
 }));
 
-export default function Welcome({ isLoading, userName = 'John Doe', userAvatar }) {
+export default function Welcome({ isLoading, userName = 'Book My Event', userAvatar }) {
   const theme = useTheme();
   const mode = theme.palette.mode;
 

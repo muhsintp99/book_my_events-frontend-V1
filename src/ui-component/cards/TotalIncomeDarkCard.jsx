@@ -118,7 +118,7 @@ import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 
 const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.palette.dark.main,
+  backgroundColor: '#EA4C46',
   color: theme.palette.darkTextPrimary,
   overflow: 'hidden',
   position: 'relative',
@@ -162,8 +162,8 @@ export default function TotalIncomeDarkCard({ isLoading }) {
                     sx={{
                       ...theme.typography.commonAvatar,
                       ...theme.typography.largeAvatar,
-                      bgcolor: theme.palette.dark[800],
-                      color: theme.palette.darkTextPrimary
+                      bgcolor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#ffffff'
                     }}
                   >
                     <TableChartOutlinedIcon fontSize="inherit" />
@@ -176,12 +176,12 @@ export default function TotalIncomeDarkCard({ isLoading }) {
                     mb: 0.45
                   }}
                   primary={
-                    <Typography variant="h4" sx={{ color: theme.palette.darkTextPrimary }}>
+                    <Typography variant="h4" sx={{ color: '#ffffff' }}>
                       $203k
                     </Typography>
                   }
                   secondary={
-                    <Typography variant="subtitle2" sx={{ color: theme.palette.darkTextSecondary, mt: 0.25 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 0.25 }}>
                       Total Income
                     </Typography>
                   }

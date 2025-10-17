@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import {
   Box,
@@ -11,7 +12,6 @@ import {
   IconButton,
   Tooltip,
   Button,
-  useTheme,
   CircularProgress,
   Alert,
   Pagination,
@@ -20,153 +20,269 @@ import {
   Select,
   MenuItem,
   Chip,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
 } from '@mui/material';
 import {
   Settings as SettingsIcon,
   Download as DownloadIcon,
   Search as SearchIcon,
   Refresh as RefreshIcon,
+  Edit as EditIcon,
+  Delete as DeleteIcon,
 } from '@mui/icons-material';
 
 const Brandlist = () => {
-  const theme = useTheme();
   const [searchTerm, setSearchTerm] = useState('');
   const [brands, setBrands] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [success, setSuccess] = useState(null);
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages, setTotalPages] = useState(1);
-  const [totalItems, setTotalItems] = useState(0);
   const [itemsPerPage, setItemsPerPage] = useState(10);
   
   // Filter state
-  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'active', 'inactive'
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [moduleFilter, setModuleFilter] = useState('all');
+  const [modules, setModules] = useState([]);
   
-  // Create Brand state
-  const [newBrand, setNewBrand] = useState({ title: '', module: '', imageFile: null });
-  const [createLoading, setCreateLoading] = useState(false);
-  const [createError, setCreateError] = useState(null);
+  // Create/Edit Brand state
+  const [openDialog, setOpenDialog] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [selectedBrand, setSelectedBrand] = useState(null);
+  const [brandForm, setBrandForm] = useState({
+    title: '',
+    module: '',
+    icon: null,
+  });
+  const [formLoading, setFormLoading] = useState(false);
 
-  // Base API URL - adjust this to match your backend URL
-  const API_BASE_URL = 'https://api.bookmyevent.ae/api';
+  // Base API URL
+  const API_BASE_URL = 'https://api.bookmyevent.ae';
+
+  // Get auth token
+  const getAuthToken = () => localStorage.getItem('token') || '';
+
+  // Get user ID - MUST be a valid MongoDB ObjectId
+  // Replace this with your actual auth logic that returns a valid ObjectId
+  const getUserId = () => {
+    const userId = localStorage.getItem('userId');
+    // If no userId in localStorage, you should handle this properly
+    // For now, we'll just return null and let the backend handle it
+    return userId || null;
+  };
+
+  // Fetch modules for dropdown
+  const fetchModules = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/modules`, {
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setModules(Array.isArray(data) ? data : []);
+      }
+    } catch (err) {
+      console.error('Error fetching modules:', err);
+    }
+  };
 
   // Fetch brands from API
   const fetchBrands = async () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const params = new URLSearchParams({
-        page: currentPage.toString(),
-        limit: itemsPerPage.toString(),
-      });
-      
-      if (searchTerm.trim()) {
-        params.append('search', searchTerm.trim());
-      }
-      
-      if (statusFilter !== 'all') {
-        params.append('isActive', statusFilter === 'active' ? 'true' : 'false');
-      }
 
-      const response = await fetch(`${API_BASE_URL}/brands?${params}`, {
-        method: 'GET',
+      const response = await fetch(`${API_BASE_URL}/api/brands`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch brands: ${response.status}`);
       }
 
       const data = await response.json();
       
-      if (data && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setBrands(data);
       } else {
-        throw new Error(data.message || 'Failed to fetch brands');
+        throw new Error('Invalid response format');
       }
     } catch (err) {
       console.error('Error fetching brands:', err);
-      setError(err.message || 'Failed to fetch brands');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
   // Fetch brands by module
-  const fetchBrandsByModule = async () => {
+  const fetchBrandsByModule = async (moduleId) => {
+    if (!moduleId || moduleId === 'all') {
+      fetchBrands();
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`${API_BASE_URL}/brands/module/12345`, { // Replace 12345 with actual moduleId
-        method: 'GET',
+      const response = await fetch(`${API_BASE_URL}/api/brands/module/${moduleId}`, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`Failed to fetch brands by module: ${response.status}`);
       }
 
       const data = await response.json();
       
-      if (data && Array.isArray(data)) {
+      if (Array.isArray(data)) {
         setBrands(data);
-        setCurrentPage(1);
-        setTotalPages(1);
-        setTotalItems(data.length || 0);
       } else {
-        throw new Error(data.message || 'Failed to fetch brands by module');
+        throw new Error('Invalid response format');
       }
     } catch (err) {
       console.error('Error fetching brands by module:', err);
-      setError(err.message || 'Failed to fetch brands by module');
+      setError(err.message);
     } finally {
       setLoading(false);
     }
   };
 
-  // Toggle brand status
-  const toggleBrandStatus = async (brandId) => {
+  // Create brand
+  const createBrand = async () => {
     try {
-      const endpoint = brand.isActive ? '/block' : '/reactivate';
-      const response = await fetch(`${API_BASE_URL}/brands/${brandId}${endpoint}`, {
-        method: 'PATCH',
+      setFormLoading(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('title', brandForm.title);
+      formData.append('module', brandForm.module);
+      
+      // Only append createdBy if we have a valid userId
+      const userId = getUserId();
+      if (userId) {
+        formData.append('createdBy', userId);
+      }
+      
+      if (brandForm.icon) {
+        formData.append('icon', brandForm.icon);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/brands`, {
+        method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
         },
-        body: JSON.stringify({ updatedBy: 'userId' }), // Replace with actual userId
+        body: formData,
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create brand');
       }
 
       const data = await response.json();
       
-      if (data.success) {
-        setBrands(prevBrands =>
-          prevBrands.map(brand =>
-            brand._id === brandId
-              ? { ...brand, isActive: data.brand.isActive }
-              : brand
-          )
-        );
-      } else {
-        throw new Error(data.message || 'Failed to toggle brand status');
+      setSuccess(data.message || 'Brand created successfully');
+      setBrands([data.brand, ...brands]);
+      handleCloseDialog();
+      setCurrentPage(1);
+    } catch (err) {
+      console.error('Error creating brand:', err);
+      setError(err.message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Update brand
+  const updateBrand = async () => {
+    try {
+      setFormLoading(true);
+      setError(null);
+
+      const formData = new FormData();
+      formData.append('title', brandForm.title);
+      formData.append('module', brandForm.module);
+      
+      // Only append updatedBy if we have a valid userId
+      const userId = getUserId();
+      if (userId) {
+        formData.append('updatedBy', userId);
       }
+      
+      if (brandForm.icon) {
+        formData.append('icon', brandForm.icon);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/api/brands/${selectedBrand._id}`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update brand');
+      }
+
+      const data = await response.json();
+      
+      setSuccess(data.message || 'Brand updated successfully');
+      setBrands(brands.map(b => b._id === selectedBrand._id ? data.brand : b));
+      handleCloseDialog();
+    } catch (err) {
+      console.error('Error updating brand:', err);
+      setError(err.message);
+    } finally {
+      setFormLoading(false);
+    }
+  };
+
+  // Toggle brand status
+  const toggleBrandStatus = async (brand) => {
+    try {
+      const endpoint = brand.isActive ? 'block' : 'reactivate';
+      
+      const userId = getUserId();
+      const body = userId ? { updatedBy: userId } : {};
+      
+      const response = await fetch(`${API_BASE_URL}/api/brands/${brand._id}/${endpoint}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${getAuthToken()}`,
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to toggle brand status');
+      }
+
+      const data = await response.json();
+      
+      setSuccess(data.message);
+      setBrands(brands.map(b => b._id === brand._id ? data.brand : b));
     } catch (err) {
       console.error('Error toggling brand status:', err);
-      setError(err.message || 'Failed to toggle brand status');
+      setError(err.message);
     }
   };
 
@@ -177,109 +293,128 @@ const Brandlist = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/brands/${brandId}`, {
+      const response = await fetch(`${API_BASE_URL}/api/brands/${brandId}`, {
         method: 'DELETE',
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
+          'Authorization': `Bearer ${getAuthToken()}`,
         },
       });
 
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to delete brand');
       }
 
       const data = await response.json();
       
-      if (data.success) {
-        setBrands(prevBrands => prevBrands.filter(brand => brand._id !== brandId));
-      } else {
-        throw new Error(data.message || 'Failed to delete brand');
+      setSuccess(data.message || 'Brand deleted successfully');
+      setBrands(brands.filter(b => b._id !== brandId));
+      
+      // Adjust pagination if needed
+      const newFilteredCount = brands.filter(b => b._id !== brandId).length;
+      const newTotalPages = Math.ceil(newFilteredCount / itemsPerPage);
+      if (currentPage > newTotalPages && newTotalPages > 0) {
+        setCurrentPage(newTotalPages);
       }
     } catch (err) {
       console.error('Error deleting brand:', err);
-      setError(err.message || 'Failed to delete brand');
+      setError(err.message);
     }
   };
 
-  // Create brand with image upload
-  const createBrand = async () => {
-    try {
-      setCreateLoading(true);
-      setCreateError(null);
-
-      const formData = new FormData();
-      formData.append('title', newBrand.title);
-      formData.append('module', newBrand.module);
-      if (newBrand.imageFile) {
-        formData.append('icon', newBrand.imageFile);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/brands`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token') || ''}`,
-        },
-        body: formData,
+  // Dialog handlers
+  const handleOpenDialog = (brand = null) => {
+    if (brand) {
+      setEditMode(true);
+      setSelectedBrand(brand);
+      setBrandForm({
+        title: brand.title,
+        module: brand.module?._id || brand.module || '',
+        icon: null,
       });
+    } else {
+      setEditMode(false);
+      setSelectedBrand(null);
+      setBrandForm({
+        title: '',
+        module: '',
+        icon: null,
+      });
+    }
+    setOpenDialog(true);
+  };
 
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
+  const handleCloseDialog = () => {
+    setOpenDialog(false);
+    setEditMode(false);
+    setSelectedBrand(null);
+    setBrandForm({
+      title: '',
+      module: '',
+      icon: null,
+    });
+  };
 
-      const data = await response.json();
-      
-      if (data.success) {
-        setBrands([data.brand, ...brands]);
-        setNewBrand({ title: '', module: '', imageFile: null });
-        setCurrentPage(1); // Reset to first page to show new brand
-      } else {
-        throw new Error(data.message || 'Failed to create brand');
-      }
-    } catch (err) {
-      console.error('Error creating brand:', err);
-      setCreateError(err.message || 'Failed to create brand');
-    } finally {
-      setCreateLoading(false);
+  const handleSubmit = () => {
+    if (editMode) {
+      updateBrand();
+    } else {
+      createBrand();
     }
   };
 
-  useEffect(() => {
-    fetchBrands();
-  }, [currentPage, itemsPerPage]);
+  // Filter brands
+  const getFilteredBrands = () => {
+    let filtered = [...brands];
 
-  useEffect(() => {
-    if (!loading) {
-      fetchBrands();
+    // Search filter
+    if (searchTerm.trim()) {
+      filtered = filtered.filter(brand =>
+        brand.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        brand.brandId.toLowerCase().includes(searchTerm.toLowerCase())
+      );
     }
-  }, [statusFilter]);
 
-  const handleSearch = () => {
-    setCurrentPage(1);
-    fetchBrands();
+    // Status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(brand =>
+        statusFilter === 'active' ? brand.isActive : !brand.isActive
+      );
+    }
+
+    // Module filter
+    if (moduleFilter !== 'all') {
+      filtered = filtered.filter(brand =>
+        (brand.module?._id || brand.module) === moduleFilter
+      );
+    }
+
+    return filtered;
   };
 
-  const handlePageChange = (event, newPage) => {
-    setCurrentPage(newPage);
+  // Pagination
+  const getPaginatedBrands = () => {
+    const filtered = getFilteredBrands();
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filtered.slice(startIndex, endIndex);
   };
 
-  const handleItemsPerPageChange = (event) => {
-    setItemsPerPage(event.target.value);
-    setCurrentPage(1);
+  const getTotalPages = () => {
+    const filtered = getFilteredBrands();
+    return Math.ceil(filtered.length / itemsPerPage);
   };
 
-  const handleStatusFilterChange = (event) => {
-    setStatusFilter(event.target.value);
-    setCurrentPage(1);
-  };
-
+  // Export to CSV
   const handleExport = () => {
+    const filtered = getFilteredBrands();
     const csvContent = [
-      ['Sr', 'Brand ID', 'Brand Title', 'Status', 'Created At'].join(','),
-      ...brands.map((brand, index) => [
+      ['Sr', 'Brand ID', 'Brand Title', 'Module', 'Status', 'Created At'].join(','),
+      ...filtered.map((brand, index) => [
         index + 1,
         brand.brandId,
         `"${brand.title}"`,
+        `"${brand.module?.title || brand.module?.name || 'N/A'}"`,
         brand.isActive ? 'Active' : 'Inactive',
         new Date(brand.createdAt).toLocaleDateString()
       ].join(','))
@@ -290,162 +425,104 @@ const Brandlist = () => {
     const a = document.createElement('a');
     a.setAttribute('hidden', '');
     a.setAttribute('href', url);
-    a.setAttribute('download', 'brands.csv');
+    a.setAttribute('download', `brands_${new Date().toISOString().split('T')[0]}.csv`);
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   };
 
+  // Effects
+  useEffect(() => {
+    fetchBrands();
+    fetchModules();
+  }, []);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, statusFilter]);
+
+  useEffect(() => {
+    if (moduleFilter !== 'all') {
+      fetchBrandsByModule(moduleFilter);
+    } else {
+      fetchBrands();
+    }
+  }, [moduleFilter]);
+
+  const paginatedBrands = getPaginatedBrands();
+  const totalPages = getTotalPages();
+  const filteredCount = getFilteredBrands().length;
+
   return (
-    <Box
-      sx={{
-        p: 3,
-        backgroundColor: theme.palette.grey[100],
-        minHeight: '100vh',
-      }}
-    >
-      <Box
-        sx={{
-          maxWidth: 'lg',
-          margin: 'auto',
-          backgroundColor: 'white',
-          borderRadius: theme.shape.borderRadius,
-          boxShadow: theme.shadows[1],
-          p: 3,
-        }}
-      >
+    <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
+      <Box sx={{ maxWidth: 'lg', margin: 'auto', backgroundColor: 'white', borderRadius: 2, boxShadow: 1, p: 3 }}>
+        
         {/* Header */}
-        <Box
-          sx={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            mb: 3,
-          }}
-        >
+        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5" component="h1">
-            Brand List ({totalItems} total)
+            Brand List ({filteredCount} {filteredCount === 1 ? 'brand' : 'brands'})
           </Typography>
           
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <TextField
-              variant="outlined"
-              placeholder="Search by brand title"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              size="small"
-              onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-            />
-            
-            <FormControl size="small" sx={{ minWidth: 120 }}>
-              <InputLabel>Status</InputLabel>
-              <Select
-                value={statusFilter}
-                onChange={handleStatusFilterChange}
-                label="Status"
-              >
-                <MenuItem value="all">All</MenuItem>
-                <MenuItem value="active">Active</MenuItem>
-                <MenuItem value="inactive">Inactive</MenuItem>
-              </Select>
-            </FormControl>
-            
-            <Button
-              variant="outlined"
-              startIcon={<SearchIcon />}
-              onClick={handleSearch}
-            >
-              Search
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<DownloadIcon />}
-              onClick={handleExport}
-              disabled={brands.length === 0}
-            >
-              Export
-            </Button>
-            
-            <Button
-              variant="outlined"
-              startIcon={<RefreshIcon />}
-              onClick={fetchBrands}
-              disabled={loading}
-            >
-              Refresh
-            </Button>
-            
-            <Button
-              variant="contained"
-              onClick={fetchBrandsByModule}
-              disabled={loading}
-            >
-              Filter by Module
-            </Button>
-            
-            <Tooltip title="Settings">
-              <IconButton
-                color="primary"
-                sx={{
-                  backgroundColor: 'white',
-                  border: `1px solid ${theme.palette.grey[300]}`,
-                }}
-              >
-                <SettingsIcon />
-              </IconButton>
-            </Tooltip>
-          </Box>
+          <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
+            + Create Brand
+          </Button>
         </Box>
 
-        {/* Create Brand Section */}
-        <Box sx={{ mb: 3, p: 2, border: `1px solid ${theme.palette.grey[300]}`, borderRadius: theme.shape.borderRadius }}>
-          <Typography variant="h6" gutterBottom>
-            Create Brand
-          </Typography>
-          {createError && (
-            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setCreateError(null)}>
-              {createError}
-            </Alert>
-          )}
-          <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-            <TextField
-              label="Brand Title"
-              value={newBrand.title}
-              onChange={(e) => setNewBrand({ ...newBrand, title: e.target.value })}
-              size="small"
-              fullWidth
-            />
-            <TextField
-              label="Module ID"
-              value={newBrand.module}
-              onChange={(e) => setNewBrand({ ...newBrand, module: e.target.value })}
-              size="small"
-              fullWidth
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={(e) => setNewBrand({ ...newBrand, imageFile: e.target.files[0] })}
-              style={{ marginTop: '8px' }}
-            />
-            <Button
-              variant="contained"
-              onClick={createBrand}
-              disabled={createLoading || !newBrand.title.trim() || !newBrand.module.trim() || !newBrand.imageFile}
-              sx={{ height: '40px' }}
-            >
-              {createLoading ? <CircularProgress size={24} /> : 'Create'}
-            </Button>
-          </Box>
-        </Box>
-
-        {/* Error Alert */}
+        {/* Alerts */}
         {error && (
           <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
+        {success && (
+          <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
+            {success}
+          </Alert>
+        )}
+
+        {/* Filters */}
+        <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
+          <TextField
+            variant="outlined"
+            placeholder="Search by title or ID"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            size="small"
+            sx={{ flexGrow: 1, minWidth: 200 }}
+            InputProps={{
+              startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
+            }}
+          />
+          
+          <FormControl size="small" sx={{ minWidth: 130 }}>
+            <InputLabel>Status</InputLabel>
+            <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
+              <MenuItem value="all">All</MenuItem>
+              <MenuItem value="active">Active</MenuItem>
+              <MenuItem value="inactive">Inactive</MenuItem>
+            </Select>
+          </FormControl>
+
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Module</InputLabel>
+            <Select value={moduleFilter} onChange={(e) => setModuleFilter(e.target.value)} label="Module">
+              <MenuItem value="all">All Modules</MenuItem>
+              {modules.map((module) => (
+                <MenuItem key={module._id} value={module._id}>
+                  {module.title || module.name}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+          
+          <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={brands.length === 0}>
+            Export
+          </Button>
+          
+          <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => { setModuleFilter('all'); fetchBrands(); }} disabled={loading}>
+            Refresh
+          </Button>
+        </Box>
 
         {/* Loading State */}
         {loading ? (
@@ -460,64 +537,60 @@ const Brandlist = () => {
                 <TableRow>
                   <TableCell>Sr</TableCell>
                   <TableCell>Brand ID</TableCell>
-                  <TableCell>Brand Icon</TableCell>
-                  <TableCell>Brand Title</TableCell>
+                  <TableCell>Icon</TableCell>
+                  <TableCell>Title</TableCell>
+                  <TableCell>Module</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell>Created At</TableCell>
                   <TableCell>Actions</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {brands.length === 0 ? (
+                {paginatedBrands.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={7} align="center">
+                    <TableCell colSpan={8} align="center">
                       No brands found
                     </TableCell>
                   </TableRow>
                 ) : (
-                  brands.map((brand, index) => (
+                  paginatedBrands.map((brand, index) => (
                     <TableRow key={brand._id}>
-                      <TableCell>
-                        {(currentPage - 1) * itemsPerPage + index + 1}
-                      </TableCell>
+                      <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>{brand.brandId}</TableCell>
                       <TableCell>
-                        <img
-                          src={brand.icon ? `${API_BASE_URL}/${brand.icon}` : ''}
-                          alt={brand.title}
-                          style={{
-                            width: 100,
-                            height: 50,
-                            objectFit: 'contain',
-                          }}
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                          }}
-                        />
+                        {brand.icon && (
+                          <img
+                            src={`${API_BASE_URL}/${brand.icon}`}
+                            alt={brand.title}
+                            style={{ width: 80, height: 40, objectFit: 'contain' }}
+                            onError={(e) => { e.target.style.display = 'none'; }}
+                          />
+                        )}
                       </TableCell>
                       <TableCell>{brand.title}</TableCell>
+                      <TableCell>{brand.module?.title || brand.module?.name || 'N/A'}</TableCell>
                       <TableCell>
                         <Chip
                           label={brand.isActive ? 'Active' : 'Inactive'}
                           color={brand.isActive ? 'success' : 'default'}
                           size="small"
-                          onClick={() => toggleBrandStatus(brand._id)}
+                          onClick={() => toggleBrandStatus(brand)}
                           sx={{ cursor: 'pointer' }}
                         />
                       </TableCell>
-                      <TableCell>
-                        {new Date(brand.createdAt).toLocaleDateString()}
-                      </TableCell>
+                      <TableCell>{new Date(brand.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <Button
-                            size="small"
-                            variant="outlined"
-                            color="error"
-                            onClick={() => deleteBrand(brand._id)}
-                          >
-                            Delete
-                          </Button>
+                          <Tooltip title="Edit">
+                            <IconButton size="small" color="primary" onClick={() => handleOpenDialog(brand)}>
+                              <EditIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Delete">
+                            <IconButton size="small" color="error" onClick={() => deleteBrand(brand._id)}>
+                              <DeleteIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
                         </Box>
                       </TableCell>
                     </TableRow>
@@ -528,20 +601,13 @@ const Brandlist = () => {
 
             {/* Pagination */}
             {totalPages > 1 && (
-              <Box
-                sx={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  mt: 3,
-                }}
-              >
+              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 3 }}>
                 <FormControl size="small">
-                  <InputLabel>Items per page</InputLabel>
+                  <InputLabel>Rows</InputLabel>
                   <Select
                     value={itemsPerPage}
-                    onChange={handleItemsPerPageChange}
-                    label="Items per page"
+                    onChange={(e) => { setItemsPerPage(e.target.value); setCurrentPage(1); }}
+                    label="Rows"
                   >
                     <MenuItem value={5}>5</MenuItem>
                     <MenuItem value={10}>10</MenuItem>
@@ -550,17 +616,76 @@ const Brandlist = () => {
                   </Select>
                 </FormControl>
 
-                <Pagination
-                  count={totalPages}
-                  page={currentPage}
-                  onChange={handlePageChange}
-                  color="primary"
-                />
+                <Pagination count={totalPages} page={currentPage} onChange={(e, page) => setCurrentPage(page)} color="primary" />
               </Box>
             )}
           </>
         )}
       </Box>
+
+      {/* Create/Edit Dialog */}
+      <Dialog open={openDialog} onClose={handleCloseDialog} maxWidth="sm" fullWidth>
+        <DialogTitle>{editMode ? 'Edit Brand' : 'Create Brand'}</DialogTitle>
+        <DialogContent>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: 2 }}>
+            <TextField
+              label="Brand Title"
+              value={brandForm.title}
+              onChange={(e) => setBrandForm({ ...brandForm, title: e.target.value })}
+              fullWidth
+              required
+            />
+            
+            <FormControl fullWidth required>
+              <InputLabel>Module</InputLabel>
+              <Select
+                value={brandForm.module}
+                onChange={(e) => setBrandForm({ ...brandForm, module: e.target.value })}
+                label="Module"
+              >
+                {modules.map((module) => (
+                  <MenuItem key={module._id} value={module._id}>
+                    {module.title || module.name}
+                  </MenuItem>
+                ))}
+              </Select>
+            </FormControl>
+
+            <Box>
+              <Typography variant="body2" sx={{ mb: 1 }}>
+                Brand Icon (PNG/JPEG, max 2MB)
+              </Typography>
+              <input
+                type="file"
+                accept="image/png, image/jpeg"
+                onChange={(e) => setBrandForm({ ...brandForm, icon: e.target.files[0] })}
+              />
+              {editMode && selectedBrand?.icon && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="caption">Current Icon:</Typography>
+                  <img
+                    src={`${API_BASE_URL}/${selectedBrand.icon}`}
+                    alt="Current"
+                    style={{ width: 100, height: 50, objectFit: 'contain', display: 'block', marginTop: 8 }}
+                  />
+                </Box>
+              )}
+            </Box>
+          </Box>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog} disabled={formLoading}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleSubmit}
+            variant="contained"
+            disabled={formLoading || !brandForm.title.trim() || !brandForm.module}
+          >
+            {formLoading ? <CircularProgress size={24} /> : editMode ? 'Update' : 'Create'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };

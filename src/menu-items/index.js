@@ -35,11 +35,11 @@ import employeemanagement from './settings-items/employeemanage';
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
-    items: [tripmanagemet, Promotionmgt, vehiclemgt, Providermgt]
+    items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
   
   rental: {
-    items: [dashboard,tripmanagemet, Promotionmgt, vehiclemgt, Providermgt]
+    items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
   
   events: {
@@ -47,7 +47,7 @@ const moduleMenuItems = {
   },
   
   auditorium: {
-    items: [dashboard,management,auditoriummanagement,auditoriumsections,Providermanagement] 
+    items: [dashboard,auditoriummanagement,auditoriumsections,Providermanagement] 
   },
 
   setting:{

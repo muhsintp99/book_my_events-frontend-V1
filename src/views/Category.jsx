@@ -31,22 +31,18 @@ import {
   ListItemText,
   Divider,
   CircularProgress,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem as SelectMenuItem
+  Stack
 } from '@mui/material';
 import {
-  CloudUpload as CloudUploadIcon,
   Edit as EditIcon,
   Delete as DeleteIcon,
   Search as SearchIcon,
   FileDownload as ExportIcon,
-  Close as CloseIcon,
+  ExpandMore as ExpandMoreIcon,
   TableView as ExcelIcon,
   Description as CsvIcon,
-  ExpandMore as ExpandMoreIcon
+  CloudUpload as CloudUploadIcon,
+  Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -73,47 +69,35 @@ export default function CategoryManagement() {
     metaTitle: '',
     metaDescription: ''
   });
-
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-
-  // Pagination state
   const [pagination, setPagination] = useState({
     currentPage: 1,
     totalPages: 1,
     totalItems: 0,
     itemsPerPage: 10
   });
-
-  // Notification states
   const [notification, setNotification] = useState({
     open: false,
     message: '',
     severity: 'success'
   });
-
-  // Delete confirmation dialog
   const [deleteDialog, setDeleteDialog] = useState({
     open: false,
     categoryId: null,
     categoryName: ''
   });
-
-  // Export menu state
   const [exportMenuAnchor, setExportMenuAnchor] = useState(null);
   const exportMenuOpen = Boolean(exportMenuAnchor);
-
   const navigate = useNavigate();
 
-  // Language tabs configuration
   const languageTabs = [
     { key: 'default', label: 'Default' },
     { key: 'english', label: 'English(EN)' },
     { key: 'arabic', label: 'Arabic - العربية(AR)' }
   ];
 
-  // Auth helper functions
   const getAuthToken = () => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     console.log('Retrieved token:', token ? 'Token exists' : 'No token found');
@@ -227,7 +211,7 @@ export default function CategoryManagement() {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/categories?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&search=${encodeURIComponent(searchTerm)}`;
+      const url = `${API_BASE_URL}/vehicle-categories?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&search=${encodeURIComponent(searchTerm)}`;
 
       const response = await fetch(url, {
         headers: {
@@ -267,20 +251,37 @@ export default function CategoryManagement() {
         categoriesList = data.data;
       }
 
-      // Process categories for display
-      const baseURL = API_BASE_URL.replace('/api', '');
+      // Process categories for display with proper image URL handling
+      const formattedCategories = categoriesList.map((cat) => {
+        let imageUrl = '';
+        if (cat.image) {
+          if (cat.image.startsWith('http://') || cat.image.startsWith('https://')) {
+            imageUrl = cat.image;
+          } else if (cat.image.startsWith('/uploads') || cat.image.startsWith('uploads')) {
+            const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
+            imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
+          } else {
+            imageUrl = `https://api.bookmyevent.ae/${cat.image}`;
+          }
+        }
 
-      const formattedCategories = categoriesList.map((cat) => ({
-        id: cat._id,
-        names: {
-          default: cat.name || cat.title || '',
-          english: cat.name || cat.title || '',
-          arabic: cat.name || cat.title || ''
-        },
-        status: cat.isActive !== undefined ? cat.isActive : true,
-        image: cat.image ? `${baseURL}/${cat.image}` : '',
-        module: cat.module || null
-      }));
+        console.log('Category image processing:', {
+          original: cat.image,
+          final: imageUrl
+        });
+
+        return {
+          id: cat._id,
+          names: {
+            default: cat.title || cat.name || '',
+            english: cat.title || cat.name || '',
+            arabic: cat.title || cat.name || ''
+          },
+          status: cat.isActive !== undefined ? cat.isActive : true,
+          image: imageUrl,
+          module: cat.module || null
+        };
+      });
 
       setCategories(formattedCategories);
 
@@ -378,15 +379,11 @@ export default function CategoryManagement() {
       showNotification('Please select a valid module', 'error');
       return;
     }
-    if (!uploadedImage) {
-      showNotification('Please upload an image', 'error');
-      return;
-    }
 
     setLoading(true);
     try {
       const formDataToSend = new FormData();
-      formDataToSend.append('title', formData.name.trim()); // Using 'title' to match backend expectation
+      formDataToSend.append('title', formData.name.trim());
       formDataToSend.append('module', formData.module);
       if (formData.description.trim()) {
         formDataToSend.append('description', formData.description.trim());
@@ -406,10 +403,9 @@ export default function CategoryManagement() {
       formDataToSend.append('createdBy', getUserId());
       formDataToSend.append('image', uploadedImage);
 
-      // Debug log for formData
       console.log('Sending FormData with module:', formData.module);
 
-      const response = await fetch(`${API_BASE_URL}/categories`, {
+      const response = await fetch(`${API_BASE_URL}/vehicle-categories`, {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${token}`
@@ -426,7 +422,7 @@ export default function CategoryManagement() {
           let errorData;
           try {
             errorData = JSON.parse(text);
-            errorMessage = errorData.error || errorMessage; // Use 'error' to match backend response
+            errorMessage = errorData.error || errorMessage;
           } catch {
             errorMessage = text || errorMessage;
           }
@@ -459,16 +455,24 @@ export default function CategoryManagement() {
             showNotification(errorData.error, 'error');
             return;
           }
+          throw new Error(errorMessage);
         } catch (parseError) {
           errorMessage = 'Failed to parse server response. Please try again.';
+          throw new Error(errorMessage);
         }
-
-        throw new Error(errorMessage);
       }
 
       const data = await response.json();
-      const addedCategory = data.data?.category || data.category;
-      showNotification(`Category "${addedCategory.title || addedCategory.name}" added successfully!`, 'success');
+      console.log('Add category response:', data); // Log the response for debugging
+
+      const addedCategory = data.data?.category || data.category || data;
+      if (!addedCategory) {
+        throw new Error('Category data not found in response');
+      }
+
+      // Use formData.name as a fallback if title or name is missing
+      const categoryName = addedCategory.title || addedCategory.name || formData.name || 'Unnamed Category';
+      showNotification(`Category "${categoryName}" added successfully!`, 'success');
       handleReset();
       fetchCategories();
     } catch (error) {
@@ -483,9 +487,9 @@ export default function CategoryManagement() {
     }
   };
 
-  // Handle reset
   const handleReset = () => {
-    setFormData({
+    setFormData((prev) => ({
+      ...prev,
       name: '',
       description: '',
       parentCategory: '',
@@ -495,19 +499,15 @@ export default function CategoryManagement() {
       isFeatured: false,
       metaTitle: '',
       metaDescription: ''
-    });
+    }));
     setUploadedImage(null);
     setImagePreview(null);
-    const fileInput = document.getElementById('image-upload-input');
-    if (fileInput) fileInput.value = '';
   };
 
-  // Handle edit
   const handleEdit = (id) => {
-    navigate(`/categories/edit/${id}`);
+    navigate(`/vehicle-categories/edit/${id}`);
   };
 
-  // Handle delete confirmation
   const handleDeleteClick = (id) => {
     const category = categories.find((c) => c.id === id);
     setDeleteDialog({
@@ -517,7 +517,6 @@ export default function CategoryManagement() {
     });
   };
 
-  // Handle delete confirm
   const handleDeleteConfirm = async () => {
     const token = getAuthToken();
     if (!token) {
@@ -526,9 +525,11 @@ export default function CategoryManagement() {
       return;
     }
 
+    console.log('Deleting category ID:', deleteDialog.categoryId); // Debug log
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/categories/${deleteDialog.categoryId}`, {
+      const response = await fetch(`${API_BASE_URL}/vehicle-categories/${deleteDialog.categoryId}`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -567,7 +568,7 @@ export default function CategoryManagement() {
     }
   };
 
-  // Handle status toggle
+  // Updated handleStatusToggle to use /block or /reactivate endpoints
   const handleStatusToggle = async (id) => {
     const token = getAuthToken();
     if (!token) {
@@ -576,14 +577,30 @@ export default function CategoryManagement() {
       return;
     }
 
+    const category = categories.find((c) => c.id === id);
+    if (!category) {
+      showNotification('Category not found', 'error');
+      return;
+    }
+
+    console.log('Toggling status for category ID:', id, 'Current status:', category.status); // Debug log
+
+    const isActive = category.status;
+    const endpoint = isActive ? `/vehicle-categories/${id}/block` : `/vehicle-categories/${id}/reactivate`;
+    const actionVerb = isActive ? 'block' : 'reactivate';
+    const actionPast = isActive ? 'blocked' : 'reactivated';
+
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/categories/${id}/toggle-status`, {
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, {
         method: 'PATCH',
         headers: {
           Authorization: `Bearer ${token}`,
           'Content-Type': 'application/json'
-        }
+        },
+        body: JSON.stringify({
+          updatedBy: getUserId()
+        })
       });
 
       if (!response.ok) {
@@ -600,37 +617,33 @@ export default function CategoryManagement() {
           return;
         }
         if (response.status === 403) {
-          setError("Access denied. You don't have permission to update category status.");
+          setError(`Access denied. You don't have permission to ${actionVerb} categories.`);
           navigate('/dashboard');
           return;
         }
         throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
       }
 
-      const data = await response.json();
-      const updatedCategory = data.data?.category || data.category;
-      const newStatus = updatedCategory.isActive;
-      showNotification(`Category "${updatedCategory.name}" ${newStatus ? 'activated' : 'deactivated'}`, 'info');
+      // Use category name from state to avoid undefined response issues
+      const categoryName = category.names.default || 'Unnamed';
+      showNotification(`Category "${categoryName}" ${actionPast} successfully`, 'info');
       fetchCategories();
     } catch (error) {
-      console.error('Error toggling category status:', error);
-      showNotification(`Failed to update category status: ${error.message}`, 'error');
+      console.error(`Error ${actionVerb}ing category:`, error);
+      showNotification(`Failed to ${actionVerb} category: ${error.message}`, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // Show notification
   const showNotification = (message, severity = 'success') => {
     setNotification({ open: true, message, severity });
   };
 
-  // Handle notification close
   const handleNotificationClose = () => {
     setNotification((prev) => ({ ...prev, open: false }));
   };
 
-  // Navigation helpers
   const handleLoginRedirect = () => {
     navigate('/login');
   };
@@ -644,16 +657,13 @@ export default function CategoryManagement() {
     fetchCategories();
   };
 
-  // Get current selected language key
   const getCurrentLanguageKey = () => languageTabs[tabValue].key;
 
-  // Filter categories based on search term
   const filteredCategories = categories.filter((category) => {
     const currentLang = getCurrentLanguageKey();
     return category.names[currentLang].toLowerCase().includes(searchTerm.toLowerCase());
   });
 
-  // Export menu handlers
   const handleExportMenuOpen = (event) => {
     setExportMenuAnchor(event.currentTarget);
   };
@@ -662,7 +672,6 @@ export default function CategoryManagement() {
     setExportMenuAnchor(null);
   };
 
-  // CSV Export function
   const exportToCSV = () => {
     const currentLang = getCurrentLanguageKey();
     const currentLangLabel = languageTabs[tabValue].label;
@@ -696,7 +705,6 @@ export default function CategoryManagement() {
     showNotification('CSV file downloaded successfully!', 'success');
   };
 
-  // Excel Export function
   const exportToExcel = () => {
     const currentLang = getCurrentLanguageKey();
     const currentLangLabel = languageTabs[tabValue].label;
@@ -733,7 +741,7 @@ export default function CategoryManagement() {
   // Show loading state during initial fetch
   if (loading && categories.length === 0 && modulesLoading) {
     return (
-      <Box p={2} display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+      <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
         <Stack alignItems="center" spacing={2}>
           <CircularProgress />
           <Typography>Loading categories and modules...</Typography>
@@ -773,11 +781,9 @@ export default function CategoryManagement() {
         </Alert>
       </Snackbar>
 
-      {/* Add Category Form */}
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            {/* Tabs */}
             <Tabs
               value={tabValue}
               onChange={handleTabChange}
@@ -795,7 +801,6 @@ export default function CategoryManagement() {
               ))}
             </Tabs>
 
-            {/* Dynamic Name Input */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
             </Typography>
@@ -814,39 +819,35 @@ export default function CategoryManagement() {
               }}
             />
 
-            {/* Module Select */}
+            {/* Module Display with Dropdown */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Module <span style={{ color: '#f44336' }}>*</span>
             </Typography>
-            <FormControl fullWidth sx={{ mb: 4 }}>
-              <InputLabel>Select Module</InputLabel>
-              <Select
-                value={formData.module}
-                onChange={(e) => handleFormDataChange('module', e.target.value)}
-                label="Select Module"
-                disabled={modulesLoading || modulesError || modules.length === 0}
-              >
-                {modulesLoading ? (
-                  <SelectMenuItem value="" disabled>
-                    Loading modules...
-                  </SelectMenuItem>
-                ) : modulesError ? (
-                  <SelectMenuItem value="" disabled>
-                    Error loading modules
-                  </SelectMenuItem>
-                ) : modules.length === 0 ? (
-                  <SelectMenuItem value="" disabled>
-                    No modules available
-                  </SelectMenuItem>
-                ) : (
-                  modules.map((module) => (
-                    <SelectMenuItem key={module._id} value={module._id}>
-                      {module.title || 'Untitled Module'}
-                    </SelectMenuItem>
-                  ))
-                )}
-              </Select>
-            </FormControl>
+            <TextField
+              select
+              fullWidth
+              value={formData.module}
+              onChange={(e) => handleFormDataChange('module', e.target.value)}
+              variant="outlined"
+              SelectProps={{
+                native: true,
+              }}
+              sx={{
+                mb: 4,
+                '& .MuiOutlinedInput-root': {
+                  backgroundColor: '#f5f5f5'
+                }
+              }}
+            >
+              {modulesLoading && <option value="">Loading modules...</option>}
+              {modulesError && <option value="">Error loading modules</option>}
+              {!modulesLoading && !modulesError && modules.length === 0 && <option value="">No modules available</option>}
+              {!modulesLoading && !modulesError && modules.map((module) => (
+                <option key={module._id} value={module._id}>
+                  {module.title || module.name || 'Unnamed Module'}
+                </option>
+              ))}
+            </TextField>
 
             {/* Upload Image */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
@@ -969,11 +970,9 @@ export default function CategoryManagement() {
         </Card>
       </Box>
 
-      {/* Category List */}
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
-            {/* Header */}
             <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Typography variant="h6" fontWeight={600}>
@@ -1027,7 +1026,6 @@ export default function CategoryManagement() {
                   Export
                 </Button>
 
-                {/* Export Menu */}
                 <Menu
                   anchorEl={exportMenuAnchor}
                   open={exportMenuOpen}
@@ -1066,7 +1064,6 @@ export default function CategoryManagement() {
               </Box>
             </Box>
 
-            {/* Loading indicator for search/pagination */}
             {loading && categories.length > 0 && (
               <Box display="flex" justifyContent="center" p={2}>
                 <CircularProgress size={24} />
@@ -1125,6 +1122,11 @@ export default function CategoryManagement() {
                                     width: '100%',
                                     height: '100%',
                                     objectFit: 'cover'
+                                  }}
+                                  onError={(e) => {
+                                    console.error('Image failed to load:', category.image);
+                                    e.target.style.display = 'none';
+                                    e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
                                   }}
                                 />
                               </Box>
@@ -1230,7 +1232,6 @@ export default function CategoryManagement() {
               </Table>
             </TableContainer>
 
-            {/* Pagination */}
             {pagination.totalPages > 1 && (
               <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" p={2}>
                 <Button
@@ -1257,7 +1258,6 @@ export default function CategoryManagement() {
         </Card>
       </Box>
 
-      {/* Delete Confirmation Dialog */}
       <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
@@ -1283,7 +1283,6 @@ export default function CategoryManagement() {
         </DialogActions>
       </Dialog>
 
-      {/* Notification Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}

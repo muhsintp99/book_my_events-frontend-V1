@@ -104,7 +104,7 @@ import MainCard from 'ui-component/cards/MainCard';
 import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 
 const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: theme.palette.mode === 'light' ? theme.palette.background.paper : theme.palette.dark[900],
+  backgroundColor: '#EA4C46',
   overflow: 'hidden',
   position: 'relative',
   '&:after': {
@@ -147,8 +147,8 @@ export default function TotalIncomeLightCard({ isLoading, total, icon, label }) 
                     sx={{
                       ...theme.typography.commonAvatar,
                       ...theme.typography.largeAvatar,
-                      bgcolor: label === 'Meeting attends' ? alpha(theme.palette.error.light, 0.25) : alpha(theme.palette.warning.light, 0.25),
-                      color: label === 'Meeting attends' ? theme.palette.error.dark : theme.palette.warning.dark
+                      bgcolor: 'rgba(255, 255, 255, 0.2)',
+                      color: '#ffffff'
                     }}
                   >
                     {icon}
@@ -156,9 +156,9 @@ export default function TotalIncomeLightCard({ isLoading, total, icon, label }) 
                 </ListItemAvatar>
                 <ListItemText
                   sx={{ py: 0, mt: 0.45, mb: 0.45 }}
-                  primary={<Typography variant="h4">{total}k</Typography>}
+                  primary={<Typography variant="h4" sx={{ color: '#ffffff' }}>{total}k</Typography>}
                   secondary={
-                    <Typography variant="subtitle2" sx={{ color: theme.palette.text.secondary, mt: 0.5 }}>
+                    <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 0.5 }}>
                       {label}
                     </Typography>
                   }

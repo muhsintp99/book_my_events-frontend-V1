@@ -26,8 +26,9 @@ import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveOutlined';
 
 export default function EarningCard({ isLoading }) {
   const theme = useTheme();
-
   const [anchorEl, setAnchorEl] = React.useState(null);
+
+  const mainColor = '#EA4C46'; // 🎨 Brand color
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -46,7 +47,7 @@ export default function EarningCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: 'secondary.dark',
+            bgcolor: mainColor,
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -55,7 +56,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: 'rgba(255,255,255,0.15)',
               borderRadius: '50%',
               top: { xs: -85 },
               right: { xs: -95 }
@@ -65,7 +66,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: 'rgba(255,255,255,0.1)',
               borderRadius: '50%',
               top: { xs: -125 },
               right: { xs: -15 },
@@ -75,6 +76,7 @@ export default function EarningCard({ isLoading }) {
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
+              {/* Top Section */}
               <Grid>
                 <Grid container sx={{ justifyContent: 'space-between' }}>
                   <Grid>
@@ -83,22 +85,30 @@ export default function EarningCard({ isLoading }) {
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
-                        bgcolor: 'secondary.800',
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: '#fff',
                         mt: 1
                       }}
                     >
-                      <CardMedia sx={{ width: 24, height: 24 }} component="img" src={EarningIcon} alt="Notification" />
+                      <CardMedia
+                        sx={{ width: 24, height: 24 }}
+                        component="img"
+                        src={EarningIcon}
+                        alt="Earning"
+                      />
                     </Avatar>
                   </Grid>
+
                   <Grid>
                     <Avatar
                       variant="rounded"
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.mediumAvatar,
-                        bgcolor: 'secondary.dark',
-                        color: 'secondary.200',
-                        zIndex: 1
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: '#fff',
+                        zIndex: 1,
+                        cursor: 'pointer'
                       }}
                       aria-controls="menu-earning-card"
                       aria-haspopup="true"
@@ -106,6 +116,7 @@ export default function EarningCard({ isLoading }) {
                     >
                       <MoreHorizIcon fontSize="inherit" />
                     </Avatar>
+
                     <Menu
                       id="menu-earning-card"
                       anchorEl={anchorEl}
@@ -123,46 +134,63 @@ export default function EarningCard({ isLoading }) {
                       }}
                     >
                       <MenuItem onClick={handleClose}>
-                        <GetAppTwoToneIcon sx={{ mr: 1.75 }} /> Import Card
+                        <GetAppTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Import Card
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <FileCopyTwoToneIcon sx={{ mr: 1.75 }} /> Copy Data
+                        <FileCopyTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Copy Data
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <PictureAsPdfTwoToneIcon sx={{ mr: 1.75 }} /> Export
+                        <PictureAsPdfTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Export
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <ArchiveTwoToneIcon sx={{ mr: 1.75 }} /> Archive File
+                        <ArchiveTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Archive File
                       </MenuItem>
                     </Menu>
                   </Grid>
                 </Grid>
               </Grid>
+
+              {/* Earnings Amount */}
               <Grid>
                 <Grid container sx={{ alignItems: 'center' }}>
                   <Grid>
-                    <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$500.00</Typography>
+                    <Typography
+                      sx={{
+                        fontSize: '2.125rem',
+                        fontWeight: 500,
+                        mr: 1,
+                        mt: 1.75,
+                        mb: 0.75
+                      }}
+                    >
+                      $500.00
+                    </Typography>
                   </Grid>
                   <Grid>
                     <Avatar
                       sx={{
                         cursor: 'pointer',
                         ...theme.typography.smallAvatar,
-                        bgcolor: 'secondary.200',
-                        color: 'secondary.dark'
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: '#fff'
                       }}
                     >
-                      <ArrowUpwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
+                      <ArrowUpwardIcon
+                        fontSize="inherit"
+                        sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }}
+                      />
                     </Avatar>
                   </Grid>
                 </Grid>
               </Grid>
+
+              {/* Subtitle */}
               <Grid sx={{ mb: 1.25 }}>
                 <Typography
                   sx={{
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: 'secondary.200'
+                    color: 'rgba(255,255,255,0.8)'
                   }}
                 >
                   Total Earning

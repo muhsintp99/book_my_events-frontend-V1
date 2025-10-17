@@ -37,14 +37,14 @@ const Promotionmgt = {
       icon: icons.IconTicket,
       breadcrumbs: false
     },
-    {
-      id: 'promotion-cashback',
-      title: 'Cashback',
-      type: 'item',
-      url: '/promotions/cashback', // Assuming a route exists or will be added
-      icon: icons.IconCash,
-      breadcrumbs: false
-    },
+    // {
+    //   id: 'promotion-cashback',
+    //   title: 'Cashback',
+    //   type: 'item',
+    //   url: '/promotions/cashback', // Assuming a route exists or will be added
+    //   icon: icons.IconCash,
+    //   breadcrumbs: false
+    // },
     {
       id: 'promotion-push-notifications',
       title: 'Push Notifications',

@@ -30,6 +30,8 @@ export default function TotalOrderLineChartCard({ isLoading }) {
     setTimeValue(newValue);
   };
 
+  const mainColor = '#EA4C46'; // 🎨 Your brand color
+
   return (
     <>
       {isLoading ? (
@@ -39,7 +41,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: 'primary.dark',
+            bgcolor: mainColor,
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -52,7 +54,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.primary[800],
+              background: 'rgba(255, 255, 255, 0.15)', // soft overlay
               borderRadius: '50%',
               top: { xs: -85 },
               right: { xs: -95 }
@@ -62,7 +64,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.primary[800],
+              background: 'rgba(255, 255, 255, 0.1)',
               borderRadius: '50%',
               top: { xs: -125 },
               right: { xs: -15 },
@@ -72,6 +74,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
+              {/* Header */}
               <Grid>
                 <Grid container sx={{ justifyContent: 'space-between' }}>
                   <Grid>
@@ -80,7 +83,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
-                        bgcolor: 'primary.800',
+                        bgcolor: 'rgba(255,255,255,0.2)',
                         color: '#fff',
                         mt: 1
                       }}
@@ -93,7 +96,13 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       disableElevation
                       variant={timeValue ? 'contained' : 'text'}
                       size="small"
-                      sx={{ color: 'inherit' }}
+                      sx={{
+                        color: '#fff',
+                        bgcolor: timeValue ? 'rgba(255,255,255,0.25)' : 'transparent',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.3)'
+                        }
+                      }}
                       onClick={(e) => handleChangeTime(e, true)}
                     >
                       Month
@@ -102,7 +111,13 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       disableElevation
                       variant={!timeValue ? 'contained' : 'text'}
                       size="small"
-                      sx={{ color: 'inherit' }}
+                      sx={{
+                        color: '#fff',
+                        bgcolor: !timeValue ? 'rgba(255,255,255,0.25)' : 'transparent',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.3)'
+                        }
+                      }}
                       onClick={(e) => handleChangeTime(e, false)}
                     >
                       Year
@@ -110,35 +125,63 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                   </Grid>
                 </Grid>
               </Grid>
+
+              {/* Chart & Stats */}
               <Grid sx={{ mb: 0.75 }}>
                 <Grid container sx={{ alignItems: 'center' }}>
-                  <Grid size={6}>
+                  {/* Left: Numbers */}
+                  <Grid item xs={6}>
                     <Grid container sx={{ alignItems: 'center' }}>
-                      <Grid>
+                      <Grid item>
                         {timeValue ? (
-                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$108</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: '2.125rem',
+                              fontWeight: 500,
+                              mr: 1,
+                              mt: 1.75,
+                              mb: 0.75
+                            }}
+                          >
+                            $108
+                          </Typography>
                         ) : (
-                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$961</Typography>
+                          <Typography
+                            sx={{
+                              fontSize: '2.125rem',
+                              fontWeight: 500,
+                              mr: 1,
+                              mt: 1.75,
+                              mb: 0.75
+                            }}
+                          >
+                            $961
+                          </Typography>
                         )}
                       </Grid>
-                      <Grid>
+
+                      <Grid item>
                         <Avatar
                           sx={{
                             ...theme.typography.smallAvatar,
                             cursor: 'pointer',
-                            bgcolor: 'primary.200',
-                            color: 'primary.dark'
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            color: '#fff'
                           }}
                         >
-                          <ArrowDownwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
+                          <ArrowDownwardIcon
+                            fontSize="inherit"
+                            sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }}
+                          />
                         </Avatar>
                       </Grid>
-                      <Grid size={12}>
+
+                      <Grid item xs={12}>
                         <Typography
                           sx={{
                             fontSize: '1rem',
                             fontWeight: 500,
-                            color: 'primary.200'
+                            color: 'rgba(255,255,255,0.8)'
                           }}
                         >
                           Total Order
@@ -146,12 +189,15 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       </Grid>
                     </Grid>
                   </Grid>
+
+                  {/* Right: Chart */}
                   <Grid
-                    size={6}
+                    item
+                    xs={6}
                     sx={{
                       '.apexcharts-tooltip.apexcharts-theme-light': {
-                        color: theme.palette.text.primary,
-                        background: theme.palette.background.default
+                        color: '#000',
+                        background: '#fff'
                       }
                     }}
                   >

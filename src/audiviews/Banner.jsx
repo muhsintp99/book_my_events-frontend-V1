@@ -902,6 +902,10 @@ import {
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
 
+// Use environment variable or fallback to localhost
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const BASE_URL = import.meta.env.VITE_API_URL ? 'https://api.bookmyevent.ae' : 'http://localhost:5000';
+
 function BannerForm() {
   const [formData, setFormData] = useState({
     title: '',
@@ -930,7 +934,7 @@ function BannerForm() {
   const fetchZones = async () => {
     setZonesLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/zones', {
+      const response = await fetch(`${API_BASE_URL}/zones`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -956,7 +960,7 @@ function BannerForm() {
   const fetchBanners = async () => {
     setLoading(true);
     try {
-      const response = await fetch('http://localhost:5000/api/banners?limit=100', {
+      const response = await fetch(`${API_BASE_URL}/banners?limit=100`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -967,16 +971,61 @@ function BannerForm() {
       console.log('Banners Response:', result);
       
       if (response.ok) {
-        // Handle both response structures
+        let bannersList = [];
+        
+        // Handle different response structures
         if (result.success && result.data && result.data.banners) {
-          setBanners(result.data.banners);
+          bannersList = result.data.banners;
         } else if (result.banners) {
-          setBanners(result.banners);
+          bannersList = result.banners;
         } else if (Array.isArray(result.data)) {
-          setBanners(result.data);
-        } else {
-          setBanners([]);
+          bannersList = result.data;
+        } else if (Array.isArray(result)) {
+          bannersList = result;
         }
+
+        // Process banners with proper image URL handling
+        const formattedBanners = bannersList.map((banner) => {
+          let imageUrl = '';
+          if (banner.image) {
+            // Handle full URLs
+            if (banner.image.startsWith('http://') || banner.image.startsWith('https://')) {
+              imageUrl = banner.image;
+            } 
+            // Handle absolute server paths like /var/www/backend/Uploads/...
+            else if (banner.image.includes('/Uploads/')) {
+              const uploadsIndex = banner.image.indexOf('/Uploads/');
+              const relativePath = banner.image.substring(uploadsIndex);
+              imageUrl = `${BASE_URL}${relativePath}`;
+            }
+            // Handle paths that start with Uploads (without leading slash)
+            else if (banner.image.startsWith('Uploads/')) {
+              imageUrl = `${BASE_URL}/${banner.image}`;
+            }
+            // Handle paths that start with /uploads (lowercase)
+            else if (banner.image.startsWith('/uploads') || banner.image.startsWith('uploads')) {
+              const cleanPath = banner.image.startsWith('/') ? banner.image : `/${banner.image}`;
+              imageUrl = `${BASE_URL}${cleanPath}`;
+            } 
+            // Default case
+            else {
+              imageUrl = `${BASE_URL}/${banner.image}`;
+            }
+          }
+
+          console.log('Banner image processing:', {
+            id: banner._id,
+            original: banner.image,
+            final: imageUrl
+          });
+
+          return {
+            ...banner,
+            image: imageUrl
+          };
+        });
+
+        setBanners(formattedBanners);
       } else {
         showNotification(result.message || 'Failed to fetch banners', 'error');
       }
@@ -1035,7 +1084,7 @@ function BannerForm() {
       
       formDataToSend.append('image', formData.bannerImage);
 
-      const response = await fetch('http://localhost:5000/api/banners', {
+      const response = await fetch(`${API_BASE_URL}/banners`, {
         method: 'POST',
         body: formDataToSend,
       });
@@ -1083,7 +1132,7 @@ function BannerForm() {
 
     setLoading(true);
     try {
-      const response = await fetch(`http://localhost:5000/api/banners/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/banners/${id}`, {
         method: 'DELETE',
         headers: {
           'Content-Type': 'application/json',
@@ -1118,7 +1167,6 @@ function BannerForm() {
     if (banner.image) {
       setImagePreview(banner.image);
     }
-    // Scroll to top
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1328,11 +1376,12 @@ function BannerForm() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
+                            bgcolor: '#f5f5f5'
                           }}
                         >
                           {banner.image ? (
                             <img
-                              src={`http://localhost:5000/${banner.image}`}
+                              src={banner.image}
                               alt={banner.title}
                               style={{
                                 width: '100%',
@@ -1341,9 +1390,11 @@ function BannerForm() {
                               }}
                               onError={(e) => {
                                 console.error('Image load error for:', banner.image);
-                                e.target.onerror = null;
                                 e.target.style.display = 'none';
-                                e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#999;font-size:0.7rem;">No Image</div>';
+                                const parent = e.target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;color:#999;font-size:0.7rem;">No Image</div>';
+                                }
                               }}
                             />
                           ) : (
