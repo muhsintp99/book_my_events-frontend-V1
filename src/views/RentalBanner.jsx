@@ -168,10 +168,6 @@ function VehicleBannerForm() {
   const handleImageUpload = (e) => {
     const file = e.target.files[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        showNotification('Image size should be less than 2MB', 'error');
-        return;
-      }
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(reader.result);
@@ -422,7 +418,7 @@ function VehicleBannerForm() {
                   <Box sx={{ fontSize: '1rem', mb: 1 }}>Click to upload *</Box>
                   <Box sx={{ color: '#999', fontSize: '0.875rem' }}>Or drag and drop</Box>
                   <Box sx={{ color: '#999', fontSize: '0.875rem', mt: 1 }}>
-                    JPG, JPEG, PNG Less Than 2MB (Ratio 3:1)
+                    JPG, JPEG, PNG (Ratio 3:1)
                   </Box>
                 </>
               )}
