@@ -22,8 +22,8 @@ import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 const WelcomeCardWrapper = styled(MainCard)(({ theme }) => ({
   overflow: 'hidden',
   position: 'relative',
-  backgroundColor: '#F07470', // 🔥 Added this line
-  color: theme.palette.common.white, // Make text white for contrast
+  backgroundColor: '#F07470', // 🔥 Same warm red background
+  color: theme.palette.common.white,
   '&:after': {
     content: '""',
     position: 'absolute',
@@ -46,32 +46,30 @@ const WelcomeCardWrapper = styled(MainCard)(({ theme }) => ({
   }
 }));
 
-
-const UserAvatar = styled(Avatar)(({ theme }) => ({
+const UserAvatar = styled(Avatar)(() => ({
   width: 113,
   height: 113,
-  border: `4px solid ${alpha('#EA4C46', 0.4)}`,
-  boxShadow: `0 4px 10px ${alpha('#EA4C46', 0.2)}`,
+  border: `4px solid ${alpha('#EA4C46', 0.4)}`, // red border
+  boxShadow: `0 4px 10px ${alpha('#EA4C46', 0.2)}`, // soft red glow
   fontSize: '2rem',
   fontWeight: 600,
   color: '#EA4C46'
 }));
 
 const TimeChip = styled(Chip)(({ theme }) => ({
-  background: alpha(theme.palette.text.primary, 0.1),
-  color: theme.palette.text.primary,
+  background: alpha(theme.palette.common.white, 0.2),
+  color: theme.palette.common.white,
   fontWeight: 500,
   padding: '10px',
   backdropFilter: 'blur(10px)',
   gap: 2,
   '& .MuiChip-icon': {
-    color: theme.palette.text.primary
+    color: theme.palette.common.white
   }
 }));
 
 export default function Welcome({ isLoading, userName = 'Book My Event', userAvatar }) {
   const theme = useTheme();
-  const mode = theme.palette.mode;
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState('');
@@ -129,7 +127,7 @@ export default function Welcome({ isLoading, userName = 'Book My Event', userAva
               <Typography
                 variant="h3"
                 sx={{
-                  color: theme.palette.text.primary,
+                  color: theme.palette.common.white,
                   fontWeight: 700,
                   mb: 0.5
                 }}
@@ -141,7 +139,7 @@ export default function Welcome({ isLoading, userName = 'Book My Event', userAva
               <Typography
                 variant="body1"
                 sx={{
-                  color: alpha(theme.palette.text.primary, 0.8),
+                  color: alpha(theme.palette.common.white, 0.9),
                   mb: 1
                 }}
               >
@@ -155,7 +153,7 @@ export default function Welcome({ isLoading, userName = 'Book My Event', userAva
               <Typography
                 variant="body1"
                 sx={{
-                  color: alpha(theme.palette.text.primary, 0.9),
+                  color: alpha(theme.palette.common.white, 0.95),
                   mt: 2,
                   letterSpacing: '0.5px'
                 }}
@@ -170,12 +168,8 @@ export default function Welcome({ isLoading, userName = 'Book My Event', userAva
                 src={userAvatar}
                 alt={userName}
                 sx={{
-                  bgcolor: !userAvatar
-                    ? theme.palette.primary.main
-                    : 'transparent',
-                  color: !userAvatar
-                    ? theme.palette.primary.contrastText
-                    : theme.palette.text.primary
+                  bgcolor: !userAvatar ? alpha('#EA4C46', 0.1) : 'transparent',
+                  color: !userAvatar ? theme.palette.common.white : '#EA4C46'
                 }}
               >
                 {!userAvatar && userName.charAt(0).toUpperCase()}

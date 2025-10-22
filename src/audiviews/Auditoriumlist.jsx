@@ -28,14 +28,15 @@ import {
 import { VisibilityOutlined, Edit, Delete, Download } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const ProvidersList = () => {
+const VenuesList = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [providers, setProviders] = useState([]);
+  const [venues, setVenues] = useState([]);
+  const [allVenues, setAllVenues] = useState([]);
   const [selectedZone, setSelectedZone] = useState('All Zones');
   const [searchTerm, setSearchTerm] = useState('');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [providerToDelete, setProviderToDelete] = useState(null);
+  const [venueToDelete, setVenueToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({
@@ -43,9 +44,10 @@ const ProvidersList = () => {
     message: '',
     severity: 'success'
   });
+  const [zones, setZones] = useState([]);
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-  const API_URL = `${API_BASE_URL}/users?role=vendor`;
+  const API_URL = `${API_BASE_URL}/venues`;
 
   const getToken = () => {
     try {
@@ -106,7 +108,7 @@ const ProvidersList = () => {
           } else if (response.status >= 500) {
             throw new Error('Server error - please try again later');
           } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
+            throw new Error(`HTTP ${response.status}: ${errorText}`);
           }
         }
 
@@ -135,67 +137,186 @@ const ProvidersList = () => {
     }
   };
 
-  const [zones, setZones] = useState([]);
-  
+  // Fetch zones first
   useEffect(() => {
     const fetchZones = async () => {
       try {
         const url = `${API_BASE_URL}/zones`;
         const options = getFetchOptions();
         const data = await makeAPICall(url, options);
-
-        if (data.success) {
-          setZones(data.data.zones || data.data || []);
+        
+        if (data && data.data && Array.isArray(data.data)) {
+          setZones(data.data);
+          console.log('✅ Zones fetched successfully:', data.data.length);
         } else {
-          throw new Error(data.message || 'Failed to fetch zones');
+          throw new Error('Invalid zones data format');
         }
       } catch (error) {
-        console.error('Error fetching zones:', error);
-        setZones([
-          { _id: '1', name: 'Downtown Zone' },
-          { _id: '2', name: 'North Zone' },
-          { _id: '3', name: 'South Zone' },
-          { _id: '4', name: 'East Zone' },
-          { _id: '5', name: 'West Zone' }
-        ]);
+        console.error('❌ Error fetching zones:', error);
+        setZones([]);
+        setNotification({
+          open: true,
+          message: `Error fetching zones: ${error.message}`,
+          severity: 'error'
+        });
       }
     };
     fetchZones();
-  }, []);
+  }, [API_BASE_URL]);
 
-  const fetchProviders = async () => {
+  const fetchVenues = async (fetchTopPicks = false) => {
     try {
       setLoading(true);
-      const url = API_URL;
+      const url = fetchTopPicks ? `${API_URL}/top-picks` : API_URL;
       const options = getFetchOptions();
       const data = await makeAPICall(url, options);
 
-      if (data && Array.isArray(data.users)) {
-        const mappedProviders = data.users.map((provider, index) => ({
-          id: index + 1,
-          _id: provider._id,
-          storeInfo: provider.storeName || 'Unknown Store',
-          ownerInfo: `${provider.firstName || ''} ${provider.lastName || ''} (${provider.phone || 'N/A'})`,
-          zone: provider.zone?.name || 'N/A',
-          zoneId: provider.zone?._id || '',
-          featured: provider.isFeatured || false,
-          status: provider.isActive || false,
-          email: provider.email || '',
-          phone: provider.phone || '',
-          firstName: provider.firstName || '',
-          lastName: provider.lastName || '',
-          storeName: provider.storeName || '',
-          password: '********'
-        }));
-        setProviders(mappedProviders);
+      if (data && Array.isArray(data.data)) {
+        const mappedVenues = data.data.map((venue, index) => {
+          let zoneName = '';
+          let zoneId = '';
+          
+          // Handle zone field gracefully
+          if (venue.zone && typeof venue.zone === 'object' && venue.zone._id) {
+            zoneName = venue.zone.name || '';
+            zoneId = venue.zone._id.toString();
+          } else if (venue.zone && typeof venue.zone === 'string') {
+            zoneId = venue.zone;
+            const matchedZone = zones.find((z) => z._id === zoneId);
+            zoneName = matchedZone ? matchedZone.name : '';
+          }
+
+          // Determine price per day from pricingSchedule
+          let pricePerDay = 'N/A';
+          if (venue.pricingSchedule && typeof venue.pricingSchedule === 'object') {
+            const days = Object.keys(venue.pricingSchedule);
+            const firstValidDay = days.find(day => 
+              venue.pricingSchedule[day]?.morning?.perDay || venue.pricingSchedule[day]?.evening?.perDay
+            );
+            if (firstValidDay) {
+              pricePerDay = venue.pricingSchedule[firstValidDay].morning?.perDay || 
+                           venue.pricingSchedule[firstValidDay].evening?.perDay || 'N/A';
+            }
+          }
+
+          return {
+            id: index + 1,
+            _id: venue._id,
+            venueName: venue.venueName || 'Unknown Venue',
+            venueAddress: venue.venueAddress || 'N/A',
+            venueCity: venue.venueCity || 'N/A',
+            venueState: venue.venueState || 'N/A',
+            venuePostalCode: venue.venuePostalCode || 'N/A',
+            venueCountry: venue.venueCountry || 'N/A',
+            contactPersonName: venue.ownerManagerName || 'N/A',
+            contactPersonPhone: venue.ownerManagerPhone || venue.contactPhone || 'N/A',
+            contactPersonEmail: venue.ownerManagerEmail || venue.contactEmail || 'N/A',
+            totalCapacity: (venue.maxGuestsSeated || 0) + (venue.maxGuestsStanding || 0),
+            zone: zoneName,
+            zoneId: zoneId,
+            isTopPick: venue.isTopPick || false,
+            status: venue.isActive || false,
+            maxGuestsSeated: venue.maxGuestsSeated || 'N/A',
+            maxGuestsStanding: venue.maxGuestsStanding || 'N/A',
+            amenities: venue.amenities || [],
+            parkingCapacity: venue.parkingCapacity || 'N/A',
+            cateringAvailable: venue.foodCateringAvailability || false,
+            alcoholPermitted: venue.alcoholPermitted || false,
+            venueType: venue.categories?.[0]?.title || 'N/A',
+            pricePerDay: pricePerDay,
+            availableFrom: venue.openingHours ? venue.openingHours : 'N/A',
+            availableTo: venue.closingHours ? venue.closingHours : 'N/A'
+          };
+        });
+        setAllVenues(mappedVenues);
+        setVenues(mappedVenues);
+        console.log('✅ Venues fetched successfully:', mappedVenues.length);
       } else {
         throw new Error('Invalid data format');
       }
     } catch (error) {
-      console.error('Error fetching vendors:', error);
+      console.error('❌ Error fetching venues:', error);
       setNotification({
         open: true,
-        message: `Error fetching vendors: ${error.message}`,
+        message: `Error fetching venues: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchVenuesByZone = async (zoneId) => {
+    try {
+      setLoading(true);
+      const url = `${API_URL}?zone=${zoneId}`;
+      const options = getFetchOptions();
+      const data = await makeAPICall(url, options);
+
+      if (data && Array.isArray(data.data)) {
+        const mappedVenues = data.data.map((venue, index) => {
+          let zoneName = '';
+          let zoneIdStr = '';
+          
+          if (venue.zone && typeof venue.zone === 'object' && venue.zone._id) {
+            zoneName = venue.zone.name || '';
+            zoneIdStr = venue.zone._id.toString();
+          } else if (venue.zone && typeof venue.zone === 'string') {
+            zoneIdStr = venue.zone;
+            const matchedZone = zones.find((z) => z._id === zoneIdStr);
+            zoneName = matchedZone ? matchedZone.name : '';
+          }
+
+          // Determine price per day from pricingSchedule
+          let pricePerDay = 'N/A';
+          if (venue.pricingSchedule && typeof venue.pricingSchedule === 'object') {
+            const days = Object.keys(venue.pricingSchedule);
+            const firstValidDay = days.find(day => 
+              venue.pricingSchedule[day]?.morning?.perDay || venue.pricingSchedule[day]?.evening?.perDay
+            );
+            if (firstValidDay) {
+              pricePerDay = venue.pricingSchedule[firstValidDay].morning?.perDay || 
+                           venue.pricingSchedule[firstValidDay].evening?.perDay || 'N/A';
+            }
+          }
+
+          return {
+            id: index + 1,
+            _id: venue._id,
+            venueName: venue.venueName || 'Unknown Venue',
+            venueAddress: venue.venueAddress || 'N/A',
+            venueCity: venue.venueCity || 'N/A',
+            venueState: venue.venueState || 'N/A',
+            venuePostalCode: venue.venuePostalCode || 'N/A',
+            venueCountry: venue.venueCountry || 'N/A',
+            contactPersonName: venue.ownerManagerName || 'N/A',
+            contactPersonPhone: venue.ownerManagerPhone || venue.contactPhone || 'N/A',
+            contactPersonEmail: venue.ownerManagerEmail || venue.contactEmail || 'N/A',
+            totalCapacity: (venue.maxGuestsSeated || 0) + (venue.maxGuestsStanding || 0),
+            zone: zoneName,
+            zoneId: zoneIdStr,
+            isTopPick: venue.isTopPick || false,
+            status: venue.isActive || false,
+            maxGuestsSeated: venue.maxGuestsSeated || 'N/A',
+            maxGuestsStanding: venue.maxGuestsStanding || 'N/A',
+            amenities: venue.amenities || [],
+            parkingCapacity: venue.parkingCapacity || 'N/A',
+            cateringAvailable: venue.foodCateringAvailability || false,
+            alcoholPermitted: venue.alcoholPermitted || false,
+            venueType: venue.categories?.[0]?.title || 'N/A',
+            pricePerDay: pricePerDay,
+            availableFrom: venue.openingHours ? venue.openingHours : 'N/A',
+            availableTo: venue.closingHours ? venue.closingHours : 'N/A'
+          };
+        });
+        setVenues(mappedVenues);
+        console.log(`✅ Venues for zone ${zoneId} fetched:`, mappedVenues.length);
+      }
+    } catch (error) {
+      console.error('❌ Error fetching venues by zone:', error);
+      setNotification({
+        open: true,
+        message: `Error fetching venues for selected zone: ${error.message}`,
         severity: 'error'
       });
     } finally {
@@ -204,83 +325,153 @@ const ProvidersList = () => {
   };
 
   useEffect(() => {
-    fetchProviders();
+    if (zones.length > 0) {
+      fetchVenues();
+    }
+  }, [zones]);
+
+  const handleZoneChange = (e) => {
+    const zoneName = e.target.value;
+    setSelectedZone(zoneName);
     
-    if (location.state?.updatedProvider) {
-      const updatedProvider = location.state.updatedProvider;
-      setProviders((prev) =>
-        prev.map((provider) =>
-          provider._id === updatedProvider._id
-            ? {
-                ...provider,
-                ...updatedProvider,
-                storeInfo: updatedProvider.storeName,
-                ownerInfo: `${updatedProvider.firstName || ''} ${updatedProvider.lastName || ''} (${updatedProvider.phone || 'N/A'})`,
-                zone: zones.find((zone) => zone._id === updatedProvider.zone)?.name || 'N/A'
+    if (zoneName === 'All Zones') {
+      setVenues(allVenues);
+    } else {
+      const zone = zones.find((z) => z.name === zoneName);
+      if (zone) {
+        fetchVenuesByZone(zone._id);
+      }
+    }
+  };
+
+  useEffect(() => {
+    if (location.state?.updatedVenue) {
+      const updatedVenue = location.state.updatedVenue;
+      
+      const updateVenueInList = (venueList) => {
+        return venueList.map((venue) => {
+          if (venue._id === updatedVenue._id) {
+            let zoneName = venue.zone;
+            let zoneId = venue.zoneId;
+            
+            if (updatedVenue.zone && typeof updatedVenue.zone === 'object' && updatedVenue.zone._id) {
+              zoneName = updatedVenue.zone.name || zoneName;
+              zoneId = updatedVenue.zone._id.toString();
+            } else if (updatedVenue.zone && typeof updatedVenue.zone === 'string') {
+              zoneId = updatedVenue.zone;
+              const matchedZone = zones.find((z) => z._id === zoneId);
+              zoneName = matchedZone ? matchedZone.name : zoneName;
+            }
+
+            // Determine price per day from pricingSchedule
+            let pricePerDay = venue.pricePerDay;
+            if (updatedVenue.pricingSchedule && typeof updatedVenue.pricingSchedule === 'object') {
+              const days = Object.keys(updatedVenue.pricingSchedule);
+              const firstValidDay = days.find(day => 
+                updatedVenue.pricingSchedule[day]?.morning?.perDay || updatedVenue.pricingSchedule[day]?.evening?.perDay
+              );
+              if (firstValidDay) {
+                pricePerDay = updatedVenue.pricingSchedule[firstValidDay].morning?.perDay || 
+                             updatedVenue.pricingSchedule[firstValidDay].evening?.perDay || 'N/A';
               }
-            : provider
-        )
-      );
+            }
+
+            return {
+              ...venue,
+              ...updatedVenue,
+              venueName: updatedVenue.venueName || venue.venueName,
+              venueAddress: updatedVenue.venueAddress || venue.venueAddress,
+              venueCity: updatedVenue.venueCity || venue.venueCity,
+              venueState: updatedVenue.venueState || venue.venueState,
+              venuePostalCode: updatedVenue.venuePostalCode || venue.venuePostalCode,
+              venueCountry: updatedVenue.venueCountry || venue.venueCountry,
+              contactPersonName: updatedVenue.ownerManagerName || venue.contactPersonName,
+              contactPersonPhone: updatedVenue.ownerManagerPhone || updatedVenue.contactPhone || venue.contactPersonPhone,
+              contactPersonEmail: updatedVenue.ownerManagerEmail || updatedVenue.contactEmail || venue.contactPersonEmail,
+              totalCapacity: (updatedVenue.maxGuestsSeated || 0) + (updatedVenue.maxGuestsStanding || 0),
+              zone: zoneName,
+              zoneId: zoneId,
+              isTopPick: updatedVenue.isTopPick ?? venue.isTopPick,
+              status: updatedVenue.isActive ?? venue.status,
+              amenities: updatedVenue.amenities || venue.amenities,
+              parkingCapacity: updatedVenue.parkingCapacity || venue.parkingCapacity,
+              cateringAvailable: updatedVenue.foodCateringAvailability ?? venue.cateringAvailable,
+              alcoholPermitted: updatedVenue.alcoholPermitted ?? venue.alcoholPermitted,
+              venueType: updatedVenue.categories?.[0]?.title || venue.venueType,
+              pricePerDay: pricePerDay,
+              availableFrom: updatedVenue.openingHours ? updatedVenue.openingHours : venue.availableFrom,
+              availableTo: updatedVenue.closingHours ? updatedVenue.closingHours : venue.availableTo
+            };
+          }
+          return venue;
+        });
+      };
+      
+      setVenues((prev) => updateVenueInList(prev));
+      setAllVenues((prev) => updateVenueInList(prev));
+      
       setNotification({
         open: true,
-        message: 'Provider updated successfully!',
+        message: 'Venue updated successfully!',
         severity: 'success'
       });
     }
-  }, [location.state]);
+  }, [location.state, zones]);
 
-  const handleFeaturedToggle = useCallback(
+  const handleTopPickToggle = useCallback(
     async (_id) => {
-      const toggleKey = `${_id}-featured`;
+      const toggleKey = `${_id}-topPick`;
       if (toggleLoading[toggleKey]) return;
 
-      const provider = providers.find((p) => p._id === _id);
-      if (!provider) {
+      const venue = venues.find((v) => v._id === _id);
+      if (!venue) {
         setNotification({
           open: true,
-          message: 'Provider not found',
+          message: 'Venue not found',
           severity: 'error'
         });
         return;
       }
 
-      const newValue = !provider.featured;
+      const newValue = !venue.isTopPick;
       setToggleLoading((prev) => ({ ...prev, [toggleKey]: true }));
-      setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, featured: newValue } : p)));
+      
+      const updateVenue = (v) => (v._id === _id ? { ...v, isTopPick: newValue } : v);
+      setVenues((prev) => prev.map(updateVenue));
+      setAllVenues((prev) => prev.map(updateVenue));
 
       try {
-        const endpoint = `${API_BASE_URL}/users/${_id}/toggle-featured`;
+        const endpoint = `${API_URL}/${_id}/toggle-top-pick`;
         const options = getFetchOptions('PATCH');
-        const response = await fetch(endpoint, options);
+        const data = await makeAPICall(endpoint, options);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Update failed');
 
-        setProviders((prev) =>
-          prev.map((p) =>
-            p._id === _id
-              ? { ...p, featured: data.data.user?.isFeatured ?? p.featured }
-              : p
-          )
-        );
+        const finalUpdate = (v) => 
+          v._id === _id ? { ...v, isTopPick: data.data.isTopPick ?? v.isTopPick } : v;
+        
+        setVenues((prev) => prev.map(finalUpdate));
+        setAllVenues((prev) => prev.map(finalUpdate));
+
+        const statusMessage = data.data.isTopPick 
+          ? 'Top pick activated successfully' 
+          : 'Top pick deactivated successfully';
 
         setNotification({
           open: true,
-          message: `${provider.storeInfo} featured status updated successfully`,
-          severity: 'success'
+          message: statusMessage,
+          severity: data.data.isTopPick ? 'success' : 'info'
         });
       } catch (error) {
-        console.error('❌ Featured toggle error:', error);
-        setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, featured: !newValue } : p)));
+        console.error('❌ Top Pick toggle error:', error);
+        
+        const revertUpdate = (v) => (v._id === _id ? { ...v, isTopPick: !newValue } : v);
+        setVenues((prev) => prev.map(revertUpdate));
+        setAllVenues((prev) => prev.map(revertUpdate));
 
         setNotification({
           open: true,
-          message: `Error updating featured status: ${error.message}`,
+          message: `Error updating top pick status: ${error.message}`,
           severity: 'error'
         });
       } finally {
@@ -291,7 +482,7 @@ const ProvidersList = () => {
         });
       }
     },
-    [providers, API_BASE_URL, toggleLoading]
+    [venues, API_URL, toggleLoading]
   );
 
   const handleStatusToggle = useCallback(
@@ -299,49 +490,51 @@ const ProvidersList = () => {
       const toggleKey = `${_id}-status`;
       if (toggleLoading[toggleKey]) return;
 
-      const provider = providers.find((p) => p._id === _id);
-      if (!provider) {
+      const venue = venues.find((v) => v._id === _id);
+      if (!venue) {
         setNotification({
           open: true,
-          message: 'Provider not found',
+          message: 'Venue not found',
           severity: 'error'
         });
         return;
       }
 
-      const newValue = !provider.status;
+      const newValue = !venue.status;
       setToggleLoading((prev) => ({ ...prev, [toggleKey]: true }));
-      setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, status: newValue } : p)));
+      
+      const updateVenue = (v) => (v._id === _id ? { ...v, status: newValue } : v);
+      setVenues((prev) => prev.map(updateVenue));
+      setAllVenues((prev) => prev.map(updateVenue));
 
       try {
-        const endpoint = `${API_BASE_URL}/users/${_id}/toggle-status`;
+        const endpoint = `${API_URL}/${_id}/toggle-active`;
         const options = getFetchOptions('PATCH');
-        const response = await fetch(endpoint, options);
+        const data = await makeAPICall(endpoint, options);
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-
-        const data = await response.json();
         if (!data.success) throw new Error(data.message || 'Update failed');
 
-        setProviders((prev) =>
-          prev.map((p) =>
-            p._id === _id
-              ? { ...p, status: data.data.user?.isActive ?? p.status }
-              : p
-          )
-        );
+        const finalUpdate = (v) => 
+          v._id === _id ? { ...v, status: data.data.isActive ?? v.status } : v;
+        
+        setVenues((prev) => prev.map(finalUpdate));
+        setAllVenues((prev) => prev.map(finalUpdate));
+
+        const statusMessage = data.data.isActive 
+          ? 'Venue activated successfully' 
+          : 'Venue deactivated successfully';
 
         setNotification({
           open: true,
-          message: `${provider.storeInfo} status updated successfully`,
+          message: statusMessage,
           severity: 'success'
         });
       } catch (error) {
         console.error('❌ Status toggle error:', error);
-        setProviders((prev) => prev.map((p) => (p._id === _id ? { ...p, status: !newValue } : p)));
+        
+        const revertUpdate = (v) => (v._id === _id ? { ...v, status: !newValue } : v);
+        setVenues((prev) => prev.map(revertUpdate));
+        setAllVenues((prev) => prev.map(revertUpdate));
 
         setNotification({
           open: true,
@@ -356,46 +549,46 @@ const ProvidersList = () => {
         });
       }
     },
-    [providers, API_BASE_URL, toggleLoading]
+    [venues, API_URL, toggleLoading]
   );
 
-  const handleDeleteClick = (provider) => {
-    setProviderToDelete(provider);
+  const handleDeleteClick = (venue) => {
+    setVenueToDelete(venue);
     setOpenDeleteDialog(true);
   };
 
   const handleDeleteCancel = () => {
     setOpenDeleteDialog(false);
-    setProviderToDelete(null);
+    setVenueToDelete(null);
   };
 
   const handleDeleteConfirm = async () => {
-    const storeName = providerToDelete.storeInfo;
     try {
-      const url = `${API_BASE_URL}/users/${providerToDelete._id}`;
+      const url = `${API_URL}/${venueToDelete._id}`;
       const options = getFetchOptions('DELETE');
       const data = await makeAPICall(url, options);
 
       if (data.success) {
-        setProviders((prev) => prev.filter((p) => p._id !== providerToDelete._id));
+        setVenues((prev) => prev.filter((v) => v._id !== venueToDelete._id));
+        setAllVenues((prev) => prev.filter((v) => v._id !== venueToDelete._id));
         setNotification({
           open: true,
-          message: `${storeName} has been deleted successfully`,
+          message: `${venueToDelete.venueName} has been deleted successfully`,
           severity: 'success'
         });
       } else {
-        throw new Error(data.message || 'Failed to delete provider');
+        throw new Error(data.message || 'Failed to delete venue');
       }
     } catch (error) {
-      console.error('Error deleting provider:', error);
+      console.error('❌ Error deleting venue:', error);
       setNotification({
         open: true,
-        message: `Error deleting provider: ${error.message}`,
+        message: `Error deleting venue: ${error.message}`,
         severity: 'error'
       });
     } finally {
       setOpenDeleteDialog(false);
-      setProviderToDelete(null);
+      setVenueToDelete(null);
     }
   };
 
@@ -409,25 +602,56 @@ const ProvidersList = () => {
     setNotification({ ...notification, open: false });
   };
 
-  const filteredProviders = providers.filter((provider) => {
-    const matchesZone = selectedZone === 'All Zones' || provider.zone === selectedZone;
+  const handleFetchTopPicks = async () => {
+    try {
+      setLoading(true);
+      setSelectedZone('All Zones');
+      await fetchVenues(true);
+      setNotification({
+        open: true,
+        message: 'Top pick venues fetched successfully',
+        severity: 'success'
+      });
+    } catch (error) {
+      console.error('❌ Error fetching top picks:', error);
+      setNotification({
+        open: true,
+        message: `Error fetching top picks: ${error.message}`,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredVenues = venues.filter((venue) => {
     const matchesSearch =
-      provider.storeInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      provider.ownerInfo.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesZone && matchesSearch;
+      venue.venueName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      venue.venueAddress.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesSearch;
   });
 
   const exportToCSV = () => {
-    const headers = ['Sl', 'Store Name', 'Owner Information', 'Email', 'Phone', 'Zone', 'Featured', 'Status'];
-    const csvData = filteredProviders.map((provider) => [
-      provider.id,
-      `"${provider.storeInfo}"`,
-      `"${provider.ownerInfo}"`,
-      `"${provider.email}"`,
-      `"${provider.phone}"`,
-      `"${provider.zone}"`,
-      provider.featured ? 'Yes' : 'No',
-      provider.status ? 'Active' : 'Inactive'
+    const headers = ['Sl', 'Venue Name', 'Address', 'City', 'State', 'Postal Code', 'Country', 'Contact Person', 'Phone', 'Email', 'Seated', 'Standing', 'Total', 'Parking', 'Venue Type', 'Price/Day', 'Top Pick', 'Status'];
+    const csvData = filteredVenues.map((venue) => [
+      venue.id,
+      `"${venue.venueName}"`,
+      `"${venue.venueAddress}"`,
+      `"${venue.venueCity}"`,
+      `"${venue.venueState}"`,
+      `"${venue.venuePostalCode}"`,
+      `"${venue.venueCountry}"`,
+      `"${venue.contactPersonName}"`,
+      `"${venue.contactPersonPhone}"`,
+      `"${venue.contactPersonEmail}"`,
+      `"${venue.maxGuestsSeated}"`,
+      `"${venue.maxGuestsStanding}"`,
+      `"${venue.totalCapacity}"`,
+      `"${venue.parkingCapacity}"`,
+      `"${venue.venueType}"`,
+      `"${venue.pricePerDay}"`,
+      venue.isTopPick ? 'Yes' : 'No',
+      venue.status ? 'Active' : 'Inactive'
     ]);
 
     const csvContent = [headers.join(','), ...csvData.map((row) => row.join(','))].join('\n');
@@ -436,7 +660,7 @@ const ProvidersList = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `providers_list_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute('download', `venues_list_${new Date().toISOString().split('T')[0]}.csv`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -451,25 +675,37 @@ const ProvidersList = () => {
   };
 
   const exportToExcel = () => {
-    const headers = ['Sl', 'Store Name', 'Owner Information', 'Email', 'Phone', 'Zone', 'Featured', 'Status'];
+    const headers = ['Sl', 'Venue Name', 'Address', 'City', 'State', 'Postal Code', 'Country', 'Contact Person', 'Phone', 'Email', 'Seated', 'Standing', 'Total', 'Parking', 'Venue Type', 'Price/Day', 'Catering', 'Alcohol', 'Top Pick', 'Status'];
     let excelContent = `
       <table border="1">
         <thead>
           <tr>${headers.map((header) => `<th>${header}</th>`).join('')}</tr>
         </thead>
         <tbody>
-          ${filteredProviders
+          ${filteredVenues
             .map(
-              (provider) => `
+              (venue) => `
             <tr>
-              <td>${provider.id}</td>
-              <td>${provider.storeInfo}</td>
-              <td>${provider.ownerInfo}</td>
-              <td>${provider.email}</td>
-              <td>${provider.phone}</td>
-              <td>${provider.zone}</td>
-              <td>${provider.featured ? 'Yes' : 'No'}</td>
-              <td>${provider.status ? 'Active' : 'Inactive'}</td>
+              <td>${venue.id}</td>
+              <td>${venue.venueName}</td>
+              <td>${venue.venueAddress}</td>
+              <td>${venue.venueCity}</td>
+              <td>${venue.venueState}</td>
+              <td>${venue.venuePostalCode}</td>
+              <td>${venue.venueCountry}</td>
+              <td>${venue.contactPersonName}</td>
+              <td>${venue.contactPersonPhone}</td>
+              <td>${venue.contactPersonEmail}</td>
+              <td>${venue.maxGuestsSeated}</td>
+              <td>${venue.maxGuestsStanding}</td>
+              <td>${venue.totalCapacity}</td>
+              <td>${venue.parkingCapacity}</td>
+              <td>${venue.venueType}</td>
+              <td>${venue.pricePerDay}</td>
+              <td>${venue.cateringAvailable ? 'Yes' : 'No'}</td>
+              <td>${venue.alcoholPermitted ? 'Yes' : 'No'}</td>
+              <td>${venue.isTopPick ? 'Yes' : 'No'}</td>
+              <td>${venue.status ? 'Active' : 'Inactive'}</td>
             </tr>
           `
             )
@@ -482,7 +718,7 @@ const ProvidersList = () => {
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
-    link.setAttribute('download', `providers_list_${new Date().toISOString().split('T')[0]}.xls`);
+    link.setAttribute('download', `venues_list_${new Date().toISOString().split('T')[0]}.xls`);
     link.style.visibility = 'hidden';
     document.body.appendChild(link);
     link.click();
@@ -496,16 +732,35 @@ const ProvidersList = () => {
     });
   };
 
+  const statsVenues = selectedZone === 'All Zones' ? allVenues : venues;
+
   return (
     <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
       {/* Stats bar */}
       <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', p: 2, bgcolor: '#f5f5f5', gap: 1 }}>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total vendors: {providers.length}</Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active vendors: {providers.filter((p) => p.status).length}</Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive vendors: {providers.filter((p) => !p.status).length}</Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Featured vendors: {providers.filter((p) => p.featured).length}</Box>
+          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>
+            Total venues: {statsVenues.length}
+          </Box>
+          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>
+            Active venues: {statsVenues.filter((v) => v.status).length}
+          </Box>
+          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>
+            Inactive venues: {statsVenues.filter((v) => !v.status).length}
+          </Box>
+          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>
+            Top Pick venues: {statsVenues.filter((v) => v.isTopPick).length}
+          </Box>
         </Box>
+        <Button
+          variant="contained"
+          color="secondary"
+          size="small"
+          onClick={handleFetchTopPicks}
+          disabled={loading}
+        >
+          {loading ? 'Loading...' : 'Fetch Top Picks'}
+        </Button>
       </Box>
 
       {/* Filters */}
@@ -513,20 +768,20 @@ const ProvidersList = () => {
         <TextField
           select
           value={selectedZone}
-          onChange={(e) => setSelectedZone(e.target.value)}
+          onChange={handleZoneChange}
           size="small"
           sx={{ minWidth: 150, bgcolor: 'white' }}
         >
           <MenuItem value="All Zones">All Zones</MenuItem>
-          {[...new Set(providers.map((p) => p.zone))].map((zone) => (
-            <MenuItem key={zone} value={zone}>
-              {zone}
+          {zones.map((zone) => (
+            <MenuItem key={zone._id} value={zone.name}>
+              {zone.name}
             </MenuItem>
           ))}
         </TextField>
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
           <TextField
-            placeholder="Search Vendor"
+            placeholder="Search Venue"
             size="small"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -547,7 +802,7 @@ const ProvidersList = () => {
       {loading ? (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
           <CircularProgress size={20} />
-          <Typography>Loading vendors...</Typography>
+          <Typography>Loading venues...</Typography>
         </Box>
       ) : (
         <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
@@ -555,60 +810,80 @@ const ProvidersList = () => {
             <TableHead sx={{ position: 'sticky', top: 0, bgcolor: '#f5f5f5', zIndex: 1 }}>
               <TableRow>
                 <TableCell>Sl</TableCell>
-                <TableCell>Store Information</TableCell>
-                <TableCell>Owner Information</TableCell>
-                <TableCell>Email</TableCell>
+                <TableCell>Venue Name</TableCell>
+                <TableCell>Address</TableCell>
+                <TableCell>City</TableCell>
+                <TableCell>Contact Person</TableCell>
                 <TableCell>Phone</TableCell>
-                <TableCell>Zone</TableCell>
-                <TableCell>Featured</TableCell>
+                <TableCell>Seated</TableCell>
+                <TableCell>Standing</TableCell>
+                <TableCell>Total</TableCell>
+                <TableCell>Venue Type</TableCell>
+                <TableCell>Price/Day</TableCell>
+                <TableCell>Top Pick</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
-              {filteredProviders.map((provider) => {
-                const featuredToggleKey = `${provider._id}-featured`;
-                const statusToggleKey = `${provider._id}-status`;
-                return (
-                  <TableRow key={provider._id}>
-                    <TableCell>{provider.id}</TableCell>
-                    <TableCell>{provider.storeInfo}</TableCell>
-                    <TableCell>{provider.ownerInfo}</TableCell>
-                    <TableCell>{provider.email}</TableCell>
-                    <TableCell>{provider.phone}</TableCell>
-                    <TableCell>{provider.zone}</TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={provider.featured}
-                        onChange={() => handleFeaturedToggle(provider._id)}
-                        disabled={toggleLoading[featuredToggleKey]}
-                        color="primary"
-                      />
-                      {toggleLoading[featuredToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={provider.status}
-                        onChange={() => handleStatusToggle(provider._id)}
-                        disabled={toggleLoading[statusToggleKey]}
-                        color="primary"
-                      />
-                      {toggleLoading[statusToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
-                    </TableCell>
-                    <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                      <IconButton color="primary" onClick={() => alert(`Viewing: ${provider.storeInfo}`)}>
-                        <VisibilityOutlined />
-                      </IconButton>
-                      <IconButton color="primary" onClick={() => navigate('/providers/edit', { state: { provider } })}>
-                        <Edit />
-                      </IconButton>
-                      <IconButton color="error" onClick={() => handleDeleteClick(provider)}>
-                        <Delete />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+              {filteredVenues.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={14} align="center">
+                    <Typography variant="body2" color="textSecondary">
+                      No venues found {selectedZone !== 'All Zones' && `in ${selectedZone}`}
+                    </Typography>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredVenues.map((venue) => {
+                  const topPickToggleKey = `${venue._id}-topPick`;
+                  const statusToggleKey = `${venue._id}-status`;
+                  return (
+                    <TableRow key={venue._id}>
+                      <TableCell>{venue.id}</TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>{venue.venueName}</TableCell>
+                      <TableCell sx={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>{venue.venueAddress}</TableCell>
+                      <TableCell>{venue.venueCity}</TableCell>
+                      <TableCell>{venue.contactPersonName}</TableCell>
+                      <TableCell>{venue.contactPersonPhone}</TableCell>
+                      <TableCell>{venue.maxGuestsSeated}</TableCell>
+                      <TableCell>{venue.maxGuestsStanding}</TableCell>
+                      <TableCell>{venue.totalCapacity}</TableCell>
+                      <TableCell>{venue.venueType}</TableCell>
+                      <TableCell>{venue.pricePerDay}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={venue.isTopPick}
+                          onChange={() => handleTopPickToggle(venue._id)}
+                          disabled={toggleLoading[topPickToggleKey]}
+                          color="primary"
+                        />
+                        {toggleLoading[topPickToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={venue.status}
+                          onChange={() => handleStatusToggle(venue._id)}
+                          disabled={toggleLoading[statusToggleKey]}
+                          color="primary"
+                        />
+                        {toggleLoading[statusToggleKey] && <CircularProgress size={16} sx={{ ml: 1 }} />}
+                      </TableCell>
+                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
+                        <IconButton color="primary" onClick={() => alert(`Viewing: ${venue.venueName}`)}>
+                          <VisibilityOutlined />
+                        </IconButton>
+                        <IconButton color="primary" onClick={() => navigate('/venues/edit', { state: { venue } })}>
+                          <Edit />
+                        </IconButton>
+                        <IconButton color="error" onClick={() => handleDeleteClick(venue)}>
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </Box>
@@ -627,7 +902,7 @@ const ProvidersList = () => {
         </DialogTitle>
         <DialogContent>
           <DialogContentText>
-            Are you sure you want to delete vendor "<strong>{providerToDelete?.storeInfo}</strong>"? This action cannot be undone.
+            Are you sure you want to delete venue "<strong>{venueToDelete?.venueName}</strong>"? This action cannot be undone.
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ justifyContent: 'space-between', px: 3, pb: 2 }}>
@@ -655,4 +930,4 @@ const ProvidersList = () => {
   );
 };
 
-export default ProvidersList;
+export default VenuesList;

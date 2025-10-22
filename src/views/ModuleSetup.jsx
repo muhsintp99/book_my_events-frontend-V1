@@ -13,11 +13,11 @@ import {
   useTheme,
   CircularProgress,
   Alert,
-  Switch,
   Paper,
   Grid,
   Menu,
   MenuItem,
+  Avatar,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -118,8 +118,8 @@ const ModuleSetup = () => {
     
     // Set existing image previews if they exist
     setImagePreview({
-      appIcon: module.iconUrl ? `https://api.bookmyevent.ae/api${module.iconUrl}` : null,
-      thumbnail: module.thumbnailUrl ? `https://api.bookmyevent.ae/api${module.thumbnailUrl}` : null,
+      appIcon: module.icon ? `https://api.bookmyevent.ae/${module.icon}` : null,
+      thumbnail: module.thumbnail ? `https://api.bookmyevent.ae/${module.thumbnail}` : null,
     });
     
     setShowForm(true);
@@ -190,29 +190,6 @@ const ModuleSetup = () => {
     const inputId = type === 'appIcon' ? 'app-icon-upload' : 'thumbnail-upload';
     const input = document.getElementById(inputId);
     if (input) input.value = '';
-  };
-
-  // Handle module status toggle
-  const toggleModuleStatus = async (moduleId, currentStatus) => {
-    try {
-      const res = await fetch(`https://api.bookmyevent.ae/api/modules/${moduleId}/toggle-status`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ isActive: !currentStatus }),
-      });
-
-      if (!res.ok) throw new Error('Failed to update module status');
-
-      // Update the module in the list
-      setModules(modules.map(module => 
-        module._id === moduleId ? { ...module, isActive: !currentStatus } : module
-      ));
-    } catch (err) {
-      console.error('Status toggle error:', err);
-      setError('Failed to update module status');
-    }
   };
 
   // Handle action menu
@@ -300,6 +277,13 @@ const ModuleSetup = () => {
     setFormMode('add');
   };
 
+  // Get module icon URL
+  const getModuleIconUrl = (icon) => {
+    if (!icon) return null;
+    if (icon.startsWith('http') || icon.startsWith('/')) return icon;
+    return `https://api.bookmyevent.ae/${icon}`;
+  };
+
   return (
     <Box sx={{ p: 3, backgroundColor: theme.palette.grey[100], minHeight: '100vh' }}>
       {!showForm ? (
@@ -337,8 +321,8 @@ const ModuleSetup = () => {
               variant="contained"
               onClick={handleAddModule}
               sx={{
-                backgroundColor: theme.palette.primary.main,
-                '&:hover': { backgroundColor: theme.palette.primary.dark },
+                backgroundColor: '#EA4C46',
+                '&:hover': { backgroundColor: '#d43d37' },
               }}
             >
               Add Module
@@ -364,9 +348,8 @@ const ModuleSetup = () => {
               <TableHead>
                 <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
                   <TableCell sx={{ fontWeight: 600 }}>Sl No</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Module Id</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Icon</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
                 </TableRow>
               </TableHead>
@@ -375,15 +358,20 @@ const ModuleSetup = () => {
                   filteredModules.map((module, index) => (
                     <TableRow key={module._id} sx={{ '&:hover': { backgroundColor: theme.palette.grey[50] } }}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>{module.moduleId || 'N/A'}</TableCell>
-                      <TableCell sx={{ fontWeight: 500 }}>{module.title}</TableCell>
                       <TableCell>
-                        <Switch
-                          checked={module.isActive}
-                          onChange={() => toggleModuleStatus(module._id, module.isActive)}
-                          color="primary"
-                        />
+                        <Avatar
+                          src={getModuleIconUrl(module.icon)}
+                          alt={module.title}
+                          sx={{
+                            width: 40,
+                            height: 40,
+                            bgcolor: theme.palette.primary.light,
+                          }}
+                        >
+                          {!module.icon && module.title ? module.title.charAt(0).toUpperCase() : '?'}
+                        </Avatar>
                       </TableCell>
+                      <TableCell sx={{ fontWeight: 500 }}>{module.title}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
                           <IconButton 
@@ -399,7 +387,7 @@ const ModuleSetup = () => {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 3 }}>
+                    <TableCell colSpan={4} align="center" sx={{ py: 3 }}>
                       {searchTerm ? 'No modules found matching your search.' : 'No modules available.'}
                     </TableCell>
                   </TableRow>
@@ -631,8 +619,8 @@ const ModuleSetup = () => {
               sx={{
                 px: 4,
                 py: 1,
-                backgroundColor: theme.palette.primary.main,
-                '&:hover': { backgroundColor: theme.palette.primary.dark },
+                backgroundColor: '#EA4C46',
+                '&:hover': { backgroundColor: '#d43d37' },
               }}
             >
               {formLoading ? (

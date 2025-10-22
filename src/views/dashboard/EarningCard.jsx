@@ -46,7 +46,7 @@ export default function EarningCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: 'secondary.dark',
+            bgcolor: '#EA4C46', // ✅ Updated background color
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -55,7 +55,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: 'rgba(0,0,0,0.1)', // subtle overlay circle
               borderRadius: '50%',
               top: { xs: -85 },
               right: { xs: -95 }
@@ -65,7 +65,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.secondary[800],
+              background: 'rgba(0,0,0,0.15)',
               borderRadius: '50%',
               top: { xs: -125 },
               right: { xs: -15 },
@@ -83,7 +83,7 @@ export default function EarningCard({ isLoading }) {
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
-                        bgcolor: 'secondary.800',
+                        bgcolor: 'rgba(255,255,255,0.2)',
                         mt: 1
                       }}
                     >
@@ -96,8 +96,8 @@ export default function EarningCard({ isLoading }) {
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.mediumAvatar,
-                        bgcolor: 'secondary.dark',
-                        color: 'secondary.200',
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: '#fff',
                         zIndex: 1
                       }}
                       aria-controls="menu-earning-card"
@@ -141,15 +141,17 @@ export default function EarningCard({ isLoading }) {
               <Grid>
                 <Grid container sx={{ alignItems: 'center' }}>
                   <Grid>
-                    <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$500.00</Typography>
+                    <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
+                      $500.00
+                    </Typography>
                   </Grid>
                   <Grid>
                     <Avatar
                       sx={{
                         cursor: 'pointer',
                         ...theme.typography.smallAvatar,
-                        bgcolor: 'secondary.200',
-                        color: 'secondary.dark'
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: '#fff'
                       }}
                     >
                       <ArrowUpwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
@@ -162,7 +164,7 @@ export default function EarningCard({ isLoading }) {
                   sx={{
                     fontSize: '1rem',
                     fontWeight: 500,
-                    color: 'secondary.200'
+                    color: 'rgba(255,255,255,0.8)'
                   }}
                 >
                   Total Earning

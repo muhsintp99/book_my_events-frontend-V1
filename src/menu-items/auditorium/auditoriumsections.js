@@ -42,6 +42,14 @@ const auditoriumsections = {
       icon: icons.IconCategory,
       breadcrumbs: false
     },
+    //     {
+    //   id: 'Venuelist',
+    //   title: 'Top Picks',
+    //   type: 'item',
+    //   url: '/auditorium/Toppicks',
+    //   icon: icons.IconCategory,
+    //   breadcrumbs: false
+    // },
     // {
     //   id: 'auditorium-brands',
     //   title: 'Brands',

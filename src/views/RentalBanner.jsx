@@ -40,7 +40,7 @@ function VehicleBannerForm() {
   const [zonesLoading, setZonesLoading] = useState(false);
   const [notification, setNotification] = useState({ 
     open: false, 
-    message: '', 
+    message: '',  
     severity: 'success' 
   });
 

@@ -18,6 +18,7 @@ import {
   Menu,
   MenuItem,
   useTheme,
+  Avatar,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -118,8 +119,8 @@ const SecondModuleSetup = () => {
 
     // Set existing image previews
     setImagePreview({
-      appIcon: module.iconUrl ? `https://api.bookmyevent.ae/api${module.iconUrl}` : null,
-      thumbnail: module.thumbnailUrl ? `https://api.bookmyevent.ae/api${module.thumbnailUrl}` : null,
+      appIcon: module.icon ? `https://api.bookmyevent.ae/${module.icon}` : null,
+      thumbnail: module.thumbnail ? `https://api.bookmyevent.ae/${module.thumbnail}` : null,
     });
 
     setShowForm(true);
@@ -222,6 +223,13 @@ const SecondModuleSetup = () => {
   const filteredModules = modules.filter((module) =>
     module.title?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  // Get module icon URL
+  const getModuleIconUrl = (icon) => {
+    if (!icon) return null;
+    if (icon.startsWith('http') || icon.startsWith('/')) return icon;
+    return `https://api.bookmyevent.ae/${icon}`;
+  };
 
   // Handle form submit
   const handleSubmit = async () => {
@@ -345,7 +353,7 @@ const SecondModuleSetup = () => {
               <TableHead>
                 <TableRow sx={{ backgroundColor: theme.palette.grey[50] }}>
                   <TableCell sx={{ fontWeight: 600 }}>Sl No</TableCell>
-                  <TableCell sx={{ fontWeight: 600 }}>Module Id</TableCell>
+                  <TableCell sx={{ fontWeight: 600 }}>Icon</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Name</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
                   <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
@@ -356,7 +364,20 @@ const SecondModuleSetup = () => {
                   filteredModules.map((module, index) => (
                     <TableRow key={module._id} sx={{ '&:hover': { backgroundColor: theme.palette.grey[50] } }}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>{module.moduleId || 'N/A'}</TableCell>
+                      <TableCell>
+                        <Avatar
+                          src={getModuleIconUrl(module.icon)}
+                          alt={module.title}
+                          variant="rounded"
+                          sx={{ 
+                            width: 40, 
+                            height: 40,
+                            bgcolor: theme.palette.grey[200]
+                          }}
+                        >
+                          {!module.icon && module.title?.charAt(0).toUpperCase()}
+                        </Avatar>
+                      </TableCell>
                       <TableCell sx={{ fontWeight: 500 }}>{module.title}</TableCell>
                       <TableCell>
                         <Switch

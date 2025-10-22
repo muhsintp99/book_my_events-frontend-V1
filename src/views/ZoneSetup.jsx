@@ -18,12 +18,7 @@ import {
   Grid,
   Snackbar,
 } from "@mui/material";
-import {
-  CloudUpload as CloudUploadIcon,
-  Edit as EditIcon,
-  Favorite as FavoriteIcon,
-  FavoriteBorder as FavoriteBorderIcon,
-} from "@mui/icons-material";
+import { CloudUpload as CloudUploadIcon, Edit as EditIcon } from "@mui/icons-material";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
@@ -45,10 +40,9 @@ const ZoneSetup = () => {
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78", // Replace with your key
+    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78", // Replace with your own key
   });
 
-  // Fetch zones
   useEffect(() => {
     const fetchZones = async () => {
       try {
@@ -139,33 +133,14 @@ const ZoneSetup = () => {
   const handleStatusToggle = async (zoneId) => {
     try {
       const zone = zones.find((z) => z._id === zoneId);
-      const updated = await axios.patch(`https://api.bookmyevent.ae/api/zones/${zoneId}`, {
-        isActive: !zone.isActive,
-      });
+      const updated = await axios.patch(
+        `https://api.bookmyevent.ae/api/zones/${zoneId}`,
+        { isActive: !zone.isActive }
+      );
       setZones(zones.map((z) => (z._id === zoneId ? updated.data.data : z)));
     } catch (err) {
       console.error(err);
       setError("Failed to update status");
-    }
-  };
-
-  // ✅ Handle Favourite Toggle
-  const handleFavouriteToggle = async (zoneId) => {
-    try {
-      const zone = zones.find((z) => z._id === zoneId);
-      const updated = await axios.patch(`https://api.bookmyevent.ae/api/zones/${zoneId}`, {
-        isFavourite: !zone.isFavourite,
-      });
-      setZones(zones.map((z) => (z._id === zoneId ? updated.data.data : z)));
-      setToastMessage(
-        updated.data.data.isFavourite
-          ? `${updated.data.data.name} added to favourites`
-          : `${updated.data.data.name} removed from favourites`
-      );
-      setToastOpen(true);
-    } catch (err) {
-      console.error(err);
-      setError("Failed to update favourite");
     }
   };
 
@@ -190,7 +165,6 @@ const ZoneSetup = () => {
       setToastOpen(true);
       return;
     }
-
     const newPositions = [...selectedPositions];
     newPositions.splice(index, 1);
     setSelectedPositions(newPositions);
@@ -321,7 +295,7 @@ const ZoneSetup = () => {
         </Box>
       </Paper>
 
-      {/* Table */}
+      {/* Table (Icon column removed) */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden", backgroundColor: "white" }} elevation={2}>
         {fetching ? (
           <Box sx={{ textAlign: "center", p: 2 }}>
@@ -333,10 +307,8 @@ const ZoneSetup = () => {
               <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
                 <TableCell sx={{ fontWeight: 600 }}>Sl/No</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Zone Name</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Icon</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Coordinates</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Favourite</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
               </TableRow>
             </TableHead>
@@ -348,7 +320,6 @@ const ZoneSetup = () => {
                 >
                   <TableCell>{index + 1}</TableCell>
                   <TableCell>{zone.name}</TableCell>
-                  <TableCell>{zone.icon}</TableCell>
                   <TableCell>
                     {zone.coordinates?.map((c, i) => (
                       <span key={i}>
@@ -362,11 +333,6 @@ const ZoneSetup = () => {
                       onChange={() => handleStatusToggle(zone._id)}
                       color="primary"
                     />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleFavouriteToggle(zone._id)} color="error">
-                      {zone.isFavourite ? <FavoriteIcon /> : <FavoriteBorderIcon />}
-                    </IconButton>
                   </TableCell>
                   <TableCell>
                     <IconButton size="small" color="inherit" onClick={() => handleEdit(zone)}>

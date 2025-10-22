@@ -413,6 +413,7 @@ export default function Header() {
   const [modules, setModules] = useState([]);
   const [secondaryModules, setSecondaryModules] = useState([]);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
+  const [selectedModuleName, setSelectedModuleName] = useState('Select Modules');
 
   const open = Boolean(anchorEl);
   const settingsOpen = Boolean(settingsAnchorEl);
@@ -470,7 +471,23 @@ export default function Header() {
   useEffect(() => {
     const path = location.pathname.split('/')[1];
     dispatchModuleEvents(path || '', path || '');
-  }, [location.pathname]);
+    
+    // Get stored module name or determine from path
+    const storedModuleId = localStorage.getItem('moduleId');
+    if (storedModuleId) {
+      // Check if it's in main modules or secondary modules
+      const allModules = [...modules, ...secondaryModules];
+      const currentModule = allModules.find(m => m.moduleId === storedModuleId);
+      if (currentModule) {
+        setSelectedModuleName(currentModule.title);
+      } else if (path) {
+        // Format the path as title
+        setSelectedModuleName(formatModuleTitle(path));
+      }
+    } else if (path) {
+      setSelectedModuleName(formatModuleTitle(path));
+    }
+  }, [location.pathname, modules, secondaryModules]);
 
   // Fetch modules
   useEffect(() => {
@@ -568,6 +585,9 @@ export default function Header() {
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
+    // Update selected module name
+    setSelectedModuleName(module.title);
+
     // Check if this module has a mapping (like venues -> auditorium)
     const mapping = moduleMapping[moduleName];
     
@@ -605,6 +625,9 @@ export default function Header() {
     const moduleName = (module.title || '').toLowerCase();
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
+
+    // Update selected module name
+    setSelectedModuleName(module.title);
 
     // Check if this secondary module has a mapping
     const mapping = moduleMapping[moduleName];
@@ -689,7 +712,7 @@ export default function Header() {
                   bgcolor: '#f8f9fa',
                   transform: 'translateY(-2px)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
-                  borderColor: '#1976d2'
+                  borderColor: '#EA4C46'
                 }
               }}
             >
@@ -841,10 +864,20 @@ export default function Header() {
             <Button
               variant="contained"
               size="large"
-              sx={{ textTransform: 'none', borderRadius: '50px', px: 3, py: 1.5, fontSize: '1rem' }}
+              sx={{ 
+                textTransform: 'none', 
+                borderRadius: '50px', 
+                px: 3, 
+                py: 1.5, 
+                fontSize: '1rem',
+                bgcolor: '#EA4C46',
+                '&:hover': {
+                  bgcolor: '#d43d37'
+                }
+              }}
               onClick={handleClick}
             >
-              Demo Modules
+              {selectedModuleName}
             </Button>
 
             <NotificationSection />

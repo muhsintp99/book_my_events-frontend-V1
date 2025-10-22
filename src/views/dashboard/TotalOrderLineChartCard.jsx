@@ -39,7 +39,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: 'primary.dark',
+            bgcolor: '#EA4C46', // ✅ Updated background color
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -52,7 +52,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.primary[800],
+              background: 'rgba(0,0,0,0.1)', // subtle overlay circle
               borderRadius: '50%',
               top: { xs: -85 },
               right: { xs: -95 }
@@ -62,7 +62,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: theme.palette.primary[800],
+              background: 'rgba(0,0,0,0.15)',
               borderRadius: '50%',
               top: { xs: -125 },
               right: { xs: -15 },
@@ -80,7 +80,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       sx={{
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
-                        bgcolor: 'primary.800',
+                        bgcolor: 'rgba(255,255,255,0.2)', // ✅ updated for contrast
                         color: '#fff',
                         mt: 1
                       }}
@@ -93,7 +93,13 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       disableElevation
                       variant={timeValue ? 'contained' : 'text'}
                       size="small"
-                      sx={{ color: 'inherit' }}
+                      sx={{
+                        color: '#fff',
+                        bgcolor: timeValue ? 'rgba(255,255,255,0.25)' : 'transparent',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.35)'
+                        }
+                      }}
                       onClick={(e) => handleChangeTime(e, true)}
                     >
                       Month
@@ -102,7 +108,13 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       disableElevation
                       variant={!timeValue ? 'contained' : 'text'}
                       size="small"
-                      sx={{ color: 'inherit' }}
+                      sx={{
+                        color: '#fff',
+                        bgcolor: !timeValue ? 'rgba(255,255,255,0.25)' : 'transparent',
+                        '&:hover': {
+                          bgcolor: 'rgba(255,255,255,0.35)'
+                        }
+                      }}
                       onClick={(e) => handleChangeTime(e, false)}
                     >
                       Year
@@ -116,9 +128,13 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                     <Grid container sx={{ alignItems: 'center' }}>
                       <Grid>
                         {timeValue ? (
-                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$108</Typography>
+                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
+                            $108
+                          </Typography>
                         ) : (
-                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>$961</Typography>
+                          <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
+                            $961
+                          </Typography>
                         )}
                       </Grid>
                       <Grid>
@@ -126,8 +142,8 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                           sx={{
                             ...theme.typography.smallAvatar,
                             cursor: 'pointer',
-                            bgcolor: 'primary.200',
-                            color: 'primary.dark'
+                            bgcolor: 'rgba(255,255,255,0.2)',
+                            color: '#fff'
                           }}
                         >
                           <ArrowDownwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
@@ -138,7 +154,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                           sx={{
                             fontSize: '1rem',
                             fontWeight: 500,
-                            color: 'primary.200'
+                            color: 'rgba(255,255,255,0.8)'
                           }}
                         >
                           Total Order
