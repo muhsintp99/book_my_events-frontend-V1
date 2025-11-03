@@ -467,28 +467,6 @@ export default function Header() {
       .join(' ');
   };
 
-  // Default module setup on entry
-  useEffect(() => {
-    const path = location.pathname.split('/')[1];
-    dispatchModuleEvents(path || '', path || '');
-    
-    // Get stored module name or determine from path
-    const storedModuleId = localStorage.getItem('moduleId');
-    if (storedModuleId) {
-      // Check if it's in main modules or secondary modules
-      const allModules = [...modules, ...secondaryModules];
-      const currentModule = allModules.find(m => m.moduleId === storedModuleId);
-      if (currentModule) {
-        setSelectedModuleName(currentModule.title);
-      } else if (path) {
-        // Format the path as title
-        setSelectedModuleName(formatModuleTitle(path));
-      }
-    } else if (path) {
-      setSelectedModuleName(formatModuleTitle(path));
-    }
-  }, [location.pathname, modules, secondaryModules]);
-
   // Fetch modules
   useEffect(() => {
     const fetchModules = async () => {
@@ -585,8 +563,11 @@ export default function Header() {
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
-    // Update selected module name
+    // Update selected module name immediately
     setSelectedModuleName(module.title);
+    
+    // Store the selected module name in localStorage so it persists
+    localStorage.setItem('selectedModuleName', module.title);
 
     // Check if this module has a mapping (like venues -> auditorium)
     const mapping = moduleMapping[moduleName];
@@ -626,8 +607,11 @@ export default function Header() {
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
-    // Update selected module name
+    // Update selected module name immediately
     setSelectedModuleName(module.title);
+    
+    // Store the selected module name in localStorage so it persists
+    localStorage.setItem('selectedModuleName', module.title);
 
     // Check if this secondary module has a mapping
     const mapping = moduleMapping[moduleName];
@@ -659,6 +643,14 @@ export default function Header() {
     
     handleClose();
   };
+
+  // Load selected module name from localStorage on component mount
+  useEffect(() => {
+    const storedModuleName = localStorage.getItem('selectedModuleName');
+    if (storedModuleName) {
+      setSelectedModuleName(storedModuleName);
+    }
+  }, []);
 
   const settingsMenuItems = [
     { label: 'Zone Setup', icon: <IconMapPinFilled size={20} />, route: '/settings/zone-setup' },

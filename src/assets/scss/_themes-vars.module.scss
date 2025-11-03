@@ -162,15 +162,15 @@
 
 $paper: #ffffff;
 $primaryLight: #e3f2fd;
-$primaryMain: #2196f3;
-$primaryDark: #1e88e5;
-$primary200: #90caf9;
+$primaryMain: #ec2020;
+$primaryDark: #f30909;
+$primary200: #d01a1a;
 $primary800: #c01515;
 $secondaryLight: #ede7f6;
 $secondaryMain: #df0e0e;
 $secondaryDark: #cb1212;
-$secondary200: #b39ddb;
-$secondary800: #4527a0;
+$secondary200: #dc340e;
+$secondary800: #f11111;
 $successLight: #b9f6ca;
 $success200: #69f0ae;
 $successMain: #00e676;
@@ -197,18 +197,18 @@ $darkPaper: #172762;
 $darkLevel1: #29314f;
 $darkLevel2: #212946;
 $darkPrimaryLight: #e3f2fd;
-$darkPrimaryMain: #2196f3;
-$darkPrimaryDark: #1e88e5;
-$darkPrimary200: #90caf9;
+$darkPrimaryMain: #e92b0e;
+$darkPrimaryDark: #eb2e0d;
+$darkPrimary200: #d41b1b;
 $darkPrimary800: #e40a0a;
-$darkSecondaryLight: #d1c4e9;
-$darkSecondaryMain: #7c4dff;
+$darkSecondaryLight: #e42323;
+$darkSecondaryMain: #e52a0d;
 $darkSecondaryDark: #ec0909;
-$darkSecondary200: #b39ddb;
-$darkSecondary800: #6200ea;
+$darkSecondary200: #dc1d19;
+$darkSecondary800: #e20e0e;
 $darkTextTitle: #d7dcec;
 $darkTextPrimary: #bdc8f0;
-$darkTextSecondary: #8492c4;
+$darkTextSecondary: #ec2a0c;
 
 :export {
   paper: $paper;

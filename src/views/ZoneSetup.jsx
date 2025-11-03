@@ -28,9 +28,6 @@ import {
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
-const containerStyle = { width: "100%", height: "300px" };
-const defaultPositions = [{ lat: 10.8505, lng: 76.2711 }];
-
 const ZoneSetup = () => {
   const theme = useTheme();
   const [zones, setZones] = useState([]);
@@ -38,7 +35,7 @@ const ZoneSetup = () => {
   const [zoneDescription, setZoneDescription] = useState("");
   const [iconFile, setIconFile] = useState(null);
   const [iconPreview, setIconPreview] = useState(null);
-  const [selectedPositions, setSelectedPositions] = useState(defaultPositions);
+  const [selectedPositions, setSelectedPositions] = useState([{ lat: 10.8505, lng: 76.2711 }]);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
   const [error, setError] = useState(null);
@@ -84,19 +81,16 @@ const ZoneSetup = () => {
   const handleIconUpload = (event) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validate file type
       if (!file.type.startsWith('image/')) {
         showToast("Please upload an image file", "error");
         return;
       }
-      // Validate file size (max 5MB)
       if (file.size > 5 * 1024 * 1024) {
         showToast("File size should not exceed 5MB", "error");
         return;
       }
       setIconFile(file);
       
-      // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setIconPreview(reader.result);
@@ -110,7 +104,7 @@ const ZoneSetup = () => {
     setZoneDescription("");
     setIconFile(null);
     setIconPreview(null);
-    setSelectedPositions(defaultPositions);
+    setSelectedPositions([{ lat: 10.8505, lng: 76.2711 }]);
     setEditingZone(null);
     setError(null);
   };
@@ -165,7 +159,6 @@ const ZoneSetup = () => {
         showToast("Zone created successfully", "success");
       }
 
-      // Refresh zones list
       await fetchZones();
       resetForm();
     } catch (err) {
@@ -183,7 +176,6 @@ const ZoneSetup = () => {
     setZoneName(zone.name);
     setZoneDescription(zone.description || "");
     
-    // Set icon preview if exists
     if (zone.iconUrl) {
       setIconPreview(zone.iconUrl);
     }
@@ -196,10 +188,9 @@ const ZoneSetup = () => {
         }))
       );
     } else {
-      setSelectedPositions(defaultPositions);
+      setSelectedPositions([{ lat: 10.8505, lng: 76.2711 }]);
     }
     
-    // Scroll to form
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -298,40 +289,52 @@ const ZoneSetup = () => {
       <Paper sx={{ p: 4, borderRadius: 3, mb: 4, backgroundColor: "white" }} elevation={3}>
         <Typography
           variant="h6"
-          sx={{ mb: 3, fontWeight: 600, color: theme.palette.primary.main }}
+          sx={{ mb: 4, fontWeight: 600, color: theme.palette.primary.main, textAlign: "center" }}
         >
           {editingZone ? "Edit Business Zone" : "Add New Business Zone"}
         </Typography>
 
-        <Grid container spacing={3}>
-          <Grid item xs={12} md={6}>
+        <Box sx={{ maxWidth: 800, mx: "auto" }}>
+          {/* Business Zone Name */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
+              Business Zone Name *
+            </Typography>
             <TextField
               fullWidth
-              label="Business Zone Name"
               placeholder="Enter business zone name"
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}
               required
+              variant="outlined"
+              size="medium"
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={6}>
+          {/* Description */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
+              Description (Optional)
+            </Typography>
             <TextField
               fullWidth
-              label="Description (Optional)"
               placeholder="Enter zone description"
               value={zoneDescription}
               onChange={(e) => setZoneDescription(e.target.value)}
-              multiline
-              rows={1}
+              variant="outlined"
+              size="medium"
             />
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={4}>
+          {/* Zone Icon Upload */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
+              Zone Icon *
+            </Typography>
             <Paper
               sx={{
                 width: "100%",
-                height: 150,
+                minHeight: 200,
                 border: `2px dashed ${theme.palette.grey[300]}`,
                 display: "flex",
                 flexDirection: "column",
@@ -339,6 +342,9 @@ const ZoneSetup = () => {
                 justifyContent: "center",
                 cursor: "pointer",
                 transition: "all 0.3s",
+                borderRadius: 2,
+                p: 3,
+                textAlign: "center",
                 "&:hover": {
                   borderColor: theme.palette.primary.main,
                   backgroundColor: theme.palette.primary.light + "10",
@@ -347,24 +353,31 @@ const ZoneSetup = () => {
               onClick={() => document.getElementById("icon-upload")?.click()}
             >
               {iconPreview ? (
-                <Box sx={{ textAlign: "center" }}>
+                <Box>
                   <Avatar
                     src={iconPreview}
                     alt="Icon preview"
-                    sx={{ width: 60, height: 60, margin: "0 auto", mb: 1 }}
+                    sx={{ width: 80, height: 80, mb: 2 }}
+                    variant="rounded"
                   />
-                  <Typography variant="body2" color="primary" sx={{ px: 2, textAlign: "center" }}>
+                  <Typography variant="body2" color="primary" sx={{ fontWeight: 500 }}>
                     {iconFile?.name || "Current Icon"}
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 0.5 }}>
+                    Click to change
                   </Typography>
                 </Box>
               ) : (
                 <>
-                  <CloudUploadIcon sx={{ fontSize: 40, color: theme.palette.grey[400], mb: 1 }} />
-                  <Typography variant="body2" color="textSecondary">
-                    Upload Zone Icon
+                  <CloudUploadIcon sx={{ fontSize: 48, color: theme.palette.grey[400], mb: 1 }} />
+                  <Typography variant="body2" color="textSecondary" sx={{ fontWeight: 500 }}>
+                    Click to upload
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary" sx={{ mt: 0.5 }}>
+                    Or drag and drop
                   </Typography>
                   <Typography variant="caption" color="textSecondary">
-                    (Max 5MB)
+                    Max 5MB | PNG, JPG, SVG
                   </Typography>
                 </>
               )}
@@ -376,23 +389,45 @@ const ZoneSetup = () => {
                 onChange={handleIconUpload}
               />
             </Paper>
-          </Grid>
+          </Box>
 
-          <Grid item xs={12} md={8}>
-            <Paper sx={{ width: "100%", height: 300, borderRadius: 2, overflow: "hidden" }}>
+          {/* Map Section */}
+          <Box sx={{ mb: 3 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
+              Zone Coordinates (Click on map to add locations) *
+            </Typography>
+            <Paper 
+              sx={{ 
+                width: "100%", 
+                height: 450, 
+                borderRadius: 2, 
+                overflow: "hidden",
+                border: `1px solid ${theme.palette.grey[200]}`
+              }} 
+              elevation={0}
+            >
               {isLoaded ? (
                 <GoogleMap
-                  mapContainerStyle={containerStyle}
+                  mapContainerStyle={{ width: "100%", height: "100%" }}
                   center={selectedPositions[0]}
                   zoom={7}
                   onClick={handleMapClick}
+                  options={{
+                    streetViewControl: false,
+                    mapTypeControl: true,
+                    fullscreenControl: true,
+                  }}
                 >
                   {selectedPositions.map((pos, index) => (
                     <Marker
                       key={index}
                       position={{ lat: pos.lat, lng: pos.lng }}
                       onClick={() => handleRemoveMarker(index)}
-                      label={(index + 1).toString()}
+                      label={{
+                        text: (index + 1).toString(),
+                        color: "white",
+                        fontWeight: "bold",
+                      }}
                     />
                   ))}
                 </GoogleMap>
@@ -402,34 +437,65 @@ const ZoneSetup = () => {
                 </Box>
               )}
             </Paper>
+          </Box>
 
-            {selectedPositions.length > 0 && (
-              <Box sx={{ mt: 2, maxHeight: 100, overflowY: "auto" }}>
-                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
-                  Selected Locations ({selectedPositions.length}):
+          {/* Selected Locations */}
+          {selectedPositions.length > 0 && (
+            <Box sx={{ mb: 3 }}>
+              <Paper sx={{ p: 2, backgroundColor: theme.palette.grey[50], borderRadius: 2 }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.primary.main }}>
+                  Selected Locations ({selectedPositions.length}/10):
                 </Typography>
-                {selectedPositions.map((pos, index) => (
-                  <Typography key={index} variant="body2" sx={{ fontSize: "0.85rem" }}>
-                    {index + 1}. Lat: {pos.lat.toFixed(6)}, Lng: {pos.lng.toFixed(6)}
-                  </Typography>
-                ))}
-              </Box>
-            )}
-          </Grid>
-        </Grid>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                  {selectedPositions.map((pos, index) => (
+                    <Box
+                      key={index}
+                      sx={{
+                        px: 1.5,
+                        py: 0.5,
+                        backgroundColor: "white",
+                        borderRadius: 1,
+                        border: `1px solid ${theme.palette.grey[300]}`,
+                      }}
+                    >
+                      <Typography variant="caption" sx={{ fontSize: "0.75rem", color: theme.palette.text.secondary }}>
+                        {index + 1}. {pos.lat.toFixed(4)}, {pos.lng.toFixed(4)}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
+                <Typography variant="caption" color="textSecondary" sx={{ display: "block", mt: 1 }}>
+                  Click on a marker to remove it
+                </Typography>
+              </Paper>
+            </Box>
+          )}
+        </Box>
 
         {error && (
-          <Alert severity="error" sx={{ mt: 3 }} onClose={() => setError(null)}>
+          <Alert severity="error" sx={{ mt: 3, mb: 2 }} onClose={() => setError(null)}>
             {error}
           </Alert>
         )}
 
-        <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "flex-end" }}>
+        {/* Action Buttons */}
+        <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2, mt: 4 }}>
           {editingZone && (
             <Button
               variant="outlined"
               onClick={handleCancelEdit}
-              sx={{ px: 4, py: 1, borderRadius: 2, fontWeight: 600 }}
+              sx={{
+                px: 4,
+                py: 1.5,
+                borderRadius: 2,
+                fontWeight: 600,
+                borderColor: theme.palette.error.main,
+                color: theme.palette.error.main,
+                "&:hover": {
+                  borderColor: theme.palette.error.dark,
+                  backgroundColor: theme.palette.error.light + "10",
+                },
+              }}
             >
               Cancel
             </Button>
@@ -438,14 +504,23 @@ const ZoneSetup = () => {
             variant="contained"
             onClick={handleSave}
             disabled={loading}
-            sx={{ px: 4, py: 1, borderRadius: 2, fontWeight: 600 }}
+            sx={{
+              px: 5,
+              py: 1.5,
+              borderRadius: 2,
+              fontWeight: 600,
+              backgroundColor: theme.palette.error.main,
+              "&:hover": {
+                backgroundColor: theme.palette.error.dark,
+              },
+            }}
           >
             {loading ? (
               <CircularProgress size={20} color="inherit" />
             ) : editingZone ? (
               "Update Zone"
             ) : (
-              "Save Zone"
+              "Submit"
             )}
           </Button>
         </Box>
@@ -455,7 +530,7 @@ const ZoneSetup = () => {
       <Paper sx={{ borderRadius: 3, overflow: "hidden", backgroundColor: "white" }} elevation={2}>
         <Box sx={{ p: 2, backgroundColor: theme.palette.grey[100], borderBottom: `1px solid ${theme.palette.grey[300]}` }}>
           <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Manage Zones ({zones.length})
+            Existing Zones ({zones.length})
           </Typography>
         </Box>
 
@@ -550,7 +625,6 @@ const ZoneSetup = () => {
                         size="small" 
                         color="primary" 
                         onClick={() => handleEdit(zone)}
-                        sx={{ "&:hover": { backgroundColor: theme.palette.primary.light + "20" } }}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
@@ -558,7 +632,6 @@ const ZoneSetup = () => {
                         size="small" 
                         color="error" 
                         onClick={() => handleDelete(zone._id, zone.name)}
-                        sx={{ "&:hover": { backgroundColor: theme.palette.error.light + "20" } }}
                       >
                         <DeleteIcon fontSize="small" />
                       </IconButton>
