@@ -21,14 +21,14 @@ const Promotionmgt = {
   title: 'Promotion Management',
   type: 'group',
   children: [
-    {
-      id: 'promotion-banners',
-      title: 'Banners',
-      type: 'item',
-      url: '/promotions/RentalBanners',  // Matches the route
-      icon: icons.IconPhoto,
-      breadcrumbs: false
-    },
+    // {
+    //   id: 'promotion-banners',
+    //   title: 'Banners',
+    //   type: 'item',
+    //   url: '/promotions/RentalBanners',  // Matches the route
+    //   icon: icons.IconPhoto,
+    //   breadcrumbs: false
+    // },
     {
       id: 'promotion-coupons',
       title: 'Coupons',

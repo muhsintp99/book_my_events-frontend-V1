@@ -11,24 +11,24 @@ const icons = {
   IconBell       // for Push Notifications
 };
 
-const auditoriummanagement = {
-  id: 'auditorium-customers',
-  title: 'AuditoriumManagement',
+const cateringmanagement = {
+  id: 'catering-customers',
+  title: 'cateringManagement',
   type: 'group',
   children: [
-    {
-      id: 'Banners',
-      title: 'Banners',
-      type: 'item',
-      url: '/auditorium/banner',
-      icon: icons.IconPhoto,
-      breadcrumbs: false
-    },
+    // {
+    //   id: 'Banners',
+    //   title: 'Banners',
+    //   type: 'item',
+    //   url: '/auditorium/banner',
+    //   icon: icons.IconPhoto,
+    //   breadcrumbs: false
+    // },
     {
       id: 'Coupons',
       title: 'Coupons',
       type: 'item',
-      url: '/auditorium/coupons',
+      url: '/catering/coupons',
       icon: icons.IconTicket,
       breadcrumbs: false
     },
@@ -43,4 +43,4 @@ const auditoriummanagement = {
   ]
 };
 
-export default auditoriummanagement;
+export default cateringmanagement;

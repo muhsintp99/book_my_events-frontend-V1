@@ -1,6 +1,7 @@
 import { lazy } from 'react';
 import MainLayout from 'layout/MainLayout';
 import Loadable from 'ui-component/Loadable';
+import CateringList from '../catering/Cateringlist';
 // import Createnew from '../views/Createnew';
 // import Completed from '../views/Completed';
 // import AllTrips from '../views/Alltrips';
@@ -43,8 +44,6 @@ const AddModule = Loadable(lazy(() => import('../views/AddModule')));
 
 const Brands = Loadable(lazy(() => import('../views/Brands')));
 
-
-
 // Bookings
 const Allbookings = Loadable(lazy(() => import('../audiviews/Allbookings')));
 const Scheduledbookings = Loadable(lazy(() => import('../audiviews/Scheduledbookings')));
@@ -54,8 +53,6 @@ const Ongoingbookings = Loadable(lazy(() => import('../audiviews/Ongoingbookings
 const Completedbookings = Loadable(lazy(() => import('../audiviews/Completedbookings')));
 const Cancelledbookings = Loadable(lazy(() => import('../audiviews/Cancelledbookings')));
 const Paymentfailedbookings = Loadable(lazy(() => import('../audiviews/Paymentfailedbookings')));
-
-
 
 // Auditorium Components (using your audiviews folder)
 const AuditoriumDashboard = Loadable(lazy(() => import('../audiviews/dashboard/index')));
@@ -71,7 +68,6 @@ const Venuelist = Loadable(lazy(() => import('../audiviews/Venuelist')));
 const Auditoriumbrands = Loadable(lazy(() => import('../audiviews/Auditoriumbrands')));
 const Auditoppicks = Loadable(lazy(() => import('../audiviews/TopPicks')));
 
-
 //Settings
 const ZoneSetup = Loadable(lazy(() => import('../views/ZoneSetup')));
 const ModuleSetup = Loadable(lazy(() => import('../views/ModuleSetup')));
@@ -81,10 +77,14 @@ const SubscriptionList = Loadable(lazy(() => import('../views/SubscriptionList')
 const Addpackage = Loadable(lazy(() => import('../views/Addpackage')));
 const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')));
 
-
-
-
-
+// catering///////////////
+// const cateringDashboard = Loadable(lazy(() => import('../catering/')));
+const Cateringaddprovider = Loadable(lazy(() => import('../catering/AddProvider')));
+const Cateringcategory = Loadable(lazy(() => import('../catering/Category')));
+// const CateringList = Loadable(lazy(() => import('../catering/Cateringlist')));
+const Cateringprovider = Loadable(lazy(() => import('../catering/NewProvider')));
+const Cateringdashboard = Loadable(lazy(() => import('../catering/dashboard')));
+const CateringCoupon = Loadable(lazy(() => import('../catering/CateringCoupon')));
 
 
 const MainRoutes = {
@@ -127,11 +127,10 @@ const MainRoutes = {
     { path: 'settings/zone-setup', element: <ZoneSetup /> },
     { path: '/settings/module-setup', element: <ModuleSetup /> },
     { path: '/settings/secondery-module-setup', element: <SecondModuleSetup /> },
-    
+
     { path: '/settings/sub/list', element: <SubscriptionList /> },
     { path: '/settings/sub/add', element: <Addpackage /> },
     { path: '/settings/sub/store', element: <SubscribedStore /> },
-
 
     // Bookingssss
 
@@ -144,20 +143,12 @@ const MainRoutes = {
     { path: 'bookings/cancelled', element: <Cancelledbookings /> },
     { path: 'bookings/paymentfailedbookings', element: <Paymentfailedbookings /> },
 
-
-
-
-
     // Vehicles - Category
     { path: 'vehicles/category', element: <Category /> },
     { path: 'vehicles/category/edit/:id', element: <EditCategory /> },
     { path: 'vehicles/create', element: <Createnew /> },
     { path: 'vehicles/list', element: <Vehiclelist /> },
-    { path: 'vehicles/brands', element: < Brands /> },
-
-
-
-
+    { path: 'vehicles/brands', element: <Brands /> },
 
     // Auditorium Routes
     { path: 'auditorium/dashboard', element: <AuditoriumDashboard /> },
@@ -172,19 +163,25 @@ const MainRoutes = {
     { path: 'auditorium/venuelist', element: <Venuelist /> },
 
     { path: 'auditorium/brands', element: <Auditoriumbrands /> },
-        { path: '/auditorium/Toppicks', element: <Auditoppicks /> },
-
-
+    { path: '/auditorium/Toppicks', element: <Auditoppicks /> },
 
     { path: 'rental/dashboard', element: <DashboardDefault /> },
 
     { path: 'events/dashboard', element: <DashboardDefault /> },
 
     //module
-    { path: 'module/add', element: <AddModule /> }
+    { path: 'module/add', element: <AddModule /> },
+
+    // cateringgggg///////////////////
+    { path: 'catering/dashboard', element: <Cateringdashboard /> },
+
+    { path: 'catering/addprovider', element: <Cateringaddprovider /> },
+    { path: 'catering/Category', element: <Cateringcategory /> },
+    { path: 'catering/Cateringlist', element: <CateringList /> },
+    { path: '/catering/provider', element: <Cateringprovider /> },
+        { path: '/catering/Coupons', element: <CateringCoupon /> }
+
   ]
 };
 
 export default MainRoutes;
-
-

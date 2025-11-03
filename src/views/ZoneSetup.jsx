@@ -17,8 +17,14 @@ import {
   CircularProgress,
   Grid,
   Snackbar,
+  Avatar,
 } from "@mui/material";
-import { CloudUpload as CloudUploadIcon, Edit as EditIcon } from "@mui/icons-material";
+import { 
+  CloudUpload as CloudUploadIcon, 
+  Edit as EditIcon, 
+  Delete as DeleteIcon,
+  Image as ImageIcon 
+} from "@mui/icons-material";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
 
@@ -29,7 +35,9 @@ const ZoneSetup = () => {
   const theme = useTheme();
   const [zones, setZones] = useState([]);
   const [zoneName, setZoneName] = useState("");
+  const [zoneDescription, setZoneDescription] = useState("");
   const [iconFile, setIconFile] = useState(null);
+  const [iconPreview, setIconPreview] = useState(null);
   const [selectedPositions, setSelectedPositions] = useState(defaultPositions);
   const [loading, setLoading] = useState(false);
   const [fetching, setFetching] = useState(true);
@@ -37,38 +45,71 @@ const ZoneSetup = () => {
   const [editingZone, setEditingZone] = useState(null);
   const [toastOpen, setToastOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState("");
+  const [toastSeverity, setToastSeverity] = useState("warning");
 
   const { isLoaded } = useJsApiLoader({
     id: "google-map-script",
-    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78", // Replace with your own key
+    googleMapsApiKey: "AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78",
   });
 
+  const showToast = (message, severity = "warning") => {
+    setToastMessage(message);
+    setToastSeverity(severity);
+    setToastOpen(true);
+  };
+
   useEffect(() => {
-    const fetchZones = async () => {
-      try {
-        setFetching(true);
-        const response = await axios.get("https://api.bookmyevent.ae/api/zones");
-        const data = response.data.data;
-        if (Array.isArray(data)) setZones(data);
-        else setZones([]);
-      } catch (err) {
-        console.error(err);
-        setError("Failed to fetch zones");
-      } finally {
-        setFetching(false);
-      }
-    };
     fetchZones();
   }, []);
 
+  const fetchZones = async () => {
+    try {
+      setFetching(true);
+      const response = await axios.get("https://api.bookmyevent.ae/api/zones");
+      const data = response.data.data;
+      if (Array.isArray(data)) {
+        setZones(data);
+      } else {
+        setZones([]);
+      }
+    } catch (err) {
+      console.error(err);
+      setError("Failed to fetch zones");
+      showToast("Failed to fetch zones", "error");
+    } finally {
+      setFetching(false);
+    }
+  };
+
   const handleIconUpload = (event) => {
     const file = event.target.files?.[0];
-    if (file) setIconFile(file);
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        showToast("Please upload an image file", "error");
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        showToast("File size should not exceed 5MB", "error");
+        return;
+      }
+      setIconFile(file);
+      
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setIconPreview(reader.result);
+      };
+      reader.readAsDataURL(file);
+    }
   };
 
   const resetForm = () => {
     setZoneName("");
+    setZoneDescription("");
     setIconFile(null);
+    setIconPreview(null);
     setSelectedPositions(defaultPositions);
     setEditingZone(null);
     setError(null);
@@ -77,39 +118,61 @@ const ZoneSetup = () => {
   const handleSave = async () => {
     if (!zoneName.trim()) {
       setError("Zone name is required");
+      showToast("Zone name is required", "error");
       return;
     }
-    if (selectedPositions.length === 0) {
-      setError("Please select at least one location on the map");
+    if (selectedPositions.length < 3) {
+      setError("Please select at least 3 locations on the map");
+      showToast("Please select at least 3 locations on the map", "error");
       return;
     }
 
     setLoading(true);
+    setError(null);
+
     try {
-      const zoneData = {
-        name: zoneName,
-        icon: iconFile?.name || "",
-        coordinates: selectedPositions,
-      };
+      const formData = new FormData();
+      formData.append("name", zoneName);
+      formData.append("description", zoneDescription);
+      formData.append("coordinates", JSON.stringify(selectedPositions));
+      
+      if (iconFile) {
+        formData.append("icon", iconFile);
+      }
 
       let response;
       if (editingZone) {
         response = await axios.put(
           `https://api.bookmyevent.ae/api/zones/${editingZone._id}`,
-          zoneData
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
         );
-        setZones(
-          zones.map((z) => (z._id === editingZone._id ? response.data.data : z))
-        );
+        showToast("Zone updated successfully", "success");
       } else {
-        response = await axios.post("https://api.bookmyevent.ae/api/zones", zoneData);
-        setZones([...zones, response.data.data]);
+        response = await axios.post(
+          "https://api.bookmyevent.ae/api/zones",
+          formData,
+          {
+            headers: {
+              "Content-Type": "multipart/form-data",
+            },
+          }
+        );
+        showToast("Zone created successfully", "success");
       }
 
+      // Refresh zones list
+      await fetchZones();
       resetForm();
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.message || "Something went wrong");
+      const errorMessage = err.response?.data?.message || "Something went wrong";
+      setError(errorMessage);
+      showToast(errorMessage, "error");
     } finally {
       setLoading(false);
     }
@@ -118,6 +181,13 @@ const ZoneSetup = () => {
   const handleEdit = (zone) => {
     setEditingZone(zone);
     setZoneName(zone.name);
+    setZoneDescription(zone.description || "");
+    
+    // Set icon preview if exists
+    if (zone.iconUrl) {
+      setIconPreview(zone.iconUrl);
+    }
+    
     if (zone.coordinates && Array.isArray(zone.coordinates)) {
       setSelectedPositions(
         zone.coordinates.map((c) => ({
@@ -126,28 +196,72 @@ const ZoneSetup = () => {
         }))
       );
     } else {
-      setSelectedPositions([]);
+      setSelectedPositions(defaultPositions);
+    }
+    
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const handleDelete = async (zoneId, zoneName) => {
+    if (!window.confirm(`Are you sure you want to delete "${zoneName}"?`)) {
+      return;
+    }
+
+    try {
+      await axios.delete(`https://api.bookmyevent.ae/api/zones/${zoneId}`);
+      showToast("Zone deleted successfully", "success");
+      await fetchZones();
+    } catch (err) {
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "Failed to delete zone";
+      showToast(errorMessage, "error");
     }
   };
 
   const handleStatusToggle = async (zoneId) => {
     try {
       const zone = zones.find((z) => z._id === zoneId);
-      const updated = await axios.patch(
+      const response = await axios.put(
         `https://api.bookmyevent.ae/api/zones/${zoneId}`,
         { isActive: !zone.isActive }
       );
-      setZones(zones.map((z) => (z._id === zoneId ? updated.data.data : z)));
+      
+      showToast(
+        `Zone ${response.data.data.isActive ? "activated" : "deactivated"} successfully`,
+        "success"
+      );
+      await fetchZones();
     } catch (err) {
       console.error(err);
-      setError("Failed to update status");
+      const errorMessage = err.response?.data?.message || "Failed to update status";
+      showToast(errorMessage, "error");
+    }
+  };
+
+  const handleTopZoneToggle = async (zoneId) => {
+    try {
+      const response = await axios.patch(
+        `https://api.bookmyevent.ae/api/zones/${zoneId}/toggle-top`
+      );
+      
+      const updatedZone = response.data.data;
+      showToast(
+        `Zone ${updatedZone.isTopZone ? "added to" : "removed from"} top zones`,
+        "success"
+      );
+      
+      await fetchZones();
+    } catch (err) {
+      console.error(err);
+      const errorMessage = err.response?.data?.message || "Failed to update Top Zone status";
+      showToast(errorMessage, "error");
     }
   };
 
   const handleMapClick = (e) => {
-    if (selectedPositions.length >= 3) {
-      setToastMessage("You can add a maximum of 3 locations per zone");
-      setToastOpen(true);
+    if (selectedPositions.length >= 10) {
+      showToast("Maximum 10 locations allowed per zone", "warning");
       return;
     }
 
@@ -161,13 +275,17 @@ const ZoneSetup = () => {
 
   const handleRemoveMarker = (index) => {
     if (selectedPositions.length === 1) {
-      setToastMessage("At least one location must remain on the map");
-      setToastOpen(true);
+      showToast("At least one location must remain on the map", "warning");
       return;
     }
     const newPositions = [...selectedPositions];
     newPositions.splice(index, 1);
     setSelectedPositions(newPositions);
+  };
+
+  const handleCancelEdit = () => {
+    resetForm();
+    showToast("Edit cancelled", "info");
   };
 
   return (
@@ -186,13 +304,26 @@ const ZoneSetup = () => {
         </Typography>
 
         <Grid container spacing={3}>
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={6}>
             <TextField
               fullWidth
               label="Business Zone Name"
               placeholder="Enter business zone name"
               value={zoneName}
               onChange={(e) => setZoneName(e.target.value)}
+              required
+            />
+          </Grid>
+
+          <Grid item xs={12} md={6}>
+            <TextField
+              fullWidth
+              label="Description (Optional)"
+              placeholder="Enter zone description"
+              value={zoneDescription}
+              onChange={(e) => setZoneDescription(e.target.value)}
+              multiline
+              rows={1}
             />
           </Grid>
 
@@ -207,6 +338,7 @@ const ZoneSetup = () => {
                 alignItems: "center",
                 justifyContent: "center",
                 cursor: "pointer",
+                transition: "all 0.3s",
                 "&:hover": {
                   borderColor: theme.palette.primary.main,
                   backgroundColor: theme.palette.primary.light + "10",
@@ -214,15 +346,25 @@ const ZoneSetup = () => {
               }}
               onClick={() => document.getElementById("icon-upload")?.click()}
             >
-              {iconFile ? (
-                <Typography variant="body2" color="primary">
-                  {iconFile.name}
-                </Typography>
+              {iconPreview ? (
+                <Box sx={{ textAlign: "center" }}>
+                  <Avatar
+                    src={iconPreview}
+                    alt="Icon preview"
+                    sx={{ width: 60, height: 60, margin: "0 auto", mb: 1 }}
+                  />
+                  <Typography variant="body2" color="primary" sx={{ px: 2, textAlign: "center" }}>
+                    {iconFile?.name || "Current Icon"}
+                  </Typography>
+                </Box>
               ) : (
                 <>
                   <CloudUploadIcon sx={{ fontSize: 40, color: theme.palette.grey[400], mb: 1 }} />
-                  <Typography variant="body2" color="textSecondary" width={400}>
+                  <Typography variant="body2" color="textSecondary">
                     Upload Zone Icon
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    (Max 5MB)
                   </Typography>
                 </>
               )}
@@ -236,7 +378,7 @@ const ZoneSetup = () => {
             </Paper>
           </Grid>
 
-          <Grid item xs={12} md={4}>
+          <Grid item xs={12} md={8}>
             <Paper sx={{ width: "100%", height: 300, borderRadius: 2, overflow: "hidden" }}>
               {isLoaded ? (
                 <GoogleMap
@@ -250,20 +392,25 @@ const ZoneSetup = () => {
                       key={index}
                       position={{ lat: pos.lat, lng: pos.lng }}
                       onClick={() => handleRemoveMarker(index)}
+                      label={(index + 1).toString()}
                     />
                   ))}
                 </GoogleMap>
               ) : (
-                <Typography sx={{ p: 2 }}>Loading map...</Typography>
+                <Box sx={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100%" }}>
+                  <CircularProgress />
+                </Box>
               )}
             </Paper>
 
             {selectedPositions.length > 0 && (
-              <Box sx={{ mt: 1 }}>
-                <Typography variant="subtitle2">Selected Locations:</Typography>
+              <Box sx={{ mt: 2, maxHeight: 100, overflowY: "auto" }}>
+                <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1 }}>
+                  Selected Locations ({selectedPositions.length}):
+                </Typography>
                 {selectedPositions.map((pos, index) => (
-                  <Typography key={index} variant="body2">
-                    {index + 1}. Lat: {pos.lat.toFixed(4)}, Lng: {pos.lng.toFixed(4)}
+                  <Typography key={index} variant="body2" sx={{ fontSize: "0.85rem" }}>
+                    {index + 1}. Lat: {pos.lat.toFixed(6)}, Lng: {pos.lng.toFixed(6)}
                   </Typography>
                 ))}
               </Box>
@@ -277,7 +424,16 @@ const ZoneSetup = () => {
           </Alert>
         )}
 
-        <Box sx={{ mt: 3, textAlign: "right" }}>
+        <Box sx={{ mt: 3, display: "flex", gap: 2, justifyContent: "flex-end" }}>
+          {editingZone && (
+            <Button
+              variant="outlined"
+              onClick={handleCancelEdit}
+              sx={{ px: 4, py: 1, borderRadius: 2, fontWeight: 600 }}
+            >
+              Cancel
+            </Button>
+          )}
           <Button
             variant="contained"
             onClick={handleSave}
@@ -287,57 +443,126 @@ const ZoneSetup = () => {
             {loading ? (
               <CircularProgress size={20} color="inherit" />
             ) : editingZone ? (
-              "Update"
+              "Update Zone"
             ) : (
-              "Save"
+              "Save Zone"
             )}
           </Button>
         </Box>
       </Paper>
 
-      {/* Table (Icon column removed) */}
+      {/* Zones Table */}
       <Paper sx={{ borderRadius: 3, overflow: "hidden", backgroundColor: "white" }} elevation={2}>
+        <Box sx={{ p: 2, backgroundColor: theme.palette.grey[100], borderBottom: `1px solid ${theme.palette.grey[300]}` }}>
+          <Typography variant="h6" sx={{ fontWeight: 600 }}>
+            Manage Zones ({zones.length})
+          </Typography>
+        </Box>
+
         {fetching ? (
-          <Box sx={{ textAlign: "center", p: 2 }}>
+          <Box sx={{ textAlign: "center", p: 4 }}>
             <CircularProgress />
+            <Typography variant="body2" sx={{ mt: 2 }}>Loading zones...</Typography>
+          </Box>
+        ) : zones.length === 0 ? (
+          <Box sx={{ textAlign: "center", p: 4 }}>
+            <Typography variant="body1" color="textSecondary">
+              No zones found. Create your first zone above.
+            </Typography>
           </Box>
         ) : (
           <Table>
             <TableHead>
               <TableRow sx={{ backgroundColor: theme.palette.grey[100] }}>
                 <TableCell sx={{ fontWeight: 600 }}>Sl/No</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>Icon</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Zone Name</TableCell>
                 <TableCell sx={{ fontWeight: 600 }}>Coordinates</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
-                <TableCell sx={{ fontWeight: 600 }}>Action</TableCell>
+                <TableCell sx={{ fontWeight: 600 }}>City</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Status</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Top Zone</TableCell>
+                <TableCell sx={{ fontWeight: 600, textAlign: "center" }}>Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {zones.map((zone, index) => (
                 <TableRow
                   key={zone._id}
-                  sx={{ "&:hover": { backgroundColor: theme.palette.grey[50] } }}
+                  sx={{ 
+                    "&:hover": { backgroundColor: theme.palette.grey[50] },
+                    backgroundColor: editingZone?._id === zone._id ? theme.palette.primary.light + "10" : "transparent"
+                  }}
                 >
                   <TableCell>{index + 1}</TableCell>
-                  <TableCell>{zone.name}</TableCell>
                   <TableCell>
-                    {zone.coordinates?.map((c, i) => (
-                      <span key={i}>
-                        ({parseFloat(c.lat).toFixed(4)}, {parseFloat(c.lng).toFixed(4)}){" "}
-                      </span>
-                    ))}
+                    {zone.iconUrl ? (
+                      <Avatar
+                        src={zone.iconUrl}
+                        alt={zone.name}
+                        sx={{ width: 40, height: 40 }}
+                        variant="rounded"
+                      />
+                    ) : (
+                      <Avatar
+                        sx={{ 
+                          width: 40, 
+                          height: 40,
+                          backgroundColor: theme.palette.grey[200]
+                        }}
+                        variant="rounded"
+                      >
+                        <ImageIcon sx={{ color: theme.palette.grey[500] }} />
+                      </Avatar>
+                    )}
                   </TableCell>
                   <TableCell>
+                    <Typography variant="body2" sx={{ fontWeight: 500 }}>
+                      {zone.name}
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
+                      {zone.coordinates?.length || 0} points
+                    </Typography>
+                  </TableCell>
+                  <TableCell>
+                    <Typography variant="body2">
+                      {zone.city || "-"}
+                    </Typography>
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
                     <Switch
                       checked={zone.isActive}
                       onChange={() => handleStatusToggle(zone._id)}
                       color="primary"
                     />
                   </TableCell>
-                  <TableCell>
-                    <IconButton size="small" color="inherit" onClick={() => handleEdit(zone)}>
-                      <EditIcon />
-                    </IconButton>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    <Switch
+                      checked={zone.isTopZone || false}
+                      onChange={() => handleTopZoneToggle(zone._id)}
+                      color="secondary"
+                    />
+                  </TableCell>
+                  <TableCell sx={{ textAlign: "center" }}>
+                    <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
+                      <IconButton 
+                        size="small" 
+                        color="primary" 
+                        onClick={() => handleEdit(zone)}
+                        sx={{ "&:hover": { backgroundColor: theme.palette.primary.light + "20" } }}
+                      >
+                        <EditIcon fontSize="small" />
+                      </IconButton>
+                      <IconButton 
+                        size="small" 
+                        color="error" 
+                        onClick={() => handleDelete(zone._id, zone.name)}
+                        sx={{ "&:hover": { backgroundColor: theme.palette.error.light + "20" } }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                      </IconButton>
+                    </Box>
                   </TableCell>
                 </TableRow>
               ))}
@@ -348,11 +573,15 @@ const ZoneSetup = () => {
 
       <Snackbar
         open={toastOpen}
-        autoHideDuration={3000}
+        autoHideDuration={4000}
         onClose={() => setToastOpen(false)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert onClose={() => setToastOpen(false)} severity="warning" sx={{ width: "100%" }}>
+        <Alert 
+          onClose={() => setToastOpen(false)} 
+          severity={toastSeverity} 
+          sx={{ width: "100%" }}
+        >
           {toastMessage}
         </Alert>
       </Snackbar>

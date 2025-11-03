@@ -47,22 +47,22 @@ const Providermgt = {
       icon: icons.IconUsers,
       breadcrumbs: false
     },
-    {
-      id: 'bulk-import',
-      title: 'Bulk Import',
-      type: 'item',
-      url: '/providers/import',
-      icon: icons.IconUpload,
-      breadcrumbs: false
-    },
-    {
-      id: 'bulk-export',
-      title: 'Bulk Export',
-      type: 'item',
-      url: '/providers/export',
-      icon: icons.IconDownload,
-      breadcrumbs: false
-    }
+    // {
+    //   id: 'bulk-import',
+    //   title: 'Bulk Import',
+    //   type: 'item',
+    //   url: '/providers/import',
+    //   icon: icons.IconUpload,
+    //   breadcrumbs: false
+    // },
+    // {
+    //   id: 'bulk-export',
+    //   title: 'Bulk Export',
+    //   type: 'item',
+    //   url: '/providers/export',
+    //   icon: icons.IconDownload,
+    //   breadcrumbs: false
+    // }
   ]
 };
 

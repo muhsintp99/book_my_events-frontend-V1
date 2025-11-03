@@ -28,7 +28,7 @@ import {
 import { VisibilityOutlined, Edit, Delete, Download } from '@mui/icons-material';
 import { useNavigate, useLocation } from 'react-router-dom';
 
-const VenuesList = () => {
+const CateringList = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [venues, setVenues] = useState([]);
@@ -930,4 +930,4 @@ const VenuesList = () => {
   );
 };
 
-export default VenuesList;
+export default CateringList;

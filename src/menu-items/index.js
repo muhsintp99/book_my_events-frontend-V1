@@ -31,6 +31,9 @@ import modulemanagement from './settings-items/modulemanagement';// ============
 import subscriptionmanagement from './settings-items/subscriptionmanage';
 import taxmanagement from './settings-items/taxmanagement';
 import employeemanagement from './settings-items/employeemanage';
+import cateringmanagement from './catering/cateringmanagement';
+import cateringsections from './catering/cateringsections';
+import CateringProvidermanagement from './catering/cateringprovidermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -48,6 +51,9 @@ const moduleMenuItems = {
   
   auditorium: {
     items: [dashboard,auditoriummanagement,auditoriumsections,Providermanagement] 
+  },
+  catering: {
+    items: [dashboard,cateringmanagement,cateringsections,CateringProvidermanagement] 
   },
 
   setting:{
