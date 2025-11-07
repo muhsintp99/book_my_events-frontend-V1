@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Box,
   Tabs,
@@ -39,9 +39,7 @@ function NewProvider({ isVerified }) {
       },
       mode: 'cors',
     };
-    if (body) {
-      options.body = JSON.stringify(body);
-    }
+    if (body) options.body = JSON.stringify(body);
     return options;
   };
 
@@ -50,43 +48,27 @@ function NewProvider({ isVerified }) {
       try {
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
+        const response = await fetch(url, { ...options, signal: controller.signal });
         clearTimeout(timeoutId);
+
         if (!response.ok) {
           const errorText = await response.text();
-          console.error('❌ API Error Response:', errorText);
-          if (response.status === 401) {
-            throw new Error('Authentication required - please login again');
-          } else if (response.status === 403) {
-            throw new Error('Access forbidden - insufficient permissions');
-          } else if (response.status === 404) {
-            throw new Error('Resource not found');
-          } else if (response.status >= 500) {
-            throw new Error('Server error - please try again later');
-          } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-          }
+          if (response.status === 401) throw new Error('Authentication required - please login again');
+          if (response.status === 403) throw new Error('Access forbidden - insufficient permissions');
+          if (response.status === 404) throw new Error('Resource not found');
+          if (response.status >= 500) throw new Error('Server error - please try again later');
+          throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
         }
-        const data = await response.json();
-        return data;
+
+        return await response.json();
       } catch (error) {
-        console.error(`❌ API Call Failed (attempt ${attempt + 1}):`, {
-          message: error.message,
-          url,
-          stack: error.stack,
-        });
         if (attempt < retries) {
           await new Promise((resolve) => setTimeout(resolve, 1000));
           continue;
         }
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out - please check your connection');
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
+        if (error.name === 'AbortError') throw new Error('Request timed out - please check your connection');
+        if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError'))
           throw new Error('Network error - please check if the server is running and CORS is properly configured');
-        }
         throw error;
       }
     }
@@ -99,23 +81,22 @@ function NewProvider({ isVerified }) {
         const url = 'https://api.bookmyevent.ae/api/users';
         const options = getFetchOptions();
         const data = await makeAPICall(url, options);
+
         if (Array.isArray(data.users)) {
           const mappedUsers = data.users.map((user, index) => ({
             id: index + 1,
             _id: user._id,
-            userInfo: `${user.firstName || ''} ${user.lastName || ''}`,
+            userInfo: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             email: user.email || 'N/A',
             role: user.role || 'N/A',
             status: user.isVerified ? 'Verified' : 'Pending',
             isVerified: user.isVerified || false,
-            phone: user.phone || 'N/A',
           }));
           setUsers(mappedUsers);
         } else {
           throw new Error('Unexpected data format');
         }
       } catch (error) {
-        console.error('Error fetching users:', error);
         setNotification({
           open: true,
           message: `Error fetching users: ${error.message}`,
@@ -128,69 +109,38 @@ function NewProvider({ isVerified }) {
     fetchUsers();
   }, []);
 
-  const handleCloseNotification = (event, reason) => {
+  const handleCloseNotification = (_, reason) => {
     if (reason === 'clickaway') return;
-    setNotification({ ...notification, open: false });
+    setNotification((p) => ({ ...p, open: false }));
   };
 
-  // If isVerified prop is true, show verified message
+  const filteredUsers = useMemo(() => {
+    return users.filter((user) => {
+      const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
+      const matchesSearch =
+        user.userInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email.toLowerCase().includes(searchTerm.toLowerCase());
+      return matchesTab && matchesSearch;
+    });
+  }, [users, tabValue, searchTerm]);
+
   if (isVerified) {
     return (
-      <Box
-        sx={{
-          p: { xs: 2, sm: 3 },
-          backgroundColor: 'white',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-        }}
-      >
+      <Box sx={{ p: 3, bgcolor: 'white', display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
         <Typography variant="h6">Provider is verified</Typography>
       </Box>
     );
   }
 
-  // Filter users based on tab and search term
-  const filteredUsers = users.filter((user) => {
-    const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
-    const matchesSearch =
-      user.userInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTab && matchesSearch;
-  });
-
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 3 },
-        backgroundColor: 'white',
-        overflowX: 'auto',
-      }}
-    >
-      <Tabs
-        value={tabValue}
-        onChange={handleTabChange}
-        sx={{ mb: 2, minHeight: { xs: 40, sm: 48 } }}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        <Tab label="Pending Stores" sx={{ minWidth: { xs: 120, sm: 160 } }} />
-        <Tab label="Verified Stores" sx={{ minWidth: { xs: 120, sm: 160 } }} />
+    <Box sx={{ p: 3, bgcolor: 'white', overflowX: 'auto' }}>
+      <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }} variant="scrollable" scrollButtons="auto">
+        <Tab label="Pending Stores" />
+        <Tab label="Verified Stores" />
       </Tabs>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: 2,
-          gap: 1,
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: { xs: 1, sm: 0 } }}>
-          Stores List ({filteredUsers.length})
-        </Typography>
+
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
+        <Typography variant="h6">Stores List ({filteredUsers.length})</Typography>
         <TextField
           variant="outlined"
           placeholder="Search User or Email"
@@ -200,6 +150,7 @@ function NewProvider({ isVerified }) {
           sx={{ width: { xs: '100%', sm: 200 } }}
         />
       </Box>
+
       <Box sx={{ overflowX: 'auto' }}>
         {loading ? (
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
@@ -214,17 +165,16 @@ function NewProvider({ isVerified }) {
                 <TableCell>User Information</TableCell>
                 <TableCell>Role</TableCell>
                 <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
                 <TableCell>Status</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {filteredUsers.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
-                      <Typography variant="h6">No Data Found</Typography>
-                    </Box>
+                  <TableCell colSpan={5} align="center">
+                    <Typography variant="h6" sx={{ py: 3 }}>
+                      No Data Found
+                    </Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -234,7 +184,6 @@ function NewProvider({ isVerified }) {
                     <TableCell>{user.userInfo}</TableCell>
                     <TableCell>{user.role}</TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
                     <TableCell>{user.status}</TableCell>
                   </TableRow>
                 ))
@@ -243,6 +192,7 @@ function NewProvider({ isVerified }) {
           </Table>
         )}
       </Box>
+
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}

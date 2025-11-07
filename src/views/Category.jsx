@@ -320,22 +320,27 @@ export default function CategoryManagement() {
   };
 
   const handleReset = () => {
-    setFormData(prev => ({
-      ...prev,
-      name: '',
-      description: '',
-      parentCategory: '',
-      module: modules.find(m => m._id === TRANSPORT_ID)?._id || modules[0]?._id || '',
-      displayOrder: 0,
-      isActive: true,
-      isFeatured: false,
-      metaTitle: '',
-      metaDescription: ''
-    }));
-    setUploadedImage(null);
-    setImagePreview(null);
-    if (fileInputRef.current) fileInputRef.current.value = '';
-  };
+  setFormData((prev) => ({
+    ...prev,
+    name: '',
+    description: '',
+    parentCategory: '',
+    // Keep the current module selection instead of resetting to first
+    module: prev.module || (modules.length > 0 ? modules[0]._id : ''),
+    displayOrder: 0,
+    isActive: true,
+    isFeatured: false,
+    metaTitle: '',
+    metaDescription: ''
+  }));
+  setUploadedImage(null);
+  setImagePreview(null);
+
+  // Properly reset file input using ref
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
 
   // ------------------- ADD CATEGORY -------------------
   const handleAdd = async () => {

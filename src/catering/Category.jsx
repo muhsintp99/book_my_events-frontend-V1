@@ -499,26 +499,27 @@ export default function CategoryManagement() {
   };
 
   const handleReset = () => {
-    setFormData((prev) => ({
-      ...prev,
-      name: '',
-      description: '',
-      parentCategory: '',
-      module: modules.length > 0 ? modules[0]._id : '',
-      displayOrder: 0,
-      isActive: true,
-      isFeatured: false,
-      metaTitle: '',
-      metaDescription: ''
-    }));
-    setUploadedImage(null);
-    setImagePreview(null);
+  setFormData((prev) => ({
+    ...prev,
+    name: '',
+    description: '',
+    parentCategory: '',
+    // Keep the current module selection instead of resetting to first
+    module: prev.module || (modules.length > 0 ? modules[0]._id : ''),
+    displayOrder: 0,
+    isActive: true,
+    isFeatured: false,
+    metaTitle: '',
+    metaDescription: ''
+  }));
+  setUploadedImage(null);
+  setImagePreview(null);
 
-    // Properly reset file input using ref
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
-    }
-  };
+  // Properly reset file input using ref
+  if (fileInputRef.current) {
+    fileInputRef.current.value = '';
+  }
+};
 
   const handleEdit = (id) => {
     navigate(`/categories/edit/${id}`);

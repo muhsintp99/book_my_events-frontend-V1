@@ -67,7 +67,7 @@ const Createauditorium = Loadable(lazy(() => import('../audiviews/Createauditori
 const Venuelist = Loadable(lazy(() => import('../audiviews/Venuelist')));
 const Auditoriumbrands = Loadable(lazy(() => import('../audiviews/Auditoriumbrands')));
 const Auditoppicks = Loadable(lazy(() => import('../audiviews/TopPicks')));
-
+const EditVenuePage = Loadable(lazy(() => import('../audiviews/EditVenuePage')));
 //Settings
 const ZoneSetup = Loadable(lazy(() => import('../views/ZoneSetup')));
 const ModuleSetup = Loadable(lazy(() => import('../views/ModuleSetup')));
@@ -161,7 +161,7 @@ const MainRoutes = {
     { path: 'auditorium/auditoriumlist', element: <Auditoriumlist /> },
     { path: 'auditorium/create', element: <Createauditorium /> },
     { path: 'auditorium/venuelist', element: <Venuelist /> },
-
+{ path: 'auditorium/venues/edit/:id', element: <EditVenuePage /> },
     { path: 'auditorium/brands', element: <Auditoriumbrands /> },
     { path: '/auditorium/Toppicks', element: <Auditoppicks /> },
 

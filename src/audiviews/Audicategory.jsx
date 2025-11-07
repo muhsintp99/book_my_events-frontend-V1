@@ -46,7 +46,6 @@ import {
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
-// Use environment variable or fallback to localhost
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
 
 export default function CategoryManagement() {
@@ -73,12 +72,6 @@ export default function CategoryManagement() {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10
-  });
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -93,7 +86,6 @@ export default function CategoryManagement() {
   const exportMenuOpen = Boolean(exportMenuAnchor);
   const navigate = useNavigate();
 
-  // Ref for file input
   const fileInputRef = useRef(null);
 
   const languageTabs = [
@@ -137,7 +129,6 @@ export default function CategoryManagement() {
 
   const handleTabChange = (event, newValue) => setTabValue(newValue);
 
-  // Fetch modules
   const fetchModules = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
@@ -184,7 +175,6 @@ export default function CategoryManagement() {
 
       setModules(modulesList);
 
-      // === NEW LOGIC: Auto-select module based on current page ===
       const currentPath = window.location.pathname;
       let defaultModule = null;
 
@@ -198,7 +188,6 @@ export default function CategoryManagement() {
         );
       }
 
-      // Fallback: use found module or first one
       if (defaultModule) {
         setFormData(prev => ({ ...prev, module: defaultModule._id }));
         setSelectedModuleFilter(defaultModule._id);
@@ -217,7 +206,6 @@ export default function CategoryManagement() {
     }
   }, [navigate]);
 
-  // Fetch categories with proper authentication
   const fetchCategories = useCallback(async () => {
     const token = getAuthToken();
     if (!token) {
@@ -230,7 +218,8 @@ export default function CategoryManagement() {
     setError(null);
 
     try {
-      const url = `${API_BASE_URL}/categories?page=${pagination.currentPage}&limit=${pagination.itemsPerPage}&search=${encodeURIComponent(searchTerm)}`;
+      // Request all categories without pagination limit
+      const url = `${API_BASE_URL}/categories?limit=1000&search=${encodeURIComponent(searchTerm)}`;
 
       const response = await fetch(url, {
         headers: {
@@ -270,7 +259,6 @@ export default function CategoryManagement() {
         categoriesList = data.data;
       }
 
-      // Process categories for display with proper image URL handling
       const formattedCategories = categoriesList.map((cat) => {
         let imageUrl = '';
         if (cat.image) {
@@ -283,11 +271,6 @@ export default function CategoryManagement() {
             imageUrl = `https://api.bookmyevent.ae/${cat.image}`;
           }
         }
-
-        console.log('Category image processing:', {
-          original: cat.image,
-          final: imageUrl
-        });
 
         return {
           id: cat._id,
@@ -303,20 +286,6 @@ export default function CategoryManagement() {
       });
 
       setCategories(formattedCategories);
-
-      // Handle pagination
-      const pag = data.pagination || (data.data && data.data.pagination) || {
-        currentPage: pagination.currentPage,
-        totalPages: Math.ceil(categoriesList.length / pagination.itemsPerPage),
-        totalItems: categoriesList.length,
-        itemsPerPage: pagination.itemsPerPage
-      };
-      setPagination({
-        currentPage: pag.currentPage,
-        totalPages: pag.totalPages,
-        totalItems: pag.totalItems,
-        itemsPerPage: pag.itemsPerPage
-      });
     } catch (error) {
       console.error('Error fetching categories:', error);
       setError(error.message);
@@ -324,9 +293,8 @@ export default function CategoryManagement() {
     } finally {
       setLoading(false);
     }
-  }, [searchTerm, pagination.currentPage, pagination.itemsPerPage, navigate]);
+  }, [searchTerm, navigate]);
 
-  // Check role and fetch data on component mount
   useEffect(() => {
     const role = getUserRole();
     const token = getAuthToken();
@@ -351,7 +319,6 @@ export default function CategoryManagement() {
     fetchCategories();
   }, [fetchModules, fetchCategories, navigate]);
 
-  // Handle form data change
   const handleFormDataChange = (field, value) => {
     setFormData((prev) => ({
       ...prev,
@@ -359,7 +326,6 @@ export default function CategoryManagement() {
     }));
   };
 
-  // Handle image upload
   const handleImageUpload = (event) => {
     const file = event.target.files[0];
     if (file) {
@@ -381,7 +347,6 @@ export default function CategoryManagement() {
     }
   };
 
-  // Handle add category
   const handleAdd = async () => {
     const token = getAuthToken();
     if (!token) {
@@ -504,7 +469,7 @@ export default function CategoryManagement() {
       name: '',
       description: '',
       parentCategory: '',
-      module: modules.length > 0 ? modules[0]._id : '',
+      module: prev.module || (modules.length > 0 ? modules[0]._id : ''),
       displayOrder: 0,
       isActive: true,
       isFeatured: false,
@@ -514,7 +479,6 @@ export default function CategoryManagement() {
     setUploadedImage(null);
     setImagePreview(null);
 
-    // Properly reset file input using ref
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -582,7 +546,6 @@ export default function CategoryManagement() {
     }
   };
 
-  // Updated handleStatusToggle to use /block or /reactivate endpoints
   const handleStatusToggle = async (id) => {
     const token = getAuthToken();
     if (!token) {
@@ -692,7 +655,7 @@ export default function CategoryManagement() {
     const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
 
     const csvData = filteredCategories.map((category, index) => [
-      index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage,
+      index + 1,
       category.id,
       category.names[currentLang],
       category.module ? category.module.title || 'N/A' : 'None',
@@ -725,7 +688,7 @@ export default function CategoryManagement() {
     const headers = ['SI', 'ID', `Name (${currentLangLabel})`, 'Module', 'Status'];
 
     const excelData = filteredCategories.map((category, index) => [
-      index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage,
+      index + 1,
       category.id,
       category.names[currentLang],
       category.module ? category.module.title || 'N/A' : 'None',
@@ -751,7 +714,6 @@ export default function CategoryManagement() {
     showNotification('Excel file downloaded successfully!', 'success');
   };
 
-  // Show loading state during initial fetch
   if (loading && categories.length === 0 && modulesLoading) {
     return (
       <Box sx={{ p: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '400px' }}>
@@ -765,7 +727,6 @@ export default function CategoryManagement() {
 
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f5f5f5', p: { xs: 2, sm: 3 } }}>
-      {/* Error/Success Messages with manual redirect buttons */}
       <Snackbar open={!!error || !!modulesError} autoHideDuration={null} onClose={() => { setError(null); setModulesError(null); }}>
         <Alert
           severity="error"
@@ -832,7 +793,6 @@ export default function CategoryManagement() {
               }}
             />
 
-            {/* Module Selector */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Module <span style={{ color: '#f44336' }}>*</span>
             </Typography>
@@ -866,7 +826,6 @@ export default function CategoryManagement() {
               )}
             </TextField>
 
-            {/* Upload Image */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Image <span style={{ color: '#f44336' }}>*</span> <span style={{ color: '#e91e63', fontSize: '0.875rem' }}>(Ratio 3:2)</span>
             </Typography>
@@ -958,7 +917,6 @@ export default function CategoryManagement() {
               )}
             </Box>
 
-            {/* Action Buttons */}
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
               <Button
                 variant="outlined"
@@ -994,9 +952,6 @@ export default function CategoryManagement() {
           </CardContent>
         </Card>
       </Box>
-
-      {/* Rest of the component (Table, Export, Dialogs, etc.) remains unchanged */}
-      {/* ... [Table and other UI code unchanged from your original] ... */}
 
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
@@ -1145,9 +1100,7 @@ export default function CategoryManagement() {
                           key={category.id}
                           sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}
                         >
-                          <TableCell>
-                            {index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage}
-                          </TableCell>
+                          <TableCell>{index + 1}</TableCell>
                           <TableCell>
                             {category.image ? (
                               <Box
@@ -1275,29 +1228,6 @@ export default function CategoryManagement() {
                 </TableBody>
               </Table>
             </TableContainer>
-
-            {pagination.totalPages > 1 && (
-              <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" p={2}>
-                <Button
-                  variant="outlined"
-                  disabled={pagination.currentPage === 1 || loading}
-                  onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                >
-                  Previous
-                </Button>
-                <Typography variant="body2">
-                  Page {pagination.currentPage} of {pagination.totalPages}
-                  {pagination.totalItems ? ` (${pagination.totalItems} total)` : ''}
-                </Typography>
-                <Button
-                  variant="outlined"
-                  disabled={pagination.currentPage === pagination.totalPages || loading}
-                  onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                >
-                  Next
-                </Button>
-              </Stack>
-            )}
           </CardContent>
         </Card>
       </Box>

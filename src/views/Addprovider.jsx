@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
   Typography,
@@ -9,24 +9,29 @@ import {
   Snackbar,
   Alert,
   CircularProgress,
-  Card,
-  CardContent,
-  CardMedia,
-  Grid,
-  Chip
+  InputLabel,
+  FormControl
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
-function AddProvider() {
+function AddAuditorium() {
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
   const [loading, setLoading] = useState(false);
   const [zonesLoading, setZonesLoading] = useState(true);
   const [modulesLoading, setModulesLoading] = useState(true);
-  const [vendorsLoading, setVendorsLoading] = useState(true);
 
   const activeModuleId = localStorage.getItem('moduleDbId');
+
+  // Google Maps refs and state
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const searchInputRef = useRef(null);
+  const [mapsLoaded, setMapsLoaded] = useState(false);
+  const [map, setMap] = useState(null);
+
+  const GOOGLE_MAPS_API_KEY = 'AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78';
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -50,49 +55,149 @@ function AddProvider() {
     ownerLastName: '',
     ownerPhone: '',
     ownerEmail: '',
-    businessTIN: '',
-    tinExpireDate: '',
-    status: 'pending', // Default value, typically managed by backend
-    reviewedBy: '', // Admin-controlled, optional in form
-    reviewedAt: '', // Admin-controlled, optional in form
-    rejectionReason: '', // Admin-controlled, optional in form
-    adminNotes: '', // Admin-controlled, optional in form
-    isActive: true, // Default value, typically managed by backend
-    approvedProvider: '' // Admin-controlled, optional in form
+    status: 'pending',
+    reviewedBy: '',
+    reviewedAt: '',
+    rejectionReason: '',
+    adminNotes: '',
+    isActive: true,
+    approvedProvider: ''
   });
 
   const [zones, setZones] = useState([]);
   const [modules, setModules] = useState([]);
-  const [vendors, setVendors] = useState([]);
+  const [allModules, setAllModules] = useState([]);
   const [selectedZone, setSelectedZone] = useState('');
   const [logoPreview, setLogoPreview] = useState(null);
   const [coverPreview, setCoverPreview] = useState(null);
-  const [tinCertificatePreview, setTinCertificatePreview] = useState(null);
-  const [logoErrors, setLogoErrors] = useState({});
 
   const [files, setFiles] = useState({
     logo: null,
-    coverImage: null,
-    tinCertificate: null
+    coverImage: null
   });
 
   const API_BASE_URL = import.meta.env.MODE === 'development'
     ? 'http://localhost:5000/api'
     : 'https://api.bookmyevent.ae/api';
 
+  // Load Google Maps script
+  useEffect(() => {
+    if (!GOOGLE_MAPS_API_KEY) {
+      console.warn('Google Maps API key not provided');
+      showAlert('Google Maps API key is required for map features.', 'warning');
+      return;
+    }
+    if (window.google && window.google.maps) {
+      setMapsLoaded(true);
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places`;
+    script.async = true;
+    script.defer = true;
+    script.onload = () => setMapsLoaded(true);
+    document.head.appendChild(script);
+    return () => {
+      if (document.head.contains(script)) document.head.removeChild(script);
+    };
+  }, [GOOGLE_MAPS_API_KEY]);
+
+  // Initialize map
+  useEffect(() => {
+    if (mapsLoaded && window.google?.maps) initMap();
+  }, [mapsLoaded]);
+
+  const initMap = useCallback(() => {
+    if (!window.google || !mapRef.current || !mapsLoaded) return;
+
+    const centerLat = formData.latitude && formData.longitude ? parseFloat(formData.latitude) : 25.2048;
+    const centerLng = formData.latitude && formData.longitude ? parseFloat(formData.longitude) : 55.2708;
+    const center = { lat: centerLat, lng: centerLng };
+
+    const newMap = new window.google.maps.Map(mapRef.current, { zoom: 12, center });
+
+    newMap.addListener('click', (event) => {
+      const lat = event.latLng.lat();
+      const lng = event.latLng.lng();
+      setFormData(prev => ({ ...prev, latitude: lat.toString(), longitude: lng.toString() }));
+
+      if (markerRef.current) markerRef.current.setMap(null);
+      markerRef.current = new window.google.maps.Marker({ position: { lat, lng }, map: newMap });
+
+      const geocoder = new window.google.maps.Geocoder();
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setFormData(prev => ({
+            ...prev,
+            storeAddress: { ...prev.storeAddress, fullAddress: results[0].formatted_address }
+          }));
+          showAlert('Location set and address auto-filled!', 'success');
+        } else {
+          showAlert('Location set, but could not determine address.', 'info');
+        }
+      });
+    });
+
+    setMap(newMap);
+  }, [mapsLoaded, formData.latitude, formData.longitude]);
+
+  // Autocomplete for search input
+  useEffect(() => {
+    if (!mapsLoaded || !map || !searchInputRef.current || !window.google) return;
+
+    const autocomplete = new window.google.maps.places.Autocomplete(searchInputRef.current, {
+      fields: ['place_id', 'geometry', 'name', 'formatted_address']
+    });
+
+    const listener = autocomplete.addListener('place_changed', () => {
+      const place = autocomplete.getPlace();
+      if (!place.geometry?.location) return;
+
+      const loc = place.geometry.location;
+      if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
+      else { map.setCenter(loc); map.setZoom(17); }
+
+      if (markerRef.current) markerRef.current.setMap(null);
+      markerRef.current = new window.google.maps.Marker({ position: loc, map });
+
+      setFormData(prev => ({
+        ...prev,
+        latitude: loc.lat().toString(),
+        longitude: loc.lng().toString(),
+        storeAddress: { ...prev.storeAddress, fullAddress: place.formatted_address || place.name }
+      }));
+      showAlert('Location selected!', 'success');
+    });
+
+    return () => window.google.maps.event.removeListener(listener);
+  }, [mapsLoaded, map]);
+
+  // Update marker when lat/lng change
+  useEffect(() => {
+    if (!map || !formData.latitude || !formData.longitude) return;
+    const pos = { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) };
+    map.setCenter(pos);
+    map.setZoom(12);
+    if (!markerRef.current) {
+      markerRef.current = new window.google.maps.Marker({ position: pos, map });
+    } else {
+      markerRef.current.setPosition(pos);
+    }
+  }, [formData.latitude, formData.longitude, map]);
+
+  // Fetch zones & modules
   useEffect(() => {
     fetchZones();
     fetchModules();
-    fetchVendors();
   }, []);
 
   const fetchZones = async () => {
     try {
       setZonesLoading(true);
-      const response = await fetch(`${API_BASE_URL}/zones`);
-      const data = await response.json();
+      const res = await fetch(`${API_BASE_URL}/zones`);
+      const data = await res.json();
       setZones(data.data || []);
-    } catch (error) {
+    } catch {
       showAlert('Error fetching zones', 'error');
       setZones([]);
     } finally {
@@ -105,172 +210,116 @@ function AddProvider() {
       setModulesLoading(true);
       const res = await fetch(`${API_BASE_URL}/modules`);
       const data = await res.json();
-      const activeModuleId = localStorage.getItem('moduleDbId');
+
+      setAllModules(Array.isArray(data) ? data : []);
       const filtered = Array.isArray(data)
-        ? data.filter((m) => m._id === activeModuleId)
+        ? activeModuleId ? data.filter(m => m._id === activeModuleId) : data
         : [];
       setModules(filtered);
+
+      if (activeModuleId && filtered.length) {
+        setFormData(prev => ({ ...prev, module: activeModuleId }));
+      }
     } catch (err) {
+      console.error('Error fetching modules:', err);
       setModules([]);
+      setAllModules([]);
     } finally {
       setModulesLoading(false);
     }
   };
 
-  const fetchVendors = async () => {
-    try {
-      setVendorsLoading(true);
-      const response = await fetch(`${API_BASE_URL}/vendorprofiles`);
-      const data = await response.json();
-      if (data.success) {
-        const vendorsData = data.data.vendors || [];
-        const updated = vendorsData.map(v => ({
-          ...v,
-          logo: v.logo
-            ? v.logo.startsWith('http')
-              ? v.logo
-              : `${API_BASE_URL}/${v.logo.replace(/^\//, '')}`
-            : null
-        }));
-        setVendors(updated);
-      } else {
-        throw new Error('Failed to fetch vendors');
-      }
-    } catch (error) {
-      showAlert('Error fetching vendors', 'error');
-      setVendors([]);
-    } finally {
-      setVendorsLoading(false);
-    }
-  };
-
-  const showAlert = (message, severity = 'success') => {
-    setAlertMessage(message);
+  const showAlert = (msg, severity = 'success') => {
+    setAlertMessage(msg);
     setAlertSeverity(severity);
     setOpen(true);
   };
 
-  const handleInputChange = (field) => (e) => {
-    setFormData({
-      ...formData,
-      [field]: e.target.value
-    });
-  };
-
-  const handleAddressChange = (subfield) => (e) => {
-    setFormData({
-      ...formData,
-      storeAddress: {
-        ...formData.storeAddress,
-        [subfield]: e.target.value
-      }
-    });
-  };
-
-  const handleZoneChange = (event) => {
-    const zoneId = event.target.value;
+  const handleInputChange = field => e => setFormData({ ...formData, [field]: e.target.value });
+  const handleAddressChange = sub => e => setFormData({
+    ...formData,
+    storeAddress: { ...formData.storeAddress, [sub]: e.target.value }
+  });
+  const handleZoneChange = e => {
+    const zoneId = e.target.value;
     setSelectedZone(zoneId);
     setFormData({ ...formData, zone: zoneId });
   };
+  const handleModuleChange = e => setFormData({ ...formData, module: e.target.value });
 
-  const handleModuleChange = (event) => {
-    setFormData({ ...formData, module: event.target.value });
-  };
-
-  const handleImageUpload = (event, type) => {
-    const file = event.target.files[0];
-    if (file) {
-      setFiles({ ...files, [type]: file });
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        if (type === 'logo') setLogoPreview(e.target.result);
-        if (type === 'coverImage') setCoverPreview(e.target.result);
-        if (type === 'tinCertificate') {
-          if (file.type.startsWith('image/')) {
-            setTinCertificatePreview(e.target.result);
-          } else {
-            setTinCertificatePreview(file.name);
-          }
-        }
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleLogoError = (id) => {
-    setLogoErrors(prev => ({ ...prev, [id]: true }));
+  const handleImageUpload = (e, type) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setFiles({ ...files, [type]: file });
+    const reader = new FileReader();
+    reader.onload = ev => {
+      if (type === 'logo') setLogoPreview(ev.target.result);
+      if (type === 'coverImage') setCoverPreview(ev.target.result);
+    };
+    reader.readAsDataURL(file);
   };
 
   const validateForm = () => {
-    const errors = [];
-    if (!formData.firstName.trim()) errors.push('First name is required');
-    if (!formData.lastName.trim()) errors.push('Last name is required');
-    if (!formData.email.trim()) errors.push('Email is required');
-    if (!formData.ownerFirstName.trim()) errors.push('Owner first name is required');
-    if (!formData.ownerLastName.trim()) errors.push('Owner last name is required');
-    if (!formData.ownerEmail.trim()) errors.push('Owner email is required');
-    if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.ownerEmail)) {
-      errors.push('Owner email is invalid');
-    }
-    return errors;
+    const errs = [];
+    if (!formData.firstName.trim()) errs.push('First name is required');
+    if (!formData.lastName.trim()) errs.push('Last name is required');
+    if (!formData.email.trim()) errs.push('Email is required');
+    if (!formData.ownerFirstName.trim()) errs.push('Owner first name is required');
+    if (!formData.ownerLastName.trim()) errs.push('Owner last name is required');
+    if (!formData.ownerEmail.trim()) errs.push('Owner email is required');
+    if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,3})+$/.test(formData.ownerEmail))
+      errs.push('Owner email is invalid');
+    if (!formData.module) errs.push('Module is required');
+    return errs;
   };
 
   const handleSubmit = async () => {
-    const validationErrors = validateForm();
-    if (validationErrors.length > 0) {
-      showAlert(validationErrors.join(', '), 'error');
-      return;
-    }
+    const errors = validateForm();
+    if (errors.length) { showAlert(errors.join(', '), 'error'); return; }
+
     try {
       setLoading(true);
-      const formPayload = new FormData();
-      formPayload.append('firstName', formData.firstName);
-      formPayload.append('lastName', formData.lastName);
-      formPayload.append('email', formData.email);
-      formPayload.append('role', 'vendor');
-      formPayload.append('storeName', formData.storeName);
-      formPayload.append('storeAddress[street]', formData.storeAddress.street);
-      formPayload.append('storeAddress[city]', formData.storeAddress.city);
-      formPayload.append('storeAddress[state]', formData.storeAddress.state);
-      formPayload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
-      formPayload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
-      formPayload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
-      formPayload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
-      formPayload.append('latitude', formData.latitude);
-      formPayload.append('longitude', formData.longitude);
-      formPayload.append('ownerFirstName', formData.ownerFirstName);
-      formPayload.append('ownerLastName', formData.ownerLastName);
-      formPayload.append('ownerPhone', formData.ownerPhone);
-      formPayload.append('ownerEmail', formData.ownerEmail);
-      formPayload.append('businessTIN', formData.businessTIN);
-      formPayload.append('tinExpireDate', formData.tinExpireDate);
-      formPayload.append('module', formData.module);
-      formPayload.append('zone', formData.zone);
-      // Optional admin-controlled fields, included but typically managed by backend
-      formPayload.append('status', formData.status);
-      formPayload.append('reviewedBy', formData.reviewedBy);
-      formPayload.append('reviewedAt', formData.reviewedAt);
-      formPayload.append('rejectionReason', formData.rejectionReason);
-      formPayload.append('adminNotes', formData.adminNotes);
-      formPayload.append('isActive', formData.isActive);
-      formPayload.append('approvedProvider', formData.approvedProvider);
-      if (files.logo) formPayload.append('logo', files.logo);
-      if (files.coverImage) formPayload.append('coverImage', files.coverImage);
-      if (files.tinCertificate) formPayload.append('tinCertificate', files.tinCertificate);
+      const payload = new FormData();
+      payload.append('firstName', formData.firstName);
+      payload.append('lastName', formData.lastName);
+      payload.append('email', formData.email);
+      payload.append('role', 'vendor');
+      payload.append('storeName', formData.storeName);
+      payload.append('storeAddress[street]', formData.storeAddress.street);
+      payload.append('storeAddress[city]', formData.storeAddress.city);
+      payload.append('storeAddress[state]', formData.storeAddress.state);
+      payload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
+      payload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
+      payload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
+      payload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
+      payload.append('latitude', formData.latitude);
+      payload.append('longitude', formData.longitude);
+      payload.append('ownerFirstName', formData.ownerFirstName);
+      payload.append('ownerLastName', formData.ownerLastName);
+      payload.append('ownerPhone', formData.ownerPhone);
+      payload.append('ownerEmail', formData.ownerEmail);
+      payload.append('module', formData.module);
+      payload.append('zone', formData.zone);
+      payload.append('status', formData.status);
+      payload.append('reviewedBy', formData.reviewedBy);
+      payload.append('reviewedAt', formData.reviewedAt);
+      payload.append('rejectionReason', formData.rejectionReason);
+      payload.append('adminNotes', formData.adminNotes);
+      payload.append('isActive', formData.isActive);
+      payload.append('approvedProvider', formData.approvedProvider);
+      if (files.logo) payload.append('logo', files.logo);
+      if (files.coverImage) payload.append('coverImage', files.coverImage);
 
-      const response = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: 'POST',
-        body: formPayload
-      });
-      const result = await response.json();
-      if (response.ok) {
+      const res = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', body: payload });
+      const result = await res.json();
+
+      if (res.ok) {
         showAlert('Provider added successfully', 'success');
-        fetchVendors(); // Refresh vendors list
         handleReset();
       } else {
         showAlert(result.message || 'Failed to add provider', 'error');
       }
-    } catch (error) {
+    } catch {
       showAlert('Error adding provider', 'error');
     } finally {
       setLoading(false);
@@ -283,13 +332,7 @@ function AddProvider() {
       lastName: '',
       email: '',
       storeName: '',
-      storeAddress: {
-        street: '',
-        city: '',
-        state: '',
-        zipCode: '',
-        fullAddress: ''
-      },
+      storeAddress: { street: '', city: '', state: '', zipCode: '', fullAddress: '' },
       minimumDeliveryTime: '',
       maximumDeliveryTime: '',
       zone: '',
@@ -300,8 +343,6 @@ function AddProvider() {
       ownerLastName: '',
       ownerPhone: '',
       ownerEmail: '',
-      businessTIN: '',
-      tinExpireDate: '',
       status: 'pending',
       reviewedBy: '',
       reviewedAt: '',
@@ -313,228 +354,165 @@ function AddProvider() {
     setSelectedZone('');
     setLogoPreview(null);
     setCoverPreview(null);
-    setTinCertificatePreview(null);
-    setFiles({
-      logo: null,
-      coverImage: null,
-      tinCertificate: null
-    });
+    setFiles({ logo: null, coverImage: null });
+    if (markerRef.current) { markerRef.current.setMap(null); markerRef.current = null; }
   };
 
-  const formatAddress = (address) => {
-    if (!address) return 'N/A';
-    return [address.street, address.city, address.state, address.zipCode].filter(Boolean).join(', ') || 'N/A';
+  const getSelectedModuleName = () => {
+    if (!formData.module) return 'No module selected';
+    const mod = allModules.find(m => m._id === formData.module);
+    return mod ? mod.title : 'Unknown module';
+  };
+
+  const inputSx = {
+    '& .MuiOutlinedInput-root': {
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#E15B65' },
+      '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#E15B65' }
+    }
   };
 
   return (
-    <Box sx={{ p: 3, backgroundColor: '#f9f9f9',borderRadius: 2 }}>
-      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Add Provider
-      </Typography>
+    <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
+      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Add Provider</Typography>
 
+      {/* Store Information */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Store Information</Typography>
-        <TextField
-          fullWidth
-          label="Store Name"
-          variant="outlined"
-          value={formData.storeName}
-          onChange={handleInputChange('storeName')}
-          sx={{ mb: 2 }}
-        />
+        <TextField fullWidth label="Store Name" variant="outlined" value={formData.storeName}
+          onChange={handleInputChange('storeName')} sx={{ mb: 2 }} />
       </Box>
 
+      {/* Logo */}
       {logoPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Logo:</Typography>
-          <img src={logoPreview} alt="Logo Preview" style={{ maxWidth: '100', maxHeight: '200px', objectFit: 'contain' }} />
+          <img src={logoPreview} alt="Logo" style={{ maxWidth: '100px', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
       <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
-        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
+        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ width: '100%' }}>
           {logoPreview ? 'Change Logo' : 'Upload Logo'}
-          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'logo')} />
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={e => handleImageUpload(e, 'logo')} />
         </Button>
       </Box>
 
+      {/* Cover */}
       {coverPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
           <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Cover:</Typography>
-          <img src={coverPreview} alt="Cover Preview" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
+          <img src={coverPreview} alt="Cover" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
       <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
-        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ mt: 1, width: '100%' }}>
+        <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ width: '100%' }}>
           {coverPreview ? 'Change Cover' : 'Upload Cover'}
-          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'coverImage')} />
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={e => handleImageUpload(e, 'coverImage')} />
         </Button>
       </Box>
-
 
       {/* User Information */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="First Name *"
-            variant="outlined"
-            value={formData.firstName}
-            onChange={handleInputChange('firstName')}
-            required
-          />
-          <TextField
-            fullWidth
-            label="Last Name *"
-            variant="outlined"
-            value={formData.lastName}
-            onChange={handleInputChange('lastName')}
-            required
-          />
+          <TextField fullWidth label="First Name *" required variant="outlined"
+            value={formData.firstName} onChange={handleInputChange('firstName')} />
+          <TextField fullWidth label="Last Name *" required variant="outlined"
+            value={formData.lastName} onChange={handleInputChange('lastName')} />
         </Box>
-        <TextField
-          fullWidth
-          label="Email *"
-          variant="outlined"
-          value={formData.email}
-          onChange={handleInputChange('email')}
-          required
-          sx={{ mb: 2 }}
-        />
+        <TextField fullWidth label="Email *" required variant="outlined"
+          value={formData.email} onChange={handleInputChange('email')} sx={{ mb: 2 }} />
       </Box>
-
-      {/* Store Information */}
-
-
-      {/* Delivery Time */}
-      {/* <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Delivery Time</Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2 }}>
-          <TextField
-            fullWidth
-            label="Minimum Delivery Time (min)"
-            variant="outlined"
-            value={formData.minimumDeliveryTime}
-            onChange={handleInputChange('minimumDeliveryTime')}
-          />
-          <TextField
-            fullWidth
-            label="Maximum Delivery Time (min)"
-            variant="outlined"
-            value={formData.maximumDeliveryTime}
-            onChange={handleInputChange('maximumDeliveryTime')}
-          />
-        </Box> 
-      </Box>*/}
 
       {/* Location */}
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Location</Typography>
+
+        {/* Module */}
         <Box sx={{ mb: 2 }}>
           {modulesLoading ? (
-            <CircularProgress size={20} />
-          ) : modules.length > 0 ? (
-            <Select
-              fullWidth
-              variant="outlined"
-              value={formData.module}
-              onChange={handleModuleChange}
-              displayEmpty
-              disabled={modules.length <= 1}
-            >
-              <MenuItem value="" disabled>Select Module</MenuItem>
-              {modules.map((m) => (
-                <MenuItem key={m._id} value={m._id}>
-                  {m.title}
-                </MenuItem>
-              ))}
-            </Select>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} /><Typography variant="body2">Loading modules...</Typography>
+            </Box>
+          ) : modules.length ? (
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="module-select-label">Module *</InputLabel>
+              <Select labelId="module-select-label" value={formData.module}
+                onChange={handleModuleChange} label="Module *" disabled={modules.length === 1}>
+                {modules.map(m => <MenuItem key={m._id} value={m._id}>{m.title}</MenuItem>)}
+              </Select>
+            </FormControl>
           ) : (
-            <Typography>No modules available</Typography>
+            <Alert severity="warning">No modules available. Please configure modules first.</Alert>
+          )}
+          {formData.module && (
+            <Box sx={{ mt: 1, p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1 }}>
+              <Typography variant="body2" color="primary">
+                Selected Module: <strong>{getSelectedModuleName()}</strong>
+              </Typography>
+            </Box>
           )}
         </Box>
 
+        {/* Zone */}
         <Box sx={{ mb: 2 }}>
           {zonesLoading ? (
-            <CircularProgress size={20} />
-          ) : zones.length > 0 ? (
-            <Select
-              fullWidth
-              variant="outlined"
-              value={selectedZone}
-              onChange={handleZoneChange}
-              displayEmpty
-            >
-              <MenuItem value="" disabled>Select Zone</MenuItem>
-              {zones.map((zone) => (
-                <MenuItem key={zone._id} value={zone._id}>
-                  {zone.name}
-                </MenuItem>
-              ))}
-            </Select>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <CircularProgress size={20} /><Typography variant="body2">Loading zones...</Typography>
+            </Box>
+          ) : zones.length ? (
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="zone-select-label">Zone</InputLabel>
+              <Select labelId="zone-select-label" value={selectedZone}
+                onChange={handleZoneChange} label="Zone">
+                <MenuItem value=""><em>Select Zone</em></MenuItem>
+                {zones.map(z => <MenuItem key={z._id} value={z._id}>{z.name}</MenuItem>)}
+              </Select>
+            </FormControl>
           ) : (
-            <Typography>No zones available</Typography>
+            <Alert severity="info">No zones available</Alert>
           )}
         </Box>
 
+        {/* Address fields */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Street"
-            variant="outlined"
-            value={formData.storeAddress.street}
-            onChange={handleAddressChange('street')}
-          />
-          <TextField
-            fullWidth
-            label="City"
-            variant="outlined"
-            value={formData.storeAddress.city}
-            onChange={handleAddressChange('city')}
-          />
+          <TextField fullWidth label="Street" variant="outlined"
+            value={formData.storeAddress.street} onChange={handleAddressChange('street')} />
+          <TextField fullWidth label="City" variant="outlined"
+            value={formData.storeAddress.city} onChange={handleAddressChange('city')} />
         </Box>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="State"
-            variant="outlined"
-            value={formData.storeAddress.state}
-            onChange={handleAddressChange('state')}
-          />
-          <TextField
-            fullWidth
-            label="Zip Code"
-            variant="outlined"
-            value={formData.storeAddress.zipCode}
-            onChange={handleAddressChange('zipCode')}
-          />
+          <TextField fullWidth label="State" variant="outlined"
+            value={formData.storeAddress.state} onChange={handleAddressChange('state')} />
+          <TextField fullWidth label="Zip Code" variant="outlined"
+            value={formData.storeAddress.zipCode} onChange={handleAddressChange('zipCode')} />
+        </Box>
+        <TextField fullWidth label="Full Address" variant="outlined"
+          value={formData.storeAddress.fullAddress} onChange={handleAddressChange('fullAddress')} sx={{ mb: 2 }} />
 
-        </Box>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Full Address"
-            variant="outlined"
-            value={formData.storeAddress.fullAddress}
-            onChange={handleAddressChange('fullAddress')}
-          />
-        </Box>
+        {/* Search */}
+        <TextField fullWidth label="Search Location" inputRef={searchInputRef}
+          variant="outlined" placeholder="Enter a location" sx={{ mb: 2, ...inputSx }} />
+
+        {/* Map */}
+        {mapsLoaded && GOOGLE_MAPS_API_KEY ? (
+          <>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Click on the map below to select a location
+            </Typography>
+            <Box ref={mapRef} sx={{ height: 300, width: '100%', borderRadius: 1, border: '1px solid #ddd', mb: 2 }} />
+          </>
+        ) : (
+          <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid #ddd', borderRadius: 1, mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">Map loading...</Typography>
+          </Box>
+        )}
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Latitude"
-            variant="outlined"
-            value={formData.latitude}
-            onChange={handleInputChange('latitude')}
-          />
-          <TextField
-            fullWidth
-            label="Longitude"
-            variant="outlined"
-            value={formData.longitude}
-            onChange={handleInputChange('longitude')}
-          />
+          <TextField fullWidth label="Latitude" type="number" inputProps={{ step: '0.0001' }}
+            value={formData.latitude} onChange={handleInputChange('latitude')} />
+          <TextField fullWidth label="Longitude" type="number" inputProps={{ step: '0.0001' }}
+            value={formData.longitude} onChange={handleInputChange('longitude')} />
         </Box>
       </Box>
 
@@ -542,257 +520,34 @@ function AddProvider() {
       <Box sx={{ mb: 3 }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Owner Information</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Owner First Name *"
-            variant="outlined"
-            value={formData.ownerFirstName}
-            onChange={handleInputChange('ownerFirstName')}
-            required
-          />
-          <TextField
-            fullWidth
-            label="Owner Last Name *"
-            variant="outlined"
-            value={formData.ownerLastName}
-            onChange={handleInputChange('ownerLastName')}
-            required
-          />
+          <TextField fullWidth label="Owner First Name *" required variant="outlined"
+            value={formData.ownerFirstName} onChange={handleInputChange('ownerFirstName')} />
+          <TextField fullWidth label="Owner Last Name *" required variant="outlined"
+            value={formData.ownerLastName} onChange={handleInputChange('ownerLastName')} />
         </Box>
-        <TextField
-          fullWidth
-          label="Owner Email *"
-          variant="outlined"
-          value={formData.ownerEmail}
-          onChange={handleInputChange('ownerEmail')}
-          required
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Owner Phone"
-          variant="outlined"
-          value={formData.ownerPhone}
-          onChange={handleInputChange('ownerPhone')}
-          sx={{ mb: 2 }}
-        />
+        <TextField fullWidth label="Owner Email *" required variant="outlined"
+          value={formData.ownerEmail} onChange={handleInputChange('ownerEmail')} sx={{ mb: 2 }} />
+        <TextField fullWidth label="Owner Phone" variant="outlined"
+          value={formData.ownerPhone} onChange={handleInputChange('ownerPhone')} sx={{ mb: 2 }} />
       </Box>
 
-      {/* Business TIN */}
-      <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Business TIN</Typography>
-        <TextField
-          fullWidth
-          label="TIN"
-          variant="outlined"
-          value={formData.businessTIN}
-          onChange={handleInputChange('businessTIN')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="TIN Expire Date"
-          type="date"
-          value={formData.tinExpireDate}
-          onChange={handleInputChange('tinExpireDate')}
-          InputLabelProps={{ shrink: true }}
-          sx={{ mb: 2 }}
-        />
-
-        {tinCertificatePreview && (
-          <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected File:</Typography>
-            {typeof tinCertificatePreview === 'string' && !tinCertificatePreview.startsWith('data:') ? (
-              <Typography variant="body2" color="primary">{tinCertificatePreview}</Typography>
-            ) : (
-              <img src={tinCertificatePreview} alt="TIN Certificate" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
-            )}
-          </Box>
-        )}
-        <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
-          <Button
-            variant="outlined"
-            component="label"
-            startIcon={<CloudUploadIcon />}
-            sx={{ mt: 1, width: '100%' }}
-          >
-            {tinCertificatePreview ? 'Change File' : 'Upload TIN Certificate'}
-            <input
-              type="file"
-              hidden
-              accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-              onChange={(e) => handleImageUpload(e, 'tinCertificate')}
-            />
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Admin-Controlled Fields (Optional, typically managed by backend) */}
-      {/* <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Admin Information</Typography>
-        <Select
-          fullWidth
-          variant="outlined"
-          value={formData.status}
-          onChange={handleInputChange('status')}
-          displayEmpty
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value="pending">Pending</MenuItem>
-          <MenuItem value="under_review">Under Review</MenuItem>
-          <MenuItem value="approved">Approved</MenuItem>
-          <MenuItem value="rejected">Rejected</MenuItem>
-        </Select>
-        <TextField
-          fullWidth
-          label="Reviewed By (User ID)"
-          variant="outlined"
-          value={formData.reviewedBy}
-          onChange={handleInputChange('reviewedBy')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Reviewed At"
-          type="datetime-local"
-          value={formData.reviewedAt}
-          onChange={handleInputChange('reviewedAt')}
-          InputLabelProps={{ shrink: true }}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Rejection Reason"
-          variant="outlined"
-          value={formData.rejectionReason}
-          onChange={handleInputChange('rejectionReason')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Admin Notes"
-          variant="outlined"
-          value={formData.adminNotes}
-          onChange={handleInputChange('adminNotes')}
-          multiline
-          rows={4}
-          sx={{ mb: 2 }}
-        />
-        <Select
-          fullWidth
-          variant="outlined"
-          value={formData.isActive}
-          onChange={(e) => setFormData({ ...formData, isActive: e.target.value === 'true' })}
-          sx={{ mb: 2 }}
-        >
-          <MenuItem value={true}>Active</MenuItem>
-          <MenuItem value={false}>Inactive</MenuItem>
-        </Select>
-        <TextField
-          fullWidth
-          label="Approved Provider (User ID)"
-          variant="outlined"
-          value={formData.approvedProvider}
-          onChange={handleInputChange('approvedProvider')}
-          sx={{ mb: 2 }}
-        />
-      </Box> */}
-
-      {/* Submit and Reset Buttons */}
+      {/* Buttons */}
       <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
-        <Button variant="outlined" onClick={handleReset} disabled={loading}>
-          Reset
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
-        >
+        <Button variant="outlined" onClick={handleReset} disabled={loading}>Reset</Button>
+        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}>
           {loading ? 'Submitting...' : 'Submit'}
         </Button>
       </Box>
 
-      <Snackbar
-        open={open}
-        autoHideDuration={6000}
-        onClose={() => setOpen(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
+      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert onClose={() => setOpen(false)} severity={alertSeverity} sx={{ width: '100%' }}>
           {alertMessage}
         </Alert>
       </Snackbar>
-
-      {/* Existing Vendors */}
-      <Box sx={{ mt: 5 }}>
-        <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-          Existing Providers
-        </Typography>
-        {vendorsLoading ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <CircularProgress size={20} />
-            <Typography>Loading providers...</Typography>
-          </Box>
-        ) : vendors.length > 0 ? (
-          <Grid container spacing={3}>
-            {vendors.map((vendor) => (
-              <Grid item xs={12} sm={6} md={4} key={vendor._id}>
-                <Card
-                  sx={{
-                    height: '100%',
-                    borderRadius: 3,
-                    overflow: 'hidden',
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-                    '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 8px 28px rgba(0,0,0,0.15)' }
-                  }}
-                >
-                  <CardMedia
-                    component="img"
-                    height="160"
-                    image={logoErrors[vendor._id] || !vendor.logo ? 'https://via.placeholder.com/150?text=No+Logo' : vendor.logo}
-                    alt={`${vendor.storeName} logo`}
-                    sx={{ objectFit: 'contain', bgcolor: '#fafafa', p: 2 }}
-                    onError={() => handleLogoError(vendor._id)}
-                  />
-                  <CardContent sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-                    <Typography variant="h6" fontWeight="bold" gutterBottom>
-                      {vendor.storeName || 'N/A'}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary">
-                      Owner: {vendor.ownerFirstName} {vendor.ownerLastName}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                      📍 {formatAddress(vendor.storeAddress)}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 2 }}>
-                      <Chip label={`Zone: ${vendor.zone?.name || 'N/A'}`} size="small" color="primary" />
-                      <Chip
-                        label={`Delivery: ${vendor.minimumDeliveryTime || 'N/A'}-${vendor.maximumDeliveryTime || 'N/A'} min`}
-                        size="small"
-                        color="success"
-                      />
-                      <Chip label={`Module: ${vendor.module?.title || 'N/A'}`} size="small" color="secondary" />
-                      <Chip label={`Status: ${vendor.status || 'N/A'}`} size="small" color={vendor.status === 'approved' ? 'success' : 'default'} />
-                    </Box>
-                    <Box sx={{ mt: 'auto', display: 'flex', justifyContent: 'flex-end' }}>
-                      <Button variant="outlined" size="small">
-                        View Details
-                      </Button>
-                    </Box>
-                  </CardContent>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        ) : (
-          <Typography>No providers found.</Typography>
-        )}
-      </Box>
     </Box>
   );
 }
 
-export default AddProvider;
+export default AddAuditorium;
