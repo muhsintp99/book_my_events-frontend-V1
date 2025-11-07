@@ -383,8 +383,9 @@ const handleTopPickToggle = useCallback(async (id) => {
       advanceDeposit: r.advanceDeposit || 0,
       cancellationPolicy: r.cancellationPolicy || '',
       extraCharges: r.extraCharges || '',
-      discount: r.discount || 0,
-      seatingArrangement: r.seatingArrangement || '',
+discount: typeof r.discount === 'object' && r.discount !== null
+  ? { ...r.discount }
+  : { packageDiscount: 0, nonAc: 0 },      seatingArrangement: r.seatingArrangement || '',
       nearbyTransport: r.nearbyTransport || '',
       accessibilityInfo: r.accessibilityInfo || '',
       searchTags: r.searchTags || [],
@@ -395,25 +396,71 @@ const handleTopPickToggle = useCallback(async (id) => {
     setOpenEditDialog(true);
   };
 
-  const handleSaveEdit = async () => {
-    try {
-      setSaveLoading(true);
-      const payload = { ...editFormData };
-      const data = await makeAPICall(`${API_URL}/${editingVenue._id}`, getFetchOptions('PUT', payload));
-      if (data.success) {
-        const updated = mapVenue(data.data, editingVenue.id - 1);
-        setVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
-        setAllVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
-        setNotification({ open: true, message: 'Updated', severity: 'success' });
-        setOpenEditDialog(false);
-      }
-    } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
+ const handleSaveEdit = async () => {
+  try {
+    setSaveLoading(true);
 
+    // Clone and clean payload
+    const payload = { ...editFormData };
+
+    // FIX 1: Ensure discount is a valid object
+    if (payload.discount && typeof payload.discount === 'number') {
+      payload.discount = { packageDiscount: payload.discount, nonAc: 0 };
+    }
+    if (!payload.discount || typeof payload.discount !== 'object') {
+      payload.discount = { packageDiscount: 0, nonAc: 0 };
+    }
+
+    // FIX 2: Clean pricingSchedule (remove empty sessions)
+    if (payload.pricingSchedule) {
+      const clean = {};
+      Object.entries(payload.pricingSchedule).forEach(([day, sessions]) => {
+        const morning = sessions.morning && Object.keys(sessions.morning).some(k => sessions.morning[k]) ? sessions.morning : undefined;
+        const evening = sessions.evening && Object.keys(sessions.evening).some(k => sessions.evening[k]) ? sessions.evening : undefined;
+        if (morning || evening) {
+          clean[day] = {};
+          if (morning) clean[day].morning = morning;
+          if (evening) clean[day].evening = evening;
+        }
+      });
+      payload.pricingSchedule = clean;
+    }
+
+    // Send only known fields (optional but safe)
+    const allowed = [
+      'venueName', 'shortDescription', 'venueAddress', 'venueState', 'venuePostalCode',
+      'venueCountry', 'latitude', 'longitude', 'zone', 'contactWebsite',
+      'ownerManagerName', 'ownerManagerPhone', 'ownerManagerEmail',
+      'openingHours', 'closingHours', 'maxGuestsSeated', 'maxGuestsStanding',
+      'parkingCapacity', 'parkingAvailability', 'wheelchairAccessibility',
+      'securityArrangements', 'foodCateringAvailability', 'wifiAvailability',
+      'stageLightingAudio', 'acAvailable', 'nonAcAvailable', 'acType',
+      'washroomsInfo', 'dressingRooms', 'dynamicPricing', 'advanceDeposit',
+      'cancellationPolicy', 'extraCharges', 'seatingArrangement',
+      'nearbyTransport', 'accessibilityInfo', 'searchTags', 'pricingSchedule',
+      'discount' // Now safe
+    ];
+
+    const safePayload = {};
+    allowed.forEach(field => {
+      if (payload[field] !== undefined) safePayload[field] = payload[field];
+    });
+
+    const data = await makeAPICall(`${API_URL}/${editingVenue._id}`, getFetchOptions('PUT', safePayload));
+
+    if (data.success) {
+      const updated = mapVenue(data.data, editingVenue.id - 1);
+      setVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
+      setAllVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
+      setNotification({ open: true, message: 'Venue updated successfully', severity: 'success' });
+      setOpenEditDialog(false);
+    }
+  } catch (e) {
+    setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
+  } finally {
+    setSaveLoading(false);
+  }
+};
   const handlePricingChange = (day, sess, field, val) => {
     setEditFormData(p => ({
       ...p,
