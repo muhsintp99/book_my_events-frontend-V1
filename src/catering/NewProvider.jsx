@@ -108,8 +108,7 @@ function CateringProvider({ isVerified }) {
             role: user.role || 'N/A',
             status: user.isVerified ? 'Verified' : 'Pending',
             isVerified: user.isVerified || false,
-            phone: user.phone || 'N/A',
-          }));
+            phone: user.phone || user.mobile || 'N/A',}));
           setUsers(mappedUsers);
         } else {
           throw new Error('Unexpected data format');
