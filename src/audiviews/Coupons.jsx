@@ -22,9 +22,15 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  IconButton,
+  Switch,
+  Tooltip,
+  DialogContentText,
 } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import { useNavigate } from "react-router-dom";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
 
 // API base URL
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
@@ -32,6 +38,8 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api"
 const Coupons = () => {
   const [coupons, setCoupons] = useState([]);
   const [open, setOpen] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [editingCoupon, setEditingCoupon] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
@@ -55,6 +63,8 @@ const Coupons = () => {
     discount: "",
     maxDiscount: "",
   });
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [couponToDelete, setCouponToDelete] = useState(null);
 
   const theme = useTheme();
   const fullScreen = useMediaQuery(theme.breakpoints.down("sm"));
@@ -62,43 +72,32 @@ const Coupons = () => {
 
   // Helper functions
   const getAuthToken = () => {
-    const token = localStorage.getItem("token") || sessionStorage.getItem("token");
-    console.log("Retrieved token:", token ? "Token exists" : "No token found");
-    return token;
+    return localStorage.getItem("token") || sessionStorage.getItem("token");
   };
 
   const getUserRole = () => {
     const user = localStorage.getItem("user") || sessionStorage.getItem("user");
-    if (!user) {
-      console.log("No user data found in storage");
-      return null;
-    }
+    if (!user) return null;
     try {
-      const parsedUser = JSON.parse(user);
-      console.log("User role:", parsedUser.role);
-      return parsedUser.role;
+      return JSON.parse(user).role;
     } catch (e) {
       console.error("Error parsing user data:", e);
       return null;
     }
   };
 
-  // Enhanced fetch coupons with better error handling - NO TIMERS
+  // Fetch coupons
   const fetchCoupons = async (pageNum = 1, searchQuery = "") => {
     const token = getAuthToken();
     if (!token) {
       setError("You are not authenticated. Please log in.");
-      console.log("No token found");
       return;
     }
-
     setLoading(true);
-    setError(null); // Clear previous errors
-    
+    setError(null);
+
     try {
-      const url = `${API_BASE_URL}/auditorium-coupons?page=${pageNum}&limit=10&search=${encodeURIComponent(searchQuery)}`;
-      console.log("Fetching coupons from:", url);
-      
+      const url = `${API_BASE_URL}/coupons?page=${pageNum}&limit=10&search=${encodeURIComponent(searchQuery)}`;
       const response = await fetch(url, {
         method: "GET",
         headers: {
@@ -107,212 +106,219 @@ const Coupons = () => {
         },
       });
 
-      const text = await response.text();
-      console.log("API response status:", response.status, "Response text:", text);
+      const data = await response.json();
 
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch (parseError) {
-        console.error("Invalid JSON response:", text);
-        throw new Error("Server returned invalid response format. Please check server logs.");
-      }
-
-      // Handle specific error cases - NO REDIRECTS WITH TIMERS
       if (response.status === 401) {
         setError("Session expired. Please log in again.");
-        console.log("401 Unauthorized - but staying on page");
         return;
       }
-
       if (response.status === 403) {
         setError("Access denied. You don't have permission to view coupons.");
-        console.log("403 Forbidden - but staying on page");
         return;
       }
-
-      // Check if the response indicates an error (even with 200 status)
-      if (data.success === false) {
-        console.error("API returned error:", data);
-        throw new Error(data.message || "Failed to fetch coupons from server");
-      }
-
       if (!response.ok) {
-        console.error("Server error response:", data);
-        const errorMessage = data.message || `Server error: ${response.status}`;
-        throw new Error(errorMessage);
+        throw new Error(data.message || `Server error: ${response.status}`);
       }
 
-      // Handle successful response
-      if (data.success !== false) {
-        // Check for different possible response structures
-        let couponsArray = [];
-        let paginationData = {
+      if (data.success && data.data && data.data.coupons) {
+        setCoupons(data.data.coupons);
+        setPagination(data.pagination || {
           currentPage: pageNum,
-          totalPages: 1,
-          totalItems: 0,
+          totalPages: Math.ceil(data.data.coupons.length / 10) || 1,
+          totalItems: data.data.coupons.length,
           itemsPerPage: 10,
-        };
+        });
 
-        if (data.data && data.data.coupons) {
-          // Structure: { data: { coupons: [...] }, pagination: {...} }
-          couponsArray = data.data.coupons;
-          paginationData = data.pagination || paginationData;
-        } else if (data.coupons) {
-          // Structure: { coupons: [...], pagination: {...} }
-          couponsArray = data.coupons;
-          paginationData = data.pagination || paginationData;
-        } else if (Array.isArray(data)) {
-          // Structure: [coupon1, coupon2, ...]
-          couponsArray = data;
-        } else if (data.data && Array.isArray(data.data)) {
-          // Structure: { data: [coupon1, coupon2, ...] }
-          couponsArray = data.data;
-        }
-
-        setCoupons(couponsArray);
-        setPagination(paginationData);
-        
-        if (couponsArray.length === 0) {
-          setError("No coupons found. You can create a new coupon using the 'Add New Coupon' button.");
+        if (data.data.coupons.length === 0) {
+          setError("No coupons found. Create a new one using 'Add New Coupon'.");
         }
       } else {
-        throw new Error(data.message || "Unknown error occurred while fetching coupons");
+        throw new Error("Invalid response format");
       }
-
     } catch (err) {
       console.error("Fetch error:", err);
-      const errorMessage = err.message || "Network error occurred. Please check your connection and try again.";
-      setError(errorMessage);
-      setCoupons([]); // Clear coupons on error
-      setPagination({
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: 0,
-        itemsPerPage: 10,
-      });
+      setError(err.message || "Failed to fetch coupons.");
+      setCoupons([]);
     } finally {
       setLoading(false);
     }
   };
 
-  // Check role and fetch coupons - ALLOW ADMIN AND SUPERADMIN - NO TIMERS
+  // Initial load
   useEffect(() => {
     const role = getUserRole();
     const token = getAuthToken();
-    console.log("Initial check - Token:", token ? "Exists" : "Missing", "Role:", role);
-
     if (!token) {
-      console.log("No token found - showing error but staying on page");
       setError("You are not authenticated. Please log in.");
       return;
     }
-
-    // ALLOW BOTH ADMIN AND SUPERADMIN
-    if (role !== "superadmin" && role !== "admin") {
-      console.log("Not admin or superadmin - showing error but staying on page");
-      setError("Access denied. Admin or Superadmin role required.");
+    if (!["superadmin", "admin", "vendor"].includes(role)) {
+      setError("Access denied. Admin, Superadmin, or Vendor role required.");
       return;
     }
-
-    console.log("Proceeding to fetch coupons - role check passed");
     fetchCoupons(page, search);
   }, [page, search]);
 
-  const handleOpen = () => setOpen(true);
+  // Dialog Handlers
+  const handleOpen = (coupon = null) => {
+    if (coupon) {
+      setEditMode(true);
+      setEditingCoupon(coupon);
+      setFormData({
+        title: coupon.title,
+        type: coupon.type,
+        code: coupon.code,
+        totalUses: coupon.totalUses || "",
+        startDate: coupon.startDate ? coupon.startDate.split("T")[0] : "",
+        expireDate: coupon.expireDate ? coupon.expireDate.split("T")[0] : "",
+        discountType: coupon.discountType || "",
+        minPurchase: coupon.minPurchase || "",
+        discount: coupon.discount || "",
+        maxDiscount: coupon.maxDiscount || "",
+      });
+    } else {
+      setEditMode(false);
+      setEditingCoupon(null);
+      setFormData({
+        title: "",
+        type: "",
+        code: "",
+        totalUses: "",
+        startDate: "",
+        expireDate: "",
+        discountType: "",
+        minPurchase: "",
+        discount: "",
+        maxDiscount: "",
+      });
+    }
+    setOpen(true);
+  };
 
   const handleClose = () => {
     setOpen(false);
-    setFormData({
-      title: "",
-      type: "",
-      code: "",
-      totalUses: "",
-      startDate: "",
-      expireDate: "",
-      discountType: "",
-      minPurchase: "",
-      discount: "",
-      maxDiscount: "",
-    });
+    setEditMode(false);
+    setEditingCoupon(null);
   };
 
+  // Save (Create or Update)
   const handleSave = async () => {
     const token = getAuthToken();
-    if (!token) {
-      setError("You are not authenticated. Please log in.");
-      console.log("No token found during save");
-      return;
-    }
+    if (!token) return;
 
-    // Basic validation
-    if (!formData.title || !formData.code || !formData.type || !formData.discount) {
-      setError("Please fill in all required fields (Title, Code, Type, Discount)");
+    if (!formData.title || !formData.code || !formData.type || !formData.discount || !formData.expireDate) {
+      setError("Please fill all required fields: Title, Code, Type, Discount, Expire Date");
       return;
     }
 
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/auditorium-coupons`, {
-        method: "POST",
+      const url = editMode
+        ? `${API_BASE_URL}/coupons/${editingCoupon._id}`
+        : `${API_BASE_URL}/coupons`;
+
+      const method = editMode ? "PUT" : "POST";
+
+      const body = {
+        ...formData,
+        code: formData.code.toUpperCase().trim(),
+        totalUses: parseInt(formData.totalUses) || null,
+        minPurchase: parseFloat(formData.minPurchase) || 0,
+        discount: parseFloat(formData.discount) || 0,
+        maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
+      };
+
+      const response = await fetch(url, {
+        method,
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...formData,
-          code: formData.code.toUpperCase().trim(),
-          totalUses: parseInt(formData.totalUses) || 1,
-          minPurchase: parseFloat(formData.minPurchase) || 0,
-          discount: parseFloat(formData.discount) || 0,
-          maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : undefined,
-          isActive: true,
-        }),
+        body: JSON.stringify(body),
       });
 
-      const text = await response.text();
-      console.log("Save coupon response status:", response.status, "Response text:", text);
-      
-      let data;
-      try {
-        data = JSON.parse(text);
-      } catch {
-        console.error("Invalid JSON response:", text);
-        throw new Error("Server returned invalid response format");
-      }
+      const data = await response.json();
 
-      // NO TIMER REDIRECTS
       if (response.status === 401) {
         setError("Session expired. Please log in again.");
-        console.log("401 Unauthorized during save - but staying on page");
         return;
       }
-
-      if (data.success === false) {
-        throw new Error(data.message || "Failed to create coupon");
+      if (!response.ok) {
+        throw new Error(data.message || `Failed to ${editMode ? "update" : "create"} coupon`);
       }
+
+      setSuccess(data.message || `Coupon ${editMode ? "updated" : "created"} successfully!`);
+      handleClose();
+      fetchCoupons(page, search);
+    } catch (err) {
+      setError(err.message || "Operation failed.");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete Coupon
+  const handleDeleteClick = (coupon) => {
+    setCouponToDelete(coupon);
+    setDeleteConfirmOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    const token = getAuthToken();
+    if (!token || !couponToDelete) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/coupons/${couponToDelete._id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || `Server error: ${response.status}`);
+        throw new Error(data.message || "Failed to delete coupon");
       }
 
-      // Handle successful creation
-      const newCoupon = data.data?.coupon || data.coupon || data;
-      if (newCoupon && newCoupon._id) {
-        setCoupons(prev => [newCoupon, ...prev]);
-        setSuccess("Coupon created successfully!");
-        handleClose();
-        // Optionally refresh the list to get updated pagination
-        setTimeout(() => fetchCoupons(page, search), 1000);
-      } else {
-        setSuccess("Coupon created successfully!");
-        handleClose();
-        // Refresh the list
-        fetchCoupons(page, search);
-      }
+      setSuccess("Coupon deleted successfully!");
+      setDeleteConfirmOpen(false);
+      setCouponToDelete(null);
+      fetchCoupons(page, search);
     } catch (err) {
-      console.error("Save error:", err.message);
-      setError(err.message || "Failed to create coupon. Please try again.");
+      setError(err.message || "Failed to delete coupon");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Toggle Status
+  const toggleStatus = async (coupon) => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/coupons/${coupon._id}/toggle`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ isActive: !coupon.isActive }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to update status");
+      }
+
+      setSuccess(`Coupon ${coupon.isActive ? "deactivated" : "activated"}!`);
+      fetchCoupons(page, search);
+    } catch (err) {
+      setError(err.message || "Failed to update status");
     } finally {
       setLoading(false);
     }
@@ -332,19 +338,11 @@ const Coupons = () => {
     setPage(newPage);
   };
 
-  const handleRetry = () => {
-    fetchCoupons(page, search);
-  };
+  const handleRetry = () => fetchCoupons(page, search);
+  const handleLoginRedirect = () => navigate("/login");
+  const handleDashboardRedirect = () => navigate("/dashboard");
 
-  const handleLoginRedirect = () => {
-    navigate("/login");
-  };
-
-  const handleDashboardRedirect = () => {
-    navigate("/dashboard");
-  };
-
-  // Show loading state during initial fetch
+  // Loading state
   if (loading && coupons.length === 0) {
     return (
       <Box p={2} display="flex" justifyContent="center" alignItems="center" minHeight="400px">
@@ -362,58 +360,64 @@ const Coupons = () => {
         Coupons Management
       </Typography>
 
-      {/* Error/Success Messages - WITH MANUAL REDIRECT BUTTONS */}
-      <Snackbar
-        open={!!error}
-        autoHideDuration={null}
-        onClose={() => setError(null)}
-      >
-        <Alert 
-          severity="error" 
-          onClose={() => setError(null)}
-          action={
-            <Stack direction="row" spacing={1}>
-              {error && error.includes("not authenticated") && (
-                <Button color="inherit" size="small" onClick={handleLoginRedirect}>
-                  Go to Login
-                </Button>
-              )}
-              {error && error.includes("Access denied") && (
-                <Button color="inherit" size="small" onClick={handleDashboardRedirect}>
-                  Go to Dashboard
-                </Button>
-              )}
-              {error && !error.includes("not authenticated") && !error.includes("Access denied") && (
-                <Button color="inherit" size="small" onClick={handleRetry}>
-                  Retry
-                </Button>
-              )}
-            </Stack>
-          }
-        >
-          {error}
-        </Alert>
-      </Snackbar>
-      
-      <Snackbar
-        open={!!success}
-        autoHideDuration={4000}
-        onClose={() => setSuccess(null)}
-      >
-        <Alert severity="success" onClose={() => setSuccess(null)}>
-          {success}
-        </Alert>
-      </Snackbar>
+      {/* Notifications */}
+      {/* ──────────────────────  NOTIFICATIONS (top‑right)  ────────────────────── */}
+<Snackbar
+  open={!!error}
+  autoHideDuration={6000}
+  onClose={() => setError(null)}
+  anchorOrigin={{ vertical: "top", horizontal: "right" }}   // ← top‑right
+>
+  <Alert
+    severity="error"
+    onClose={() => setError(null)}
+    sx={{ width: "100%" }}
+    action={
+      <Stack direction="row" spacing={1}>
+        {error?.includes("not authenticated") && (
+          <Button color="inherit" size="small" onClick={handleLoginRedirect}>
+            Login
+          </Button>
+        )}
+        {error?.includes("Access denied") && (
+          <Button color="inherit" size="small" onClick={handleDashboardRedirect}>
+            Dashboard
+          </Button>
+        )}
+        {error && !error.includes("not authenticated") && !error.includes("Access denied") && (
+          <Button color="inherit" size="small" onClick={handleRetry}>
+            Retry
+          </Button>
+        )}
+      </Stack>
+    }
+  >
+    {error}
+  </Alert>
+</Snackbar>
+
+{/* SUCCESS – green when activated, red when deactivated */}
+<Snackbar
+  open={!!success}
+  autoHideDuration={4000}
+  onClose={() => setSuccess(null)}
+  anchorOrigin={{ vertical: "top", horizontal: "right" }}   // ← top‑right
+>
+  <Alert
+    severity={success?.includes("activated") ? "success" : "error"}   // ← green / red
+    onClose={() => setSuccess(null)}
+    sx={{
+      bgcolor: success?.includes("activated") ? "#4caf50" : "#f44336", // explicit colour
+      color: "#fff",
+    }}
+  >
+    {success}
+  </Alert>
+</Snackbar>
 
       {/* Add/Edit Dialog */}
-      <Dialog
-        open={open}
-        onClose={handleClose}
-        maxWidth="sm"
-        fullWidth
-        fullScreen={fullScreen}
-      >
-        <DialogTitle>Add New Coupon</DialogTitle>
+      <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth fullScreen={fullScreen}>
+        <DialogTitle>{editMode ? "Edit Coupon" : "Add New Coupon"}</DialogTitle>
         <DialogContent dividers>
           <TextField
             fullWidth
@@ -423,7 +427,6 @@ const Coupons = () => {
             onChange={handleChange}
             sx={{ mb: 2 }}
             required
-            error={!formData.title && formData.title !== ""}
           />
           <Select
             fullWidth
@@ -433,7 +436,6 @@ const Coupons = () => {
             displayEmpty
             sx={{ mb: 2 }}
             required
-            error={!formData.type}
           >
             <MenuItem value="">--Select coupon type *--</MenuItem>
             <MenuItem value="percentage">Percentage</MenuItem>
@@ -448,8 +450,8 @@ const Coupons = () => {
             onChange={handleChange}
             sx={{ mb: 2 }}
             required
-            error={!formData.code && formData.code !== ""}
-            helperText="Coupon code will be automatically converted to uppercase"
+            disabled={editMode}
+            helperText={editMode ? "Code cannot be changed" : "Will be converted to uppercase"}
           />
           <TextField
             fullWidth
@@ -460,7 +462,6 @@ const Coupons = () => {
             onChange={handleChange}
             sx={{ mb: 2 }}
             inputProps={{ min: 1 }}
-            helperText="Leave empty for unlimited uses"
           />
           <TextField
             fullWidth
@@ -475,12 +476,13 @@ const Coupons = () => {
           <TextField
             fullWidth
             type="date"
-            label="Expire Date"
+            label="Expire Date *"
             name="expireDate"
             value={formData.expireDate}
             onChange={handleChange}
             InputLabelProps={{ shrink: true }}
             sx={{ mb: 2 }}
+            required
           />
           <Select
             fullWidth
@@ -492,11 +494,11 @@ const Coupons = () => {
           >
             <MenuItem value="">--Select discount type--</MenuItem>
             <MenuItem value="percentage">Percentage (%)</MenuItem>
-            <MenuItem value="amount">Fixed Amount ($)</MenuItem>
+            <MenuItem value="amount">Fixed Amount</MenuItem>
           </Select>
           <TextField
             fullWidth
-            label="Min Purchase Amount ($)"
+            label="Min Purchase Amount"
             name="minPurchase"
             type="number"
             value={formData.minPurchase}
@@ -513,19 +515,18 @@ const Coupons = () => {
             onChange={handleChange}
             sx={{ mb: 2 }}
             required
-            error={!formData.discount && formData.discount !== ""}
             inputProps={{ min: 0, step: 0.01 }}
           />
           <TextField
             fullWidth
-            label="Max Discount Amount ($)"
+            label="Max Discount Amount"
             name="maxDiscount"
             type="number"
             value={formData.maxDiscount}
             onChange={handleChange}
             sx={{ mb: 2 }}
             inputProps={{ min: 0, step: 0.01 }}
-            helperText="Only applicable for percentage discounts"
+            helperText="For percentage discounts"
           />
         </DialogContent>
         <DialogActions>
@@ -533,12 +534,31 @@ const Coupons = () => {
             Cancel
           </Button>
           <Button variant="contained" onClick={handleSave} disabled={loading}>
-            {loading ? <CircularProgress size={20} /> : "Create Coupon"}
+            {loading ? <CircularProgress size={20} /> : editMode ? "Update" : "Create"}
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* Main Content */}
+      {/* Delete Confirmation */}
+      <Dialog open={deleteConfirmOpen} onClose={() => setDeleteConfirmOpen(false)}>
+        <DialogTitle>Delete Coupon</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Are you sure you want to delete the coupon <strong>{couponToDelete?.title}</strong>?
+            This action cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteConfirmOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button variant="contained" color="error" onClick={confirmDelete} disabled={loading}>
+            {loading ? <CircularProgress size={20} /> : "Delete"}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Main Table */}
       <Paper sx={{ mt: 2, width: "100%" }}>
         <Stack
           direction={{ xs: "column", sm: "row" }}
@@ -547,7 +567,7 @@ const Coupons = () => {
           alignItems={{ xs: "stretch", sm: "center" }}
           p={2}
         >
-          <Button variant="contained" onClick={handleOpen} disabled={loading}>
+          <Button variant="contained" onClick={() => handleOpen()} disabled={loading}>
             Add New Coupon
           </Button>
           <TextField
@@ -561,7 +581,6 @@ const Coupons = () => {
           />
         </Stack>
 
-        {/* Loading indicator for search/pagination */}
         {loading && coupons.length > 0 && (
           <Box display="flex" justifyContent="center" p={2}>
             <CircularProgress size={24} />
@@ -585,41 +604,34 @@ const Coupons = () => {
                 <TableCell>Start Date</TableCell>
                 <TableCell>Expire Date</TableCell>
                 <TableCell>Status</TableCell>
+                <TableCell align="center">Actions</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {coupons.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={13} align="center">
+                  <TableCell colSpan={14} align="center">
                     <Stack spacing={2} alignItems="center" py={4}>
                       <Typography variant="h6" color="textSecondary">
                         No coupons found
                       </Typography>
-                      {error ? (
-                        <Button variant="outlined" onClick={handleRetry}>
-                          Try Again
-                        </Button>
-                      ) : (
-                        <Typography variant="body2" color="textSecondary">
-                          Create your first coupon using the "Add New Coupon" button
-                        </Typography>
-                      )}
+                      <Button variant="outlined" onClick={() => handleOpen()}>
+                        Create First Coupon
+                      </Button>
                     </Stack>
                   </TableCell>
                 </TableRow>
               ) : (
                 coupons.map((coupon, index) => (
-                  <TableRow key={coupon._id || coupon.id || index}>
+                  <TableRow key={coupon._id} hover>
+                    <TableCell>{(page - 1) * pagination.itemsPerPage + index + 1}</TableCell>
+                    <TableCell>{coupon.title}</TableCell>
                     <TableCell>
-                      {(page - 1) * pagination.itemsPerPage + index + 1}
-                    </TableCell>
-                    <TableCell>{coupon.title || "-"}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace', fontWeight: 'bold' }}>
-                        {coupon.code || "-"}
+                      <Typography variant="body2" sx={{ fontFamily: "monospace", fontWeight: "bold" }}>
+                        {coupon.code}
                       </Typography>
                     </TableCell>
-                    <TableCell>{coupon.type || "-"}</TableCell>
+                    <TableCell>{coupon.type}</TableCell>
                     <TableCell>{coupon.totalUses || "Unlimited"}</TableCell>
                     <TableCell>{coupon.usedCount || 0}</TableCell>
                     <TableCell>${coupon.minPurchase || 0}</TableCell>
@@ -627,7 +639,7 @@ const Coupons = () => {
                     <TableCell>
                       {coupon.discountType === "percentage" ? `${coupon.discount}%` : `$${coupon.discount}`}
                     </TableCell>
-                    <TableCell>{coupon.discountType || "-"}</TableCell>
+                    <TableCell>{coupon.discountType}</TableCell>
                     <TableCell>
                       {coupon.startDate ? new Date(coupon.startDate).toLocaleDateString() : "-"}
                     </TableCell>
@@ -635,13 +647,33 @@ const Coupons = () => {
                       {coupon.expireDate ? new Date(coupon.expireDate).toLocaleDateString() : "-"}
                     </TableCell>
                     <TableCell>
+                      <Switch
+                        checked={coupon.isActive}
+                        onChange={() => toggleStatus(coupon)}
+                        color="primary"
+                        size="small"
+                      />
                       <Typography
-                        variant="body2"
+                        variant="caption"
                         color={coupon.isActive ? "success.main" : "error.main"}
-                        sx={{ fontWeight: "medium" }}
+                        sx={{ ml: 1 }}
                       >
                         {coupon.isActive ? "Active" : "Inactive"}
                       </Typography>
+                    </TableCell>
+                    <TableCell align="center">
+                      <Stack direction="row" spacing={0.5} justifyContent="center">
+                        <Tooltip title="Edit">
+                          <IconButton size="small" onClick={() => handleOpen(coupon)} color="primary">
+                            <EditIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title="Delete">
+                          <IconButton size="small" onClick={() => handleDeleteClick(coupon)} color="error">
+                            <DeleteIcon fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))
@@ -661,8 +693,8 @@ const Coupons = () => {
               Previous
             </Button>
             <Typography variant="body2">
-              Page {pagination.currentPage} of {pagination.totalPages}
-              {pagination.totalItems ? ` (${pagination.totalItems} total)` : ""}
+              Page {page} of {pagination.totalPages}
+              {pagination.totalItems > 0 && ` (${pagination.totalItems} total)`}
             </Typography>
             <Button
               variant="outlined"

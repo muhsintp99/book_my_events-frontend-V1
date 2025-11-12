@@ -123,8 +123,20 @@ const VenuesList = () => {
 
   /* ────────────────────────────────────── FETCH VENUES ────────────────────────────────────── */
   const mapVenue = (v, idx) => {
-    const zoneName = v.zone?.name || (typeof v.zone === 'string' ? zones.find(z => z._id === v.zone)?.name : '') || '';
-    const zoneId = v.zone?._id || v.zone || '';
+    // Extract zone ID - handle both populated and unpopulated cases
+    let zoneId = '';
+    let zoneName = '';
+    
+    if (typeof v.zone === 'object' && v.zone !== null) {
+      // Zone is populated
+      zoneId = String(v.zone._id || '');
+      zoneName = v.zone.name || '';
+    } else if (typeof v.zone === 'string') {
+      // Zone is just an ID string
+      zoneId = String(v.zone);
+      const foundZone = zones.find(z => String(z._id) === zoneId);
+      zoneName = foundZone?.name || '';
+    }
 
     let price = 'N/A';
     if (v.pricingSchedule) {
@@ -161,7 +173,6 @@ const VenuesList = () => {
       rawVenue: v
     };
   };
-
   const fetchVenues = async (topPicks = false) => {
     try {
       setLoading(true);
@@ -203,16 +214,20 @@ const handleZoneChange = (e) => {
   }
 
   const selectedZoneObj = zones.find((z) => z.name === val);
-  if (!selectedZoneObj) return;
+  if (!selectedZoneObj) {
+    setVenues([]);
+    return;
+  }
 
-  // ✅ Compare IDs as strings to handle ObjectId / string mismatch
-  const filtered = allVenues.filter(
-    (v) => String(v.zoneId) === String(selectedZoneObj._id)
-  );
+  const targetZoneId = String(selectedZoneObj._id);
+
+  const filtered = allVenues.filter((v) => {
+    const venueZoneId = v.zoneId ? String(v.zoneId) : '';
+    return venueZoneId === targetZoneId;
+  });
 
   setVenues(filtered);
 };
-
 
 
   /* ────────────────────────────────────── TOGGLES ────────────────────────────────────── */
@@ -621,7 +636,12 @@ discount: typeof r.discount === 'object' && r.discount !== null
                   {selectedVenue.wheelchairAccessibility && <Chip icon={<Accessible />} label="Wheelchair" size="small" />}
                   {selectedVenue.securityArrangements && <Chip icon={<Security />} label="Security" size="small" />}
                   <Chip icon={<AccessTime />} label={`Open: ${selectedVenue.openingHours} - ${selectedVenue.closingHours}`} size="small" />
-                  <Chip icon={<AttachMoney />} label={`From: AED ${selectedVenue.pricingSchedule?.monday?.morning?.perDay || 'N/A'}`} color="primary" size="small" />
+<Chip 
+  icon={<AttachMoney />} 
+  label={`From: ₹${selectedVenue.pricingSchedule?.monday?.morning?.perDay || 'N/A'}`} 
+  color="primary" 
+  size="small" 
+/>
                 </Box>
               </Grid>
 
