@@ -37,6 +37,7 @@ function AddAuditorium() {
     firstName: '',
     lastName: '',
     email: '',
+    phone: '',
     storeName: '',
     storeAddress: {
       street: '',
@@ -283,6 +284,7 @@ function AddAuditorium() {
       payload.append('firstName', formData.firstName);
       payload.append('lastName', formData.lastName);
       payload.append('email', formData.email);
+      payload.append('phone', formData.phone);
       payload.append('role', 'vendor');
       payload.append('storeName', formData.storeName);
       payload.append('storeAddress[street]', formData.storeAddress.street);
@@ -331,6 +333,7 @@ function AddAuditorium() {
       firstName: '',
       lastName: '',
       email: '',
+      phone: '',
       storeName: '',
       storeAddress: { street: '', city: '', state: '', zipCode: '', fullAddress: '' },
       minimumDeliveryTime: '',
@@ -412,16 +415,20 @@ function AddAuditorium() {
 
       {/* User Information */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
-        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="First Name *" required variant="outlined"
-            value={formData.firstName} onChange={handleInputChange('firstName')} />
-          <TextField fullWidth label="Last Name *" required variant="outlined"
-            value={formData.lastName} onChange={handleInputChange('lastName')} />
-        </Box>
-        <TextField fullWidth label="Email *" required variant="outlined"
-          value={formData.email} onChange={handleInputChange('email')} sx={{ mb: 2 }} />
-      </Box>
+  <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
+  <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+    <TextField fullWidth label="First Name *" required variant="outlined"
+      value={formData.firstName} onChange={handleInputChange('firstName')} />
+    <TextField fullWidth label="Last Name *" required variant="outlined"
+      value={formData.lastName} onChange={handleInputChange('lastName')} />
+  </Box>
+  <TextField fullWidth label="Email *" required variant="outlined"
+    value={formData.email} onChange={handleInputChange('email')} sx={{ mb: 2 }} />
+  <TextField fullWidth label="Mobile Number" variant="outlined"
+    value={formData.phone} onChange={handleInputChange('phone')} 
+    placeholder="Enter mobile number"
+    sx={{ mb: 2 }} />
+</Box>
 
       {/* Location */}
       <Box sx={{ mb: 3 }}>
