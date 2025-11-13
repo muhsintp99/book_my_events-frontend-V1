@@ -39,6 +39,8 @@ const Cancelled = Loadable(lazy(() => import('../views/Cancelled')));
 const Paymentfailed = Loadable(lazy(() => import('../views/Paymentfailed')));
 const Createnew = Loadable(lazy(() => import('../views/Createnew')));
 const Vehiclelist = Loadable(lazy(() => import('../views/Vehiclelist')));
+const Vehicleattributes = Loadable(lazy(() => import('../views/Vehicleattributes')));
+
 
 const AddModule = Loadable(lazy(() => import('../views/AddModule')));
 
@@ -86,6 +88,13 @@ const Cateringprovider = Loadable(lazy(() => import('../catering/NewProvider')))
 const Cateringdashboard = Loadable(lazy(() => import('../catering/dashboard')));
 const CateringCoupon = Loadable(lazy(() => import('../catering/CateringCoupon')));
 
+// makeup/////////////////////
+const Makeupdashboard = Loadable(lazy(() => import('../makeup/dashboard')));
+const Makeupaddprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
+const Makeupcategory = Loadable(lazy(() => import('../makeup/Category')));
+const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
+const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
+const MakeupCoupon = Loadable(lazy(() => import('../makeup/MakeupCoupon')));
 
 const MainRoutes = {
   path: '/',
@@ -149,6 +158,8 @@ const MainRoutes = {
     { path: 'vehicles/create', element: <Createnew /> },
     { path: 'vehicles/list', element: <Vehiclelist /> },
     { path: 'vehicles/brands', element: <Brands /> },
+        { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
+
 
     // Auditorium Routes
     { path: 'auditorium/dashboard', element: <AuditoriumDashboard /> },
@@ -161,7 +172,7 @@ const MainRoutes = {
     { path: 'auditorium/auditoriumlist', element: <Auditoriumlist /> },
     { path: 'auditorium/create', element: <Createauditorium /> },
     { path: 'auditorium/venuelist', element: <Venuelist /> },
-{ path: 'auditorium/venues/edit/:id', element: <EditVenuePage /> },
+    { path: 'auditorium/venues/edit/:id', element: <EditVenuePage /> },
     { path: 'auditorium/brands', element: <Auditoriumbrands /> },
     { path: '/auditorium/Toppicks', element: <Auditoppicks /> },
 
@@ -179,8 +190,16 @@ const MainRoutes = {
     { path: 'catering/Category', element: <Cateringcategory /> },
     { path: 'catering/Cateringlist', element: <CateringList /> },
     { path: '/catering/provider', element: <Cateringprovider /> },
-        { path: '/catering/Coupons', element: <CateringCoupon /> }
+    { path: '/catering/Coupons', element: <CateringCoupon /> },
 
+    // cateringg/////////////////////////////////
+
+    { path: 'makeup/dashboard', element: <Makeupdashboard /> },
+    { path: 'makeup/AddProvider', element: <Makeupaddprovider /> },
+    { path: 'makeup/category', element: <Makeupcategory /> },
+    { path: 'makeup/makeuplist', element: <MakeupList /> },
+    { path: '/makeup/provider', element: <Makeupprovider /> },
+    { path: '/makeup/Coupons', element: <MakeupCoupon /> }
   ]
 };
 

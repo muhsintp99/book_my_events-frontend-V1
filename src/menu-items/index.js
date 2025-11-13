@@ -34,6 +34,9 @@ import employeemanagement from './settings-items/employeemanage';
 import cateringmanagement from './catering/cateringmanagement';
 import cateringsections from './catering/cateringsections';
 import CateringProvidermanagement from './catering/cateringprovidermanagement';
+import makeupsections from './makeup/makeupsections';
+import makeupmanangement from './makeup/makeupmanagement';
+import MakeupProvidermanagement from './makeup/makeupprovidermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -54,6 +57,9 @@ const moduleMenuItems = {
   },
   catering: {
     items: [dashboard,cateringmanagement,cateringsections,CateringProvidermanagement] 
+  },
+   makeup: {
+    items: [dashboard,makeupmanangement,makeupsections,MakeupProvidermanagement] 
   },
 
   setting:{

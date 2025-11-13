@@ -52,12 +52,43 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae
 const TRANSPORT_ID = 'static_transport_123456789012345678901234';
 const STATIC_TRANSPORT = { _id: TRANSPORT_ID, title: 'Transport', name: 'Transport' };
 
+// ---- SUBCATEGORY MAPPING BY VEHICLE TYPE ----
+const SUBCATEGORY_MAP = {
+  car: [
+    'Micro', 'Hatchback', 'Crossover', 'Sedan', 'Coupe', 'Coupe SUV',
+    'SUV', 'Limousine', 'Offroader', 'Roadster', 'Muscle'
+  ],
+  motorcycle: [
+    'Scooter', 'Commuter', 'Classic', 'Cafe Racer', 'Cruiser', 'Chopper',
+    'Touring', 'Sports Touring', 'Naked', 'Sports', 'ATV', 'Bobber', 'Adventure'
+  ],
+  van: ['Mini Van', 'Traveller'],
+  bus: ['Mini Bus', 'Luxury Coach']
+};
+
+const VEHICLE_TYPE_TO_CATEGORY = {
+  car: ['Car', 'Cars'],
+  motorcycle: ['Motorcycle', 'Motorcycles', 'Bike', 'Bikes'],
+  van: ['Van', 'Vans'],
+  bus: ['Bus', 'Buses']
+};
+
+const detectVehicleType = (categoryName = '') => {
+  const lower = categoryName.toLowerCase();
+  for (const [type, keywords] of Object.entries(VEHICLE_TYPE_TO_CATEGORY)) {
+    if (keywords.some(k => lower.includes(k.toLowerCase()))) {
+      return type;
+    }
+  }
+  return 'car';
+};
+
 export default function CategoryManagement() {
   const [tabValue, setTabValue] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
   const [uploadedImage, setUploadedImage] = useState(null);
   const [imagePreview, setImagePreview] = useState(null);
-  const [modules, setModules] = useState([]); // includes static Transport if needed
+  const [modules, setModules] = useState([]);
   const [modulesLoading, setModulesLoading] = useState(true);
   const [modulesError, setModulesError] = useState(null);
   const [selectedModuleFilter, setSelectedModuleFilter] = useState('all');
@@ -66,12 +97,13 @@ export default function CategoryManagement() {
     name: '',
     description: '',
     parentCategory: '',
-    module: TRANSPORT_ID, // default to static Transport
+    module: TRANSPORT_ID,
     displayOrder: 0,
     isActive: true,
     isFeatured: false,
     metaTitle: '',
-    metaDescription: ''
+    metaDescription: '',
+    subCategory: ''
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -162,19 +194,16 @@ export default function CategoryManagement() {
       else if (data.data && Array.isArray(data.data.modules)) modulesList = data.data.modules;
       else if (data.data && Array.isArray(data.data)) modulesList = data.data;
 
-      // Check if real Transport exists
       const realTransport = modulesList.find(m =>
         (m.title || m.name || '').toLowerCase().includes('transport')
       );
 
-      // Final list: real modules + static Transport if missing
       const finalModules = realTransport
         ? modulesList
         : [STATIC_TRANSPORT, ...modulesList];
 
       setModules(finalModules);
 
-      // Auto-select Transport
       const selected = realTransport || STATIC_TRANSPORT;
       setFormData(prev => ({ ...prev, module: selected._id }));
       setSelectedModuleFilter(selected._id);
@@ -183,8 +212,6 @@ export default function CategoryManagement() {
       console.error('fetchModules error:', err);
       setModulesError(err.message);
       showNotification('Failed to fetch modules – using static Transport', 'warning');
-
-      // Fallback: only static Transport
       setModules([STATIC_TRANSPORT]);
       setFormData(prev => ({ ...prev, module: TRANSPORT_ID }));
       setSelectedModuleFilter(TRANSPORT_ID);
@@ -250,6 +277,8 @@ export default function CategoryManagement() {
           }
         }
 
+        const rawSubCategory = cat.subCategory ?? '';
+
         return {
           id: cat._id,
           names: {
@@ -259,7 +288,10 @@ export default function CategoryManagement() {
           },
           status: cat.isActive !== undefined ? cat.isActive : true,
           image: imageUrl,
-          module: cat.module || null
+          module: cat.module || null,
+          subCategory: rawSubCategory,
+          parentCategory: cat.parentCategory || null,
+          raw: cat
         };
       });
 
@@ -320,27 +352,26 @@ export default function CategoryManagement() {
   };
 
   const handleReset = () => {
-  setFormData((prev) => ({
-    ...prev,
-    name: '',
-    description: '',
-    parentCategory: '',
-    // Keep the current module selection instead of resetting to first
-    module: prev.module || (modules.length > 0 ? modules[0]._id : ''),
-    displayOrder: 0,
-    isActive: true,
-    isFeatured: false,
-    metaTitle: '',
-    metaDescription: ''
-  }));
-  setUploadedImage(null);
-  setImagePreview(null);
+    setFormData((prev) => ({
+      ...prev,
+      name: '',
+      description: '',
+      parentCategory: '',
+      module: prev.module || (modules.length > 0 ? modules[0]._id : ''),
+      displayOrder: 0,
+      isActive: true,
+      isFeatured: false,
+      metaTitle: '',
+      metaDescription: '',
+      subCategory: ''
+    }));
+    setUploadedImage(null);
+    setImagePreview(null);
 
-  // Properly reset file input using ref
-  if (fileInputRef.current) {
-    fileInputRef.current.value = '';
-  }
-};
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
 
   // ------------------- ADD CATEGORY -------------------
   const handleAdd = async () => {
@@ -378,6 +409,14 @@ export default function CategoryManagement() {
       if (formData.metaDescription.trim()) formDataToSend.append('metaDescription', formData.metaDescription.trim());
       formDataToSend.append('createdBy', getUserId());
       formDataToSend.append('image', uploadedImage);
+
+      const selectedModule = modules.find(m => m._id === formData.module);
+      const isTransport = selectedModule && 
+        (selectedModule._id === TRANSPORT_ID || (selectedModule.title || selectedModule.name || '').toLowerCase().includes('transport'));
+
+      if (isTransport && formData.subCategory) {
+        formDataToSend.append('subCategory', formData.subCategory);
+      }
 
       const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'POST',
@@ -506,6 +545,26 @@ export default function CategoryManagement() {
 
   const getCurrentLanguageKey = () => languageTabs[tabValue].key;
 
+  const isTransportModuleSelected = () => {
+    const selected = modules.find(m => m._id === formData.module);
+    if (!selected) return false;
+    return selected._id === TRANSPORT_ID || 
+           (selected.title || selected.name || '').toLowerCase().includes('transport');
+  };
+
+  const getVehicleType = () => {
+    if (!formData.parentCategory) return 'car';
+    const parent = categories.find(c => c.id === formData.parentCategory);
+    if (!parent) return 'car';
+    return detectVehicleType(parent.names.default);
+  };
+
+  const getSubcategories = () => {
+    if (!isTransportModuleSelected()) return [];
+    const type = getVehicleType();
+    return SUBCATEGORY_MAP[type] || SUBCATEGORY_MAP.car;
+  };
+
   // ------------------- FILTERED CATEGORIES -------------------
   const filteredCategories = categories.filter(cat => {
     const lang = getCurrentLanguageKey();
@@ -521,12 +580,13 @@ export default function CategoryManagement() {
   const exportToCSV = () => {
     const lang = getCurrentLanguageKey();
     const label = languageTabs[tabValue].label;
-    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Status'];
+    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Sub Category', 'Status'];
     const rows = filteredCategories.map((c, i) => [
       i + 1,
       c.id,
       c.names[lang],
       c.module?.title || 'N/A',
+      c.subCategory || '—',
       c.status ? 'Active' : 'Inactive'
     ]);
 
@@ -545,12 +605,13 @@ export default function CategoryManagement() {
   const exportToExcel = () => {
     const lang = getCurrentLanguageKey();
     const label = languageTabs[tabValue].label;
-    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Status'];
+    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Sub Category', 'Status'];
     const rows = filteredCategories.map((c, i) => [
       i + 1,
       c.id,
       c.names[lang],
       c.module?.title || 'N/A',
+      c.subCategory || '—',
       c.status ? 'Active' : 'Inactive'
     ]);
 
@@ -626,6 +687,71 @@ export default function CategoryManagement() {
               sx={{ mb: 4, '& .MuiOutlinedInput-root': { direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' } }}
             />
 
+            {/* PARENT CATEGORY (Only top-level of the selected module) */}
+            <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
+              Parent Category
+            </Typography>
+            <TextField
+              select
+              fullWidth
+              value={formData.parentCategory}
+              onChange={e => {
+                handleFormDataChange('parentCategory', e.target.value);
+                handleFormDataChange('subCategory', '');   // reset sub-category when parent changes
+              }}
+              SelectProps={{
+                displayEmpty: true,
+                renderValue: (selected) => {
+                  if (!selected) return <em>None</em>;
+                  const cat = categories.find(c => c.id === selected);
+                  return cat?.names.default || selected;
+                }
+              }}
+              variant="outlined"
+              sx={{ mb: 4 }}
+            >
+              <MenuItem value=""><em>None</em></MenuItem>
+              {categories
+                .filter(c => 
+                  !c.parentCategory &&                     // top-level only
+                  c.module?._id === formData.module        // belongs to the selected module
+                )
+                .map(cat => (
+                  <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
+                ))}
+            </TextField>
+
+            {/* SUBCATEGORY (Only for Transport + Valid Parent) */}
+            {isTransportModuleSelected() && (
+              <>
+                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
+                  Sub Category
+                </Typography>
+                <TextField
+                  select
+                  fullWidth
+                  value={formData.subCategory}
+                  onChange={e => handleFormDataChange('subCategory', e.target.value)}
+                  SelectProps={{
+                    displayEmpty: true,
+                    renderValue: (selected) => {
+                      if (!selected) return <em>Select sub category</em>;
+                      return selected;
+                    }
+                  }}
+                  variant="outlined"
+                  sx={{ mb: 4 }}
+                >
+                  <MenuItem value="" disabled>
+                    <em>Select sub category</em>
+                  </MenuItem>
+                  {getSubcategories().map(sub => (
+                    <MenuItem key={sub} value={sub}>{sub}</MenuItem>
+                  ))}
+                </TextField>
+              </>
+            )}
+
             {/* MODULE SELECT */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Module <span style={{ color: '#f44336' }}>*</span>
@@ -633,7 +759,11 @@ export default function CategoryManagement() {
             <TextField
               select fullWidth
               value={formData.module}
-              onChange={e => handleFormDataChange('module', e.target.value)}
+              onChange={e => {
+                handleFormDataChange('module', e.target.value);
+                handleFormDataChange('parentCategory', '');
+                handleFormDataChange('subCategory', '');
+              }}
               variant="outlined"
               disabled={modulesLoading || !!modulesError}
               sx={{ mb: 4 }}
@@ -742,7 +872,6 @@ export default function CategoryManagement() {
               </Box>
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                {/* MODULE FILTER */}
                 <TextField select size="small" value={selectedModuleFilter}
                   onChange={e => setSelectedModuleFilter(e.target.value)}
                   sx={{ minWidth: { xs: '100%', sm: 200 } }} disabled={loading || modulesLoading}>
@@ -752,7 +881,6 @@ export default function CategoryManagement() {
                   ))}
                 </TextField>
 
-                {/* SEARCH */}
                 <TextField size="small"
                   placeholder={`Search in ${languageTabs[tabValue].label}`}
                   value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
@@ -766,7 +894,6 @@ export default function CategoryManagement() {
                   disabled={loading}
                 />
 
-                {/* EXPORT */}
                 <Button variant="outlined" startIcon={<ExportIcon />} endIcon={<ExpandMoreIcon />}
                   onClick={handleExportMenuOpen}
                   sx={{
@@ -811,6 +938,7 @@ export default function CategoryManagement() {
                       Name ({languageTabs[tabValue].label})
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Module</TableCell>
+                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Sub Category</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Action</TableCell>
                   </TableRow>
@@ -859,6 +987,11 @@ export default function CategoryManagement() {
                           </Typography>
                         </TableCell>
                         <TableCell>
+                          <Typography variant="body2" color={cat.subCategory ? 'inherit' : 'text.secondary'}>
+                            {cat.subCategory || '—'}
+                          </Typography>
+                        </TableCell>
+                        <TableCell>
                           <Switch checked={cat.status} onChange={() => handleStatusToggle(cat.id)}
                             sx={{
                               '& .MuiSwitch-switchBase.Mui-checked': { color: '#2196f3' },
@@ -880,7 +1013,7 @@ export default function CategoryManagement() {
                     );
                   }) : (
                     <TableRow>
-                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+                      <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
                         <Stack spacing={2} alignItems="center">
                           <Typography variant="h6" color="textSecondary">
                             {loading ? 'Loading...' :

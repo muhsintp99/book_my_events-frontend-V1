@@ -8,7 +8,8 @@ import {
   IconClipboardCheck,// review
   IconUpload,        // bulk import
   IconDownload,      // bulk export
-  IconEngine         // ongoing/active trips
+  IconEngine,        // ongoing/active trips
+  IconListDetails    // 👈 NEW ICON for Vehicle Attributes
 } from '@tabler/icons-react';
 
 // constants
@@ -21,7 +22,8 @@ const icons = {
   IconClipboardCheck,
   IconUpload,
   IconDownload,
-  IconEngine
+  IconEngine,
+  IconListDetails    // 👈 Add here
 };
 
 // ==============================|| DASHBOARD FULL MENU GROUP ||============================== //
@@ -47,56 +49,14 @@ const vehiclemgt = {
       icon: icons.IconTrademark,
       breadcrumbs: false
     },
-    // {
-    //   id: 'vehicle-setup',
-    //   title: 'Vehicle Setup',
-    //   type: 'collapse',
-    //   icon: icons.IconCar,
-    //   children: [
-    //     {
-    //       id: 'create-vehicle',
-    //       title: 'Create New',
-    //       type: 'item',
-    //       url: '/vehicles/create',
-    //       icon: icons.IconPlus
-    //     },
-    //     {
-    //       id: 'vehicle-list',
-    //       title: 'List',
-    //       type: 'item',
-    //       url: '/vehicles/list',
-    //       icon: icons.IconList
-    //     },
-    //     {
-    //       id: 'vehicle-review',
-    //       title: 'Review',
-    //       type: 'item',
-    //       url: '/vehicles/review',
-    //       icon: icons.IconClipboardCheck
-    //     },
-    //     {
-    //       id: 'bulk-import-vehicles',
-    //       title: 'Bulk Import',
-    //       type: 'item',
-    //       url: '/vehicles/import',
-    //       icon: icons.IconUpload
-    //     },
-    //     {
-    //       id: 'ongoing-vehicles',
-    //       title: 'Ongoing',
-    //       type: 'item',
-    //       url: '/vehicles/ongoing',
-    //       icon: icons.IconEngine
-    //     },
-    //     {
-    //       id: 'bulk-export-vehicles',
-    //       title: 'Bulk Export',
-    //       type: 'item',
-    //       url: '/vehicles/export',
-    //       icon: icons.IconDownload
-    //     }
-    //   ]
-    // }
+    {
+      id: 'vehicle-attributes',
+      title: 'Vehicle Attributes',
+      type: 'item',
+      url: '/vehicles/Attributes',
+      icon: icons.IconListDetails,   // 👈 UPDATED ICON
+      breadcrumbs: false
+    }
   ]
 };
 
