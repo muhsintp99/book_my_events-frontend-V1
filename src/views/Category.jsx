@@ -326,7 +326,7 @@ export default function CategoryManagement() {
       displayOrder: 0,
       isActive: true,
       isFeatured: false,
- MVPTitle: '',
+      metaTitle: '',
       metaDescription: ''
     }));
     setUploadedImage(null);
@@ -396,7 +396,7 @@ export default function CategoryManagement() {
         throw new Error(errorMessage);
       }
 
-      const data = await response.json();
+      const data = await await response.json();
       const added = data.data?.category || data.category || data;
       showNotification(`Category "${added.title || added.name}" added successfully!`, 'success');
       handleReset();
@@ -625,11 +625,6 @@ export default function CategoryManagement() {
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            {/* <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto"
-              sx={{ mb: 4, borderBottom: 1, borderColor: 'divider', '& .MuiTabs-indicator': { backgroundColor: '#2196f3' } }}>
-              {languageTabs.map(t => <Tab key={t.key} label={t.label} />)}
-            </Tabs>
-*/}
            
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
@@ -906,7 +901,8 @@ export default function CategoryManagement() {
                           pl: isSubcategory ? 4 : 2
                         }}>
                           <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                            {isSubcategory && <span style={{ opacity: 0.6, marginRight: 4 }}>Subcategory</span>}
+                            {/* CHANGED: Subcategory label from "--" to "—" (en-dash) */}
+                            {isSubcategory && <span style={{ opacity: 0.6, marginRight: 4 }}>—</span>}
                             {cat.names[lang]}
                           </Typography>
                         </TableCell>
@@ -992,4 +988,4 @@ export default function CategoryManagement() {
       </Snackbar>
     </Box>
   );
-} 
+}
