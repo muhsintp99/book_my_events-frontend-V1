@@ -37,6 +37,9 @@ import CateringProvidermanagement from './catering/cateringprovidermanagement';
 import makeupsections from './makeup/makeupsections';
 import makeupmanangement from './makeup/makeupmanagement';
 import MakeupProvidermanagement from './makeup/makeupprovidermanagement';
+import photographymanangement from './Photography/photographymanagement';
+import photographysections from './Photography/photographysections';
+import PhotographyProvidermanagement from './Photography/providermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -60,6 +63,9 @@ const moduleMenuItems = {
   },
    makeup: {
     items: [dashboard,makeupmanangement,makeupsections,MakeupProvidermanagement] 
+  },
+   photography: {
+    items: [dashboard,photographymanangement,photographysections,PhotographyProvidermanagement] 
   },
 
   setting:{

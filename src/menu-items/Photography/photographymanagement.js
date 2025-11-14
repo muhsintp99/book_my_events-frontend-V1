@@ -11,9 +11,9 @@ const icons = {
   IconBell       // for Push Notifications
 };
 
-const makeupmanangement = {
-  id: 'makeup-customers',
-  title: 'MakeupManagement',
+const photographymanangement = {
+  id: 'photography-customers',
+  title: 'PhotographyManagement',
   type: 'group',
   children: [
    
@@ -21,7 +21,7 @@ const makeupmanangement = {
       id: 'Coupons',
       title: 'Coupons',
       type: 'item',
-      url: '/makeup/coupons',
+      url: '/photography/coupons',
       icon: icons.IconTicket,
       breadcrumbs: false
     },
@@ -36,4 +36,4 @@ const makeupmanangement = {
   ]
 };
 
-export default makeupmanangement;
+export default photographymanangement;

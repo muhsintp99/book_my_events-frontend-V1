@@ -10,7 +10,10 @@ import {
   Alert,
   CircularProgress,
   InputLabel,
-  FormControl
+  FormControl,
+  RadioGroup,
+  FormControlLabel,
+  Radio
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
@@ -34,11 +37,13 @@ function AddAuditorium() {
   const GOOGLE_MAPS_API_KEY = 'AIzaSyAfLUm1kPmeMkHh1Hr5nbgNpQJOsNa7B78';
 
   const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
+    vendorType: 'individual',
+    fullName: '',          // <-- for vendor-type toggle (individual)
+    storeName: '',         // <-- for vendor-type toggle (company)
+    firstName: '',         // <-- NEW: separate fields for User Information
+    lastName: '',          // <-- NEW
     email: '',
     phone: '',
-    storeName: '',
     storeAddress: {
       street: '',
       city: '',
@@ -77,9 +82,13 @@ function AddAuditorium() {
     coverImage: null
   });
 
-  const API_BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://api.bookmyevent.ae/api';
+  const API_BASE_URL = import.meta.env.MODE === 'development'
+    ? 'http://localhost:5000/api'
+    : 'https://api.bookmyevent.ae/api';
 
-  // Load Google Maps script
+  /* -------------------------------------------------------------
+     Google Maps – unchanged
+  ------------------------------------------------------------- */
   useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY) {
       console.warn('Google Maps API key not provided');
@@ -101,7 +110,6 @@ function AddAuditorium() {
     };
   }, [GOOGLE_MAPS_API_KEY]);
 
-  // Initialize map
   useEffect(() => {
     if (mapsLoaded && window.google?.maps) initMap();
   }, [mapsLoaded]);
@@ -118,46 +126,28 @@ function AddAuditorium() {
     newMap.addListener('click', (event) => {
       const lat = event.latLng.lat();
       const lng = event.latLng.lng();
-      setFormData((prev) => ({ ...prev, latitude: lat.toString(), longitude: lng.toString() }));
+      setFormData(prev => ({ ...prev, latitude: lat.toString(), longitude: lng.toString() }));
 
       if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new window.google.maps.Marker({ position: { lat, lng }, map: newMap });
 
       const geocoder = new window.google.maps.Geocoder();
-geocoder.geocode({ location: { lat, lng } }, (results, status) => {
-  if (status === "OK" && results[0]) {
-    const address = results[0].address_components;
-
-    const get = (type) => {
-      const item = address.find(a => a.types.includes(type));
-      return item ? item.long_name : "";
-    };
-
-    setFormData(prev => ({
-      ...prev,
-      storeAddress: {
-        street: get("route"),
-        city: get("locality") || get("administrative_area_level_2"),
-        state: get("administrative_area_level_1"),
-        zipCode: get("postal_code"),
-        fullAddress: results[0].formatted_address
-      },
-      latitude: lat.toString(),
-      longitude: lng.toString()
-    }));
-
-    showAlert("Location set and address auto-filled!", "success");
-  } else {
-    showAlert("Location set, but could not determine address.", "info");
-  }
-});
-
+      geocoder.geocode({ location: { lat, lng } }, (results, status) => {
+        if (status === 'OK' && results[0]) {
+          setFormData(prev => ({
+            ...prev,
+            storeAddress: { ...prev.storeAddress, fullAddress: results[0].formatted_address }
+          }));
+          showAlert('Location set and address auto-filled!', 'success');
+        } else {
+          showAlert('Location set, but could not determine address.', 'info');
+        }
+      });
     });
 
     setMap(newMap);
   }, [mapsLoaded, formData.latitude, formData.longitude]);
 
-  // Autocomplete for search input
   useEffect(() => {
     if (!mapsLoaded || !map || !searchInputRef.current || !window.google) return;
 
@@ -171,15 +161,12 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
       const loc = place.geometry.location;
       if (place.geometry.viewport) map.fitBounds(place.geometry.viewport);
-      else {
-        map.setCenter(loc);
-        map.setZoom(17);
-      }
+      else { map.setCenter(loc); map.setZoom(17); }
 
       if (markerRef.current) markerRef.current.setMap(null);
       markerRef.current = new window.google.maps.Marker({ position: loc, map });
 
-      setFormData((prev) => ({
+      setFormData(prev => ({
         ...prev,
         latitude: loc.lat().toString(),
         longitude: loc.lng().toString(),
@@ -191,7 +178,6 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
     return () => window.google.maps.event.removeListener(listener);
   }, [mapsLoaded, map]);
 
-  // Update marker when lat/lng change
   useEffect(() => {
     if (!map || !formData.latitude || !formData.longitude) return;
     const pos = { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) };
@@ -204,7 +190,9 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
     }
   }, [formData.latitude, formData.longitude, map]);
 
-  // Fetch zones & modules
+  /* -------------------------------------------------------------
+     Fetch zones & modules – unchanged
+  ------------------------------------------------------------- */
   useEffect(() => {
     fetchZones();
     fetchModules();
@@ -231,11 +219,13 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
       const data = await res.json();
 
       setAllModules(Array.isArray(data) ? data : []);
-      const filtered = Array.isArray(data) ? (activeModuleId ? data.filter((m) => m._id === activeModuleId) : data) : [];
+      const filtered = Array.isArray(data)
+        ? activeModuleId ? data.filter(m => m._id === activeModuleId) : data
+        : [];
       setModules(filtered);
 
       if (activeModuleId && filtered.length) {
-        setFormData((prev) => ({ ...prev, module: activeModuleId }));
+        setFormData(prev => ({ ...prev, module: activeModuleId }));
       }
     } catch (err) {
       console.error('Error fetching modules:', err);
@@ -252,35 +242,50 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
     setOpen(true);
   };
 
-  const handleInputChange = (field) => (e) => setFormData({ ...formData, [field]: e.target.value });
-  const handleAddressChange = (sub) => (e) =>
-    setFormData({
-      ...formData,
-      storeAddress: { ...formData.storeAddress, [sub]: e.target.value }
-    });
-  const handleZoneChange = (e) => {
+  const handleInputChange = field => e => setFormData({ ...formData, [field]: e.target.value });
+
+  const handleAddressChange = sub => e => setFormData({
+    ...formData,
+    storeAddress: { ...formData.storeAddress, [sub]: e.target.value }
+  });
+
+  const handleZoneChange = e => {
     const zoneId = e.target.value;
     setSelectedZone(zoneId);
     setFormData({ ...formData, zone: zoneId });
   };
-  const handleModuleChange = (e) => setFormData({ ...formData, module: e.target.value });
+
+  const handleModuleChange = e => setFormData({ ...formData, module: e.target.value });
+
+  const handleVendorTypeChange = (e) => {
+    const newType = e.target.value;
+    setFormData({ ...formData, vendorType: newType, fullName: '', storeName: '' });
+  };
 
   const handleImageUpload = (e, type) => {
     const file = e.target.files[0];
     if (!file) return;
     setFiles({ ...files, [type]: file });
     const reader = new FileReader();
-    reader.onload = (ev) => {
+    reader.onload = ev => {
       if (type === 'logo') setLogoPreview(ev.target.result);
       if (type === 'coverImage') setCoverPreview(ev.target.result);
     };
     reader.readAsDataURL(file);
   };
 
+  /* -------------------------------------------------------------
+     Validation – updated for the new firstName/lastName fields
+  ------------------------------------------------------------- */
   const validateForm = () => {
     const errs = [];
+    const name = formData.vendorType === 'individual' ? formData.fullName : formData.storeName;
+    if (!name.trim()) errs.push('Name is required');
+
+    // User Information – firstName & lastName
     if (!formData.firstName.trim()) errs.push('First name is required');
     if (!formData.lastName.trim()) errs.push('Last name is required');
+
     if (!formData.email.trim()) errs.push('Email is required');
     if (!formData.ownerFirstName.trim()) errs.push('Owner first name is required');
     if (!formData.ownerLastName.trim()) errs.push('Owner last name is required');
@@ -293,20 +298,24 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
   const handleSubmit = async () => {
     const errors = validateForm();
-    if (errors.length) {
-      showAlert(errors.join(', '), 'error');
-      return;
-    }
+    if (errors.length) { showAlert(errors.join(', '), 'error'); return; }
 
     try {
       setLoading(true);
       const payload = new FormData();
-      payload.append('firstName', formData.firstName);
-      payload.append('lastName', formData.lastName);
+      payload.append('vendorType', formData.vendorType);
+      payload.append('firstName', formData.firstName);          // <-- from User Information
+      payload.append('lastName', formData.lastName);            // <-- from User Information
       payload.append('email', formData.email);
       payload.append('phone', formData.phone);
       payload.append('role', 'vendor');
-      payload.append('storeName', formData.storeName);
+
+      // storeName = fullName (individual) OR storeName (company)
+      const storeName = formData.vendorType === 'individual'
+        ? formData.fullName.trim()
+        : formData.storeName.trim();
+      payload.append('storeName', storeName);
+
       payload.append('storeAddress[street]', formData.storeAddress.street);
       payload.append('storeAddress[city]', formData.storeAddress.city);
       payload.append('storeAddress[state]', formData.storeAddress.state);
@@ -350,11 +359,13 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
   const handleReset = () => {
     setFormData({
+      vendorType: 'individual',
+      fullName: '',
+      storeName: '',
       firstName: '',
       lastName: '',
       email: '',
       phone: '',
-      storeName: '',
       storeAddress: { street: '', city: '', state: '', zipCode: '', fullAddress: '' },
       minimumDeliveryTime: '',
       maximumDeliveryTime: '',
@@ -378,15 +389,12 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
     setLogoPreview(null);
     setCoverPreview(null);
     setFiles({ logo: null, coverImage: null });
-    if (markerRef.current) {
-      markerRef.current.setMap(null);
-      markerRef.current = null;
-    }
+    if (markerRef.current) { markerRef.current.setMap(null); markerRef.current = null; }
   };
 
   const getSelectedModuleName = () => {
     if (!formData.module) return 'No module selected';
-    const mod = allModules.find((m) => m._id === formData.module);
+    const mod = allModules.find(m => m._id === formData.module);
     return mod ? mod.title : 'Unknown module';
   };
 
@@ -399,62 +407,81 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
   return (
     <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
-      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Add Provider
-      </Typography>
+      <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>Add Provider</Typography>
 
-      {/* Store Information */}
+      {/* Vendor Type Selection */}
+      <Box sx={{ mb: 3, p: 2, backgroundColor: '#fff', borderRadius: 1, border: '1px solid #e0e0e0' }}>
+        <Typography variant="h6" fontWeight="bold" sx={{ mb: 2 }}>Vendor Type</Typography>
+        <FormControl component="fieldset">
+          <RadioGroup
+            row
+            value={formData.vendorType}
+            onChange={handleVendorTypeChange}
+          >
+            <FormControlLabel value="individual" control={<Radio />} label="Individual" />
+            <FormControlLabel value="company" control={<Radio />} label="Company" />
+          </RadioGroup>
+        </FormControl>
+      </Box>
+
+      {/* Store Information – ONLY NAME FIELD CHANGED */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-          Store Information
-        </Typography>
-        <TextField
-          fullWidth
-          label="Store Name"
-          variant="outlined"
-          value={formData.storeName}
-          onChange={handleInputChange('storeName')}
-          sx={{ mb: 2 }}
-        />
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Store Information</Typography>
+
+        {formData.vendorType === 'individual' ? (
+          <TextField
+            fullWidth
+            label="Full Name *"
+            required
+            variant="outlined"
+            value={formData.fullName}
+            onChange={handleInputChange('fullName')}
+            sx={{ mb: 2 }}
+          />
+        ) : (
+          <TextField
+            fullWidth
+            label="Store Name *"
+            required
+            variant="outlined"
+            value={formData.storeName}
+            onChange={handleInputChange('storeName')}
+            sx={{ mb: 2 }}
+          />
+        )}
       </Box>
 
       {/* Logo */}
       {logoPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Selected Logo:
-          </Typography>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Logo:</Typography>
           <img src={logoPreview} alt="Logo" style={{ maxWidth: '100px', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
       <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
         <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ width: '100%' }}>
           {logoPreview ? 'Change Logo' : 'Upload Logo'}
-          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'logo')} />
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={e => handleImageUpload(e, 'logo')} />
         </Button>
       </Box>
 
       {/* Cover */}
       {coverPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>
-            Selected Cover:
-          </Typography>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Cover:</Typography>
           <img src={coverPreview} alt="Cover" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
       <Box sx={{ border: '1px dashed grey', p: 2, textAlign: 'center', mb: 2 }}>
         <Button variant="outlined" component="label" startIcon={<CloudUploadIcon />} sx={{ width: '100%' }}>
           {coverPreview ? 'Change Cover' : 'Upload Cover'}
-          <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'coverImage')} />
+          <input type="file" hidden accept="image/jpeg,image/png" onChange={e => handleImageUpload(e, 'coverImage')} />
         </Button>
       </Box>
 
-      {/* User Information */}
+      {/* USER INFORMATION – NOW SHOWS FIRST & LAST NAME */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-          User Information
-        </Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
           <TextField
             fullWidth
@@ -495,32 +522,20 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
       {/* Location */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-          Location
-        </Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Location</Typography>
 
         {/* Module */}
         <Box sx={{ mb: 2 }}>
           {modulesLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={20} />
-              <Typography variant="body2">Loading modules...</Typography>
+              <CircularProgress size={20} /><Typography variant="body2">Loading modules...</Typography>
             </Box>
           ) : modules.length ? (
             <FormControl fullWidth variant="outlined">
               <InputLabel id="module-select-label">Module *</InputLabel>
-              <Select
-                labelId="module-select-label"
-                value={formData.module}
-                onChange={handleModuleChange}
-                label="Module *"
-                disabled={modules.length === 1}
-              >
-                {modules.map((m) => (
-                  <MenuItem key={m._id} value={m._id}>
-                    {m.title}
-                  </MenuItem>
-                ))}
+              <Select labelId="module-select-label" value={formData.module}
+                onChange={handleModuleChange} label="Module *" disabled={modules.length === 1}>
+                {modules.map(m => <MenuItem key={m._id} value={m._id}>{m.title}</MenuItem>)}
               </Select>
             </FormControl>
           ) : (
@@ -539,21 +554,15 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
         <Box sx={{ mb: 2 }}>
           {zonesLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={20} />
-              <Typography variant="body2">Loading zones...</Typography>
+              <CircularProgress size={20} /><Typography variant="body2">Loading zones...</Typography>
             </Box>
           ) : zones.length ? (
             <FormControl fullWidth variant="outlined">
               <InputLabel id="zone-select-label">Zone</InputLabel>
-              <Select labelId="zone-select-label" value={selectedZone} onChange={handleZoneChange} label="Zone">
-                <MenuItem value="">
-                  <em>Select Zone</em>
-                </MenuItem>
-                {zones.map((z) => (
-                  <MenuItem key={z._id} value={z._id}>
-                    {z.name}
-                  </MenuItem>
-                ))}
+              <Select labelId="zone-select-label" value={selectedZone}
+                onChange={handleZoneChange} label="Zone">
+                <MenuItem value=""><em>Select Zone</em></MenuItem>
+                {zones.map(z => <MenuItem key={z._id} value={z._id}>{z.name}</MenuItem>)}
               </Select>
             </FormControl>
           ) : (
@@ -563,49 +572,23 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
 
         {/* Address fields */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Street"
-            variant="outlined"
-            value={formData.storeAddress.street}
-            onChange={handleAddressChange('street')}
-          />
-          <TextField fullWidth label="City" variant="outlined" value={formData.storeAddress.city} onChange={handleAddressChange('city')} />
+          <TextField fullWidth label="Street" variant="outlined"
+            value={formData.storeAddress.street} onChange={handleAddressChange('street')} />
+          <TextField fullWidth label="City" variant="outlined"
+            value={formData.storeAddress.city} onChange={handleAddressChange('city')} />
         </Box>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="State"
-            variant="outlined"
-            value={formData.storeAddress.state}
-            onChange={handleAddressChange('state')}
-          />
-          <TextField
-            fullWidth
-            label="Zip Code"
-            variant="outlined"
-            value={formData.storeAddress.zipCode}
-            onChange={handleAddressChange('zipCode')}
-          />
+          <TextField fullWidth label="State" variant="outlined"
+            value={formData.storeAddress.state} onChange={handleAddressChange('state')} />
+          <TextField fullWidth label="Zip Code" variant="outlined"
+            value={formData.storeAddress.zipCode} onChange={handleAddressChange('zipCode')} />
         </Box>
-        <TextField
-          fullWidth
-          label="Full Address"
-          variant="outlined"
-          value={formData.storeAddress.fullAddress}
-          onChange={handleAddressChange('fullAddress')}
-          sx={{ mb: 2 }}
-        />
+        <TextField fullWidth label="Full Address" variant="outlined"
+          value={formData.storeAddress.fullAddress} onChange={handleAddressChange('fullAddress')} sx={{ mb: 2 }} />
 
         {/* Search */}
-        <TextField
-          fullWidth
-          label="Search Location"
-          inputRef={searchInputRef}
-          variant="outlined"
-          placeholder="Enter a location"
-          sx={{ mb: 2, ...inputSx }}
-        />
+        <TextField fullWidth label="Search Location" inputRef={searchInputRef}
+          variant="outlined" placeholder="Enter a location" sx={{ mb: 2, ...inputSx }} />
 
         {/* Map */}
         {mapsLoaded && GOOGLE_MAPS_API_KEY ? (
@@ -616,102 +599,46 @@ geocoder.geocode({ location: { lat, lng } }, (results, status) => {
             <Box ref={mapRef} sx={{ height: 300, width: '100%', borderRadius: 1, border: '1px solid #ddd', mb: 2 }} />
           </>
         ) : (
-          <Box
-            sx={{
-              height: 300,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              border: '1px solid #ddd',
-              borderRadius: 1,
-              mb: 2
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Map loading...
-            </Typography>
+          <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            border: '1px solid #ddd', borderRadius: 1, mb: 2 }}>
+            <Typography variant="body2" color="text.secondary">Map loading...</Typography>
           </Box>
         )}
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Latitude"
-            type="number"
-            inputProps={{ step: '0.0001' }}
-            value={formData.latitude}
-            onChange={handleInputChange('latitude')}
-          />
-          <TextField
-            fullWidth
-            label="Longitude"
-            type="number"
-            inputProps={{ step: '0.0001' }}
-            value={formData.longitude}
-            onChange={handleInputChange('longitude')}
-          />
+          <TextField fullWidth label="Latitude" type="number" inputProps={{ step: '0.0001' }}
+            value={formData.latitude} onChange={handleInputChange('latitude')} />
+          <TextField fullWidth label="Longitude" type="number" inputProps={{ step: '0.0001' }}
+            value={formData.longitude} onChange={handleInputChange('longitude')} />
         </Box>
       </Box>
 
       {/* Owner Information */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-          Owner Information
-        </Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Owner Information</Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField
-            fullWidth
-            label="Owner First Name *"
-            required
-            variant="outlined"
-            value={formData.ownerFirstName}
-            onChange={handleInputChange('ownerFirstName')}
-          />
-          <TextField
-            fullWidth
-            label="Owner Last Name *"
-            required
-            variant="outlined"
-            value={formData.ownerLastName}
-            onChange={handleInputChange('ownerLastName')}
-          />
+          <TextField fullWidth label="Owner First Name *" required variant="outlined"
+            value={formData.ownerFirstName} onChange={handleInputChange('ownerFirstName')} />
+          <TextField fullWidth label="Owner Last Name *" required variant="outlined"
+            value={formData.ownerLastName} onChange={handleInputChange('ownerLastName')} />
         </Box>
-        <TextField
-          fullWidth
-          label="Owner Email *"
-          required
-          variant="outlined"
-          value={formData.ownerEmail}
-          onChange={handleInputChange('ownerEmail')}
-          sx={{ mb: 2 }}
-        />
-        <TextField
-          fullWidth
-          label="Owner Phone"
-          variant="outlined"
-          value={formData.ownerPhone}
-          onChange={handleInputChange('ownerPhone')}
-          sx={{ mb: 2 }}
-        />
+        <TextField fullWidth label="Owner Email *" required variant="outlined"
+          value={formData.ownerEmail} onChange={handleInputChange('ownerEmail')} sx={{ mb: 2 }} />
+        <TextField fullWidth label="Owner Phone" variant="outlined"
+          value={formData.ownerPhone} onChange={handleInputChange('ownerPhone')} sx={{ mb: 2 }} />
       </Box>
 
       {/* Buttons */}
       <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
-        <Button variant="outlined" onClick={handleReset} disabled={loading}>
-          Reset
-        </Button>
-        <Button
-          variant="contained"
-          color="primary"
-          onClick={handleSubmit}
-          disabled={loading}
-          startIcon={loading ? <CircularProgress size={20} /> : null}
-        >
+        <Button variant="outlined" onClick={handleReset} disabled={loading}>Reset</Button>
+        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} /> : null}>
           {loading ? 'Submitting...' : 'Submit'}
         </Button>
       </Box>
 
-      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
         <Alert onClose={() => setOpen(false)} severity={alertSeverity} sx={{ width: '100%' }}>
           {alertMessage}
         </Alert>

@@ -52,37 +52,6 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae
 const TRANSPORT_ID = 'static_transport_123456789012345678901234';
 const STATIC_TRANSPORT = { _id: TRANSPORT_ID, title: 'Transport', name: 'Transport' };
 
-// ---- SUBCATEGORY MAPPING BY VEHICLE TYPE ----
-const SUBCATEGORY_MAP = {
-  car: [
-    'Micro', 'Hatchback', 'Crossover', 'Sedan', 'Coupe', 'Coupe SUV',
-    'SUV', 'Limousine', 'Offroader', 'Roadster', 'Muscle'
-  ],
-  motorcycle: [
-    'Scooter', 'Commuter', 'Classic', 'Cafe Racer', 'Cruiser', 'Chopper',
-    'Touring', 'Sports Touring', 'Naked', 'Sports', 'ATV', 'Bobber', 'Adventure'
-  ],
-  van: ['Mini Van', 'Traveller'],
-  bus: ['Mini Bus', 'Luxury Coach']
-};
-
-const VEHICLE_TYPE_TO_CATEGORY = {
-  car: ['Car', 'Cars'],
-  motorcycle: ['Motorcycle', 'Motorcycles', 'Bike', 'Bikes'],
-  van: ['Van', 'Vans'],
-  bus: ['Bus', 'Buses']
-};
-
-const detectVehicleType = (categoryName = '') => {
-  const lower = categoryName.toLowerCase();
-  for (const [type, keywords] of Object.entries(VEHICLE_TYPE_TO_CATEGORY)) {
-    if (keywords.some(k => lower.includes(k.toLowerCase()))) {
-      return type;
-    }
-  }
-  return 'car';
-};
-
 export default function CategoryManagement() {
   const [tabValue, setTabValue] = useState(0);
   const [searchTerm, setSearchTerm] = useState('');
@@ -102,8 +71,7 @@ export default function CategoryManagement() {
     isActive: true,
     isFeatured: false,
     metaTitle: '',
-    metaDescription: '',
-    subCategory: ''
+    metaDescription: ''
   });
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -277,8 +245,6 @@ export default function CategoryManagement() {
           }
         }
 
-        const rawSubCategory = cat.subCategory ?? '';
-
         return {
           id: cat._id,
           names: {
@@ -289,7 +255,6 @@ export default function CategoryManagement() {
           status: cat.isActive !== undefined ? cat.isActive : true,
           image: imageUrl,
           module: cat.module || null,
-          subCategory: rawSubCategory,
           parentCategory: cat.parentCategory || null,
           raw: cat
         };
@@ -361,9 +326,8 @@ export default function CategoryManagement() {
       displayOrder: 0,
       isActive: true,
       isFeatured: false,
-      metaTitle: '',
-      metaDescription: '',
-      subCategory: ''
+ MVPTitle: '',
+      metaDescription: ''
     }));
     setUploadedImage(null);
     setImagePreview(null);
@@ -383,7 +347,7 @@ export default function CategoryManagement() {
     }
 
     if (!formData.name.trim()) {
-      showNotification('Please enter a category title in Default language', 'error');
+      showNotification('Please enter a category title in Default', 'error');
       return;
     }
     if (!formData.module || !/^[0-9a-fA-F]{24}$/.test(formData.module)) {
@@ -401,7 +365,7 @@ export default function CategoryManagement() {
       formDataToSend.append('title', formData.name.trim());
       formDataToSend.append('module', formData.module);
       if (formData.description.trim()) formDataToSend.append('description', formData.description.trim());
-      if (formData.parentCategory.trim()) formDataToSend.append('parentCategory', formData.parentCategory.trim());
+      if (formData.parentCategory) formDataToSend.append('parentCategory', formData.parentCategory);
       formDataToSend.append('displayOrder', formData.displayOrder);
       formDataToSend.append('isActive', formData.isActive);
       formDataToSend.append('isFeatured', formData.isFeatured);
@@ -409,14 +373,6 @@ export default function CategoryManagement() {
       if (formData.metaDescription.trim()) formDataToSend.append('metaDescription', formData.metaDescription.trim());
       formDataToSend.append('createdBy', getUserId());
       formDataToSend.append('image', uploadedImage);
-
-      const selectedModule = modules.find(m => m._id === formData.module);
-      const isTransport = selectedModule && 
-        (selectedModule._id === TRANSPORT_ID || (selectedModule.title || selectedModule.name || '').toLowerCase().includes('transport'));
-
-      if (isTransport && formData.subCategory) {
-        formDataToSend.append('subCategory', formData.subCategory);
-      }
 
       const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'POST',
@@ -545,50 +501,47 @@ export default function CategoryManagement() {
 
   const getCurrentLanguageKey = () => languageTabs[tabValue].key;
 
-  const isTransportModuleSelected = () => {
-    const selected = modules.find(m => m._id === formData.module);
-    if (!selected) return false;
-    return selected._id === TRANSPORT_ID || 
-           (selected.title || selected.name || '').toLowerCase().includes('transport');
-  };
+  // ------------------- FILTERED CATEGORIES WITH HIERARCHY -------------------
+  const filteredCategories = categories
+    .filter(cat => {
+      const lang = getCurrentLanguageKey();
+      const matchesSearch = cat.names[lang].toLowerCase().includes(searchTerm.toLowerCase());
 
-  const getVehicleType = () => {
-    if (!formData.parentCategory) return 'car';
-    const parent = categories.find(c => c.id === formData.parentCategory);
-    if (!parent) return 'car';
-    return detectVehicleType(parent.names.default);
-  };
+      if (selectedModuleFilter === 'all') return matchesSearch;
 
-  const getSubcategories = () => {
-    if (!isTransportModuleSelected()) return [];
-    const type = getVehicleType();
-    return SUBCATEGORY_MAP[type] || SUBCATEGORY_MAP.car;
-  };
+      const belongsToModule =
+        cat.module?._id === selectedModuleFilter ||
+        (cat.parentCategory && 
+         categories.find(p => p.id === cat.parentCategory)?.module?._id === selectedModuleFilter);
 
-  // ------------------- FILTERED CATEGORIES -------------------
-  const filteredCategories = categories.filter(cat => {
-    const lang = getCurrentLanguageKey();
-    const matchesSearch = cat.names[lang].toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = selectedModuleFilter === 'all' || cat.module?._id === selectedModuleFilter;
-    return matchesSearch && matchesModule;
-  });
+      return matchesSearch && belongsToModule;
+    })
+    .sort((a, b) => {
+      if (!a.parentCategory && b.parentCategory) return -1;
+      if (a.parentCategory && !b.parentCategory) return 1;
+      return 0;
+    });
 
-  // ------------------- EXPORT -------------------
+  // ------------------- EXPORT (includes parent for clarity) -------------------
   const handleExportMenuOpen = (e) => setExportMenuAnchor(e.currentTarget);
   const handleExportMenuClose = () => setExportMenuAnchor(null);
 
   const exportToCSV = () => {
     const lang = getCurrentLanguageKey();
-    const label = languageTabs[tabValue].label;
-    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Sub Category', 'Status'];
-    const rows = filteredCategories.map((c, i) => [
-      i + 1,
-      c.id,
-      c.names[lang],
-      c.module?.title || 'N/A',
-      c.subCategory || '—',
-      c.status ? 'Active' : 'Inactive'
-    ]);
+    const headers = ['SI', 'ID', `Name (${lang})`, 'Module', 'Parent', 'Status'];
+    const rows = filteredCategories.map((c, i) => {
+      const parentName = c.parentCategory
+        ? categories.find(p => p.id === c.parentCategory)?.names.default || '—'
+        : '—';
+      return [
+        i + 1,
+        c.id,
+        c.names[lang],
+        c.module?.title || (c.parentCategory ? '—' : 'N/A'),
+        parentName,
+        c.status ? 'Active' : 'Inactive'
+      ];
+    });
 
     let csv = headers.join(',') + '\n' + rows.map(r => r.map(f => `"${f}"`).join(',')).join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -604,16 +557,20 @@ export default function CategoryManagement() {
 
   const exportToExcel = () => {
     const lang = getCurrentLanguageKey();
-    const label = languageTabs[tabValue].label;
-    const headers = ['SI', 'ID', `Name (${label})`, 'Module', 'Sub Category', 'Status'];
-    const rows = filteredCategories.map((c, i) => [
-      i + 1,
-      c.id,
-      c.names[lang],
-      c.module?.title || 'N/A',
-      c.subCategory || '—',
-      c.status ? 'Active' : 'Inactive'
-    ]);
+    const headers = ['SI', 'ID', `Name (${lang})`, 'Module', 'Parent', 'Status'];
+    const rows = filteredCategories.map((c, i) => {
+      const parentName = c.parentCategory
+        ? categories.find(p => p.id === c.parentCategory)?.names.default || '—'
+        : '—';
+      return [
+        i + 1,
+        c.id,
+        c.names[lang],
+        c.module?.title || (c.parentCategory ? '—' : 'N/A'),
+        parentName,
+        c.status ? 'Active' : 'Inactive'
+      ];
+    });
 
     let txt = headers.join('\t') + '\n' + rows.map(r => r.join('\t')).join('\n');
     const blob = new Blob([txt], { type: 'application/vnd.ms-excel;charset=utf-8;' });
@@ -668,12 +625,12 @@ export default function CategoryManagement() {
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-            <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto"
+            {/* <Tabs value={tabValue} onChange={handleTabChange} variant="scrollable" scrollButtons="auto"
               sx={{ mb: 4, borderBottom: 1, borderColor: 'divider', '& .MuiTabs-indicator': { backgroundColor: '#2196f3' } }}>
               {languageTabs.map(t => <Tab key={t.key} label={t.label} />)}
             </Tabs>
-
-            {/* TITLE */}
+*/}
+           
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
             </Typography>
@@ -685,9 +642,9 @@ export default function CategoryManagement() {
               variant="outlined"
               disabled={languageTabs[tabValue].key !== 'default'}
               sx={{ mb: 4, '& .MuiOutlinedInput-root': { direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' } }}
-            />
+            /> 
 
-            {/* PARENT CATEGORY (Only top-level of the selected module) */}
+            {/* PARENT CATEGORY */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Parent Category
             </Typography>
@@ -695,10 +652,7 @@ export default function CategoryManagement() {
               select
               fullWidth
               value={formData.parentCategory}
-              onChange={e => {
-                handleFormDataChange('parentCategory', e.target.value);
-                handleFormDataChange('subCategory', '');   // reset sub-category when parent changes
-              }}
+              onChange={e => handleFormDataChange('parentCategory', e.target.value)}
               SelectProps={{
                 displayEmpty: true,
                 renderValue: (selected) => {
@@ -712,45 +666,11 @@ export default function CategoryManagement() {
             >
               <MenuItem value=""><em>None</em></MenuItem>
               {categories
-                .filter(c => 
-                  !c.parentCategory &&                     // top-level only
-                  c.module?._id === formData.module        // belongs to the selected module
-                )
+                .filter(c => !c.parentCategory && c.module?._id === formData.module)
                 .map(cat => (
                   <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
                 ))}
             </TextField>
-
-            {/* SUBCATEGORY (Only for Transport + Valid Parent) */}
-            {isTransportModuleSelected() && (
-              <>
-                <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
-                  Sub Category
-                </Typography>
-                <TextField
-                  select
-                  fullWidth
-                  value={formData.subCategory}
-                  onChange={e => handleFormDataChange('subCategory', e.target.value)}
-                  SelectProps={{
-                    displayEmpty: true,
-                    renderValue: (selected) => {
-                      if (!selected) return <em>Select sub category</em>;
-                      return selected;
-                    }
-                  }}
-                  variant="outlined"
-                  sx={{ mb: 4 }}
-                >
-                  <MenuItem value="" disabled>
-                    <em>Select sub category</em>
-                  </MenuItem>
-                  {getSubcategories().map(sub => (
-                    <MenuItem key={sub} value={sub}>{sub}</MenuItem>
-                  ))}
-                </TextField>
-              </>
-            )}
 
             {/* MODULE SELECT */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
@@ -760,9 +680,9 @@ export default function CategoryManagement() {
               select fullWidth
               value={formData.module}
               onChange={e => {
-                handleFormDataChange('module', e.target.value);
+                const newModule = e.target.value;
+                handleFormDataChange('module', newModule);
                 handleFormDataChange('parentCategory', '');
-                handleFormDataChange('subCategory', '');
               }}
               variant="outlined"
               disabled={modulesLoading || !!modulesError}
@@ -938,7 +858,6 @@ export default function CategoryManagement() {
                       Name ({languageTabs[tabValue].label})
                     </TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Module</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Sub Category</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Status</TableCell>
                     <TableCell sx={{ fontWeight: 600, color: '#666' }}>Action</TableCell>
                   </TableRow>
@@ -947,8 +866,16 @@ export default function CategoryManagement() {
                 <TableBody>
                   {filteredCategories.length > 0 ? filteredCategories.map((cat, idx) => {
                     const lang = getCurrentLanguageKey();
+                    const isSubcategory = !!cat.parentCategory;
+
                     return (
-                      <TableRow key={cat.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+                      <TableRow 
+                        key={cat.id} 
+                        sx={{ 
+                          '&:hover': { backgroundColor: '#f9f9f9' },
+                          backgroundColor: isSubcategory ? '#fafafa' : 'inherit'
+                        }}
+                      >
                         <TableCell>{idx + 1}</TableCell>
                         <TableCell>
                           {cat.image ? (
@@ -974,21 +901,19 @@ export default function CategoryManagement() {
                           )}
                         </TableCell>
                         <TableCell sx={{
-                          fontWeight: 500, maxWidth: 200,
-                          direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr'
+                          fontWeight: 500,
+                          direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr',
+                          pl: isSubcategory ? 4 : 2
                         }}>
                           <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
+                            {isSubcategory && <span style={{ opacity: 0.6, marginRight: 4 }}>Subcategory</span>}
                             {cat.names[lang]}
                           </Typography>
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {cat.module ? cat.module.title || 'N/A' : 'None'}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2" color={cat.subCategory ? 'inherit' : 'text.secondary'}>
-                            {cat.subCategory || '—'}
+                            {cat.module ? cat.module.title || 'N/A' : 
+                             (isSubcategory ? '—' : 'None')}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -1013,7 +938,7 @@ export default function CategoryManagement() {
                     );
                   }) : (
                     <TableRow>
-                      <TableCell colSpan={7} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
+                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
                         <Stack spacing={2} alignItems="center">
                           <Typography variant="h6" color="textSecondary">
                             {loading ? 'Loading...' :
@@ -1067,4 +992,4 @@ export default function CategoryManagement() {
       </Snackbar>
     </Box>
   );
-}
+} 
