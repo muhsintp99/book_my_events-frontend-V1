@@ -36,9 +36,17 @@ const makeupsections = {
   children: [
     {
       id: 'makeup-category',
-      title: 'Makeup',
+      title: 'Category',
       type: 'item',
       url: '/makeup/category',
+      icon: icons.IconCategory,
+      breadcrumbs: false
+    },
+    {
+      id: 'makeup-types',
+      title: 'Makeup-Types',
+      type: 'item',
+      url: '/makeup/types',
       icon: icons.IconCategory,
       breadcrumbs: false
     },

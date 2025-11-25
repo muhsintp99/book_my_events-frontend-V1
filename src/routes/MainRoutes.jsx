@@ -95,6 +95,8 @@ const Makeupcategory = Loadable(lazy(() => import('../makeup/Category')));
 const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
 const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
 const MakeupCoupon = Loadable(lazy(() => import('../makeup/MakeupCoupon')));
+const Makeuptypes = Loadable(lazy(() => import('../makeup/Makeuptypes')));
+
 
 // photography/////////////
 
@@ -212,6 +214,7 @@ const MainRoutes = {
     { path: 'makeup/makeuplist', element: <MakeupList /> },
     { path: '/makeup/provider', element: <Makeupprovider /> },
     { path: '/makeup/Coupons', element: <MakeupCoupon /> },
+        { path: 'makeup/types', element: <Makeuptypes /> },
 
     // photographyyyy///////////////////////
 
