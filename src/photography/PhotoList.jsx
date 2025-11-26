@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Table,
   TableBody,
@@ -10,72 +10,67 @@ import {
   Switch,
   IconButton,
   Box,
-  MenuItem,
   TextField,
   InputAdornment,
   Button,
-  Menu,
   Dialog,
   DialogActions,
   DialogContent,
-  DialogContentText,
   DialogTitle,
   Typography,
   Snackbar,
   Alert,
   CircularProgress,
+  Chip,
+  Grid,
+  FormControlLabel,
+  Checkbox,
+  Stack,
+  Tabs,
+  Tab,
 } from '@mui/material';
 import {
   VisibilityOutlined,
   Edit,
   Delete,
-  Download,
+  Search as SearchIcon,
+  Close,
+  Save,
+  Add,
+  Remove,
+  Policy,
+  CheckCircle,
+  LocationOn,
+  AttachMoney,
 } from '@mui/icons-material';
-import { useNavigate, useLocation } from 'react-router-dom';
 
-const CateringList = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-
-  /* ---------- State ---------- */
-  const [caterings, setCaterings] = useState([]);
-  const [allCaterings, setAllCaterings] = useState([]);
+const PhotographyList = () => {
+  const [packages, setPackages] = useState([]);
+  const [allPackages, setAllPackages] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [cateringToDelete, setCateringToDelete] = useState(null);
+  const [packageToDelete, setPackageToDelete] = useState(null);
+  const [openViewDialog, setOpenViewDialog] = useState(false);
+  const [viewPackage, setViewPackage] = useState(null);
+  const [openEditDialog, setOpenEditDialog] = useState(false);
+  const [editingPackage, setEditingPackage] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [toggleLoading, setToggleLoading] = useState({});
-  const [notification, setNotification] = useState({
-    open: false,
-    message: '',
-    severity: 'success',
-  });
+  const [saving, setSaving] = useState(false);
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
+  const [tabValue, setTabValue] = useState(0);
 
-  const [anchorEl, setAnchorEl] = useState(null);
-  const openMenu = Boolean(anchorEl);
+  // Correct Base URL
+  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae';
+  const API_URL = `${API_BASE_URL}/photography-packages`;
 
-  /* ---------- API ---------- */
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
-  const API_URL = `${API_BASE_URL}/catering`;
-
-  const getToken = () => {
-    try {
-      return localStorage.getItem('token') || sessionStorage.getItem('token');
-    } catch {
-      return null;
-    }
-  };
+  const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
 
   const getFetchOptions = (method = 'GET', body = null) => {
     const token = getToken();
     const opts = {
       method,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       credentials: 'include',
-      mode: 'cors',
     };
     if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
@@ -89,471 +84,553 @@ const CateringList = () => {
         const timeout = setTimeout(() => controller.abort(), 10000);
         const response = await fetch(url, { ...options, signal: controller.signal });
         clearTimeout(timeout);
-
-        if (!response.ok) {
-          const txt = await response.text();
-          if (response.status === 401) throw new Error('Authentication required');
-          if (response.status === 403) throw new Error('Forbidden');
-          if (response.status === 404) throw new Error('Not found');
-          if (response.status >= 500) throw new Error('Server error');
-          throw new Error(`HTTP ${response.status}: ${txt}`);
-        }
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return await response.json();
       } catch (err) {
         if (i === retries) throw err;
-        await new Promise((r) => setTimeout(r, 1000));
+        await new Promise(r => setTimeout(r, 1000));
       }
     }
   };
+const fixImageUrl = (url) => {
+  if (!url) return "";
+  if (url.startsWith("http")) return url;
+  return `https://api.bookmyevent.ae${url}`;
+};
 
-  /* ---------- Fetch All / Top-Picks ---------- */
-  const fetchCaterings = async (topPicks = false) => {
+  const fetchPackages = async () => {
     try {
       setLoading(true);
-      const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const data = await makeAPICall(url, getFetchOptions());
-
+      const data = await makeAPICall(API_URL, getFetchOptions());
       if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((c, idx) => ({
+        const mapped = data.data.map((p, idx) => ({
           id: idx + 1,
-          _id: c._id,
-          cateringId: c.cateringId,
-          title: c.title || 'Untitled',
-          subtitle: c.subtitle || '',
-          description: c.description || '',
-          cateringType: c.cateringType || '',
-          price: c.price ?? 0,
-          providerName:
-            c.provider?.firstName && c.provider?.lastName
-              ? `${c.provider.firstName} ${c.provider.lastName}`
-              : c.provider?.firstName || '—',
-          providerEmail: c.provider?.email || '',
-          includes: (c.includes || [])
-            .map((inc) => `${inc.title}: ${inc.items.join(', ')}`)
-            .join(' | '),
-          isTopPick: c.isTopPick ?? false,
-          isActive: c.isActive ?? false,
-          thumbnail: c.thumbnail || '',
+          _id: p._id,
+          photographyId: p.photographyId,
+          packageTitle: p.packageTitle || 'Untitled',
+          description: p.description || '',
+          categories: p.categories || [],
+          categoryNames: (p.categories || []).map(c => c.title).join(', ') || '—',
+          price: p.price ?? 0,
+          providerName: `${p.provider?.firstName || ''} ${p.provider?.lastName || ''}`.trim() || '—',
+          basicAddons: p.basicAddons || [],
+          includedServices: p.includedServices || [],
+          travelToVenue: p.travelToVenue ?? false,
+          advanceBookingAmount: p.advanceBookingAmount || '',
+          cancellationPolicy: p.cancellationPolicy || '',
+          gallery: p.gallery || [],
+          isTopPick: p.isTopPick ?? false,
+          isActive: p.isActive ?? false,
         }));
-
-        setAllCaterings(mapped);
-        setCaterings(mapped);
+        setAllPackages(mapped);
+        setPackages(mapped);
       }
     } catch (e) {
-      setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
+      setNotification({ open: true, message: `Error loading packages: ${e.message}`, severity: 'error' });
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCaterings();
+    fetchPackages();
   }, []);
 
-  /* ---------- Top-Pick Toggle ---------- */
-  const handleTopPickToggle = useCallback(
-    async (_id) => {
-      const key = `${_id}-topPick`;
-      if (toggleLoading[key]) return;
-
-      const cat = caterings.find((c) => c._id === _id);
-      if (!cat) return;
-
-      const newVal = !cat.isTopPick;
-      setToggleLoading((p) => ({ ...p, [key]: true }));
-      setCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isTopPick: newVal } : c)));
-      setAllCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isTopPick: newVal } : c)));
-
-      try {
-        const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
-        if (!res.success) throw new Error(res.message || 'Failed');
-        setCaterings((p) =>
-          p.map((c) => (c._id === _id ? { ...c, isTopPick: res.data.isTopPick } : c))
-        );
-        setAllCaterings((p) =>
-          p.map((c) => (c._id === _id ? { ...c, isTopPick: res.data.isTopPick } : c))
-        );
-        setNotification({
-          open: true,
-          message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled',
-          severity: 'success',
-        });
-      } catch (e) {
-        setCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isTopPick: !newVal } : c)));
-        setAllCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isTopPick: !newVal } : c)));
-        setNotification({ open: true, message: e.message, severity: 'error' });
-      } finally {
-        setToggleLoading((p) => {
-          const n = { ...p };
-          delete n[key];
-          return n;
-        });
-      }
-    },
-    [caterings, toggleLoading]
-  );
-
-  /* ---------- Status Toggle ---------- */
-  const handleStatusToggle = useCallback(
-    async (_id) => {
-      const key = `${_id}-status`;
-      if (toggleLoading[key]) return;
-
-      const cat = caterings.find((c) => c._id === _id);
-      if (!cat) return;
-
-      const newVal = !cat.isActive;
-      setToggleLoading((p) => ({ ...p, [key]: true }));
-      setCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isActive: newVal } : c)));
-      setAllCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isActive: newVal } : c)));
-
-      try {
-        const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
-        if (!res.success) throw new Error(res.message || 'Failed');
-        setCaterings((p) =>
-          p.map((c) => (c._id === _id ? { ...c, isActive: res.data.isActive } : c))
-        );
-        setAllCaterings((p) =>
-          p.map((c) => (c._id === _id ? { ...c, isActive: res.data.isActive } : c))
-        );
-        setNotification({
-          open: true,
-          message: res.data.isActive ? 'Activated' : 'Deactivated',
-          severity: 'success',
-        });
-      } catch (e) {
-        setCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isActive: !newVal } : c)));
-        setAllCaterings((p) => p.map((c) => (c._id === _id ? { ...c, isActive: !newVal } : c)));
-        setNotification({ open: true, message: e.message, severity: 'error' });
-      } finally {
-        setToggleLoading((p) => {
-          const n = { ...p };
-          delete n[key];
-          return n;
-        });
-      }
-    },
-    [caterings, toggleLoading]
-  );
-
-  /* ---------- Delete ---------- */
-  const handleDeleteClick = (cat) => {
-    setCateringToDelete(cat);
-    setOpenDeleteDialog(true);
-  };
-  const handleDeleteCancel = () => {
-    setOpenDeleteDialog(false);
-    setCateringToDelete(null);
-  };
-  const handleDeleteConfirm = async () => {
+  const handleTopPickToggle = async (_id) => {
+    const pkg = packages.find(p => p._id === _id);
+    const newVal = !pkg.isTopPick;
+    setPackages(p => p.map(pk => pk._id === _id ? { ...pk, isTopPick: newVal } : pk));
     try {
-      await makeAPICall(`${API_URL}/${cateringToDelete._id}`, getFetchOptions('DELETE'));
-      setCaterings((p) => p.filter((c) => c._id !== cateringToDelete._id));
-      setAllCaterings((p) => p.filter((c) => c._id !== cateringToDelete._id));
-      setNotification({
-        open: true,
-        message: `${cateringToDelete.title} deleted`,
-        severity: 'success',
-      });
+      await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
+      setNotification({ open: true, message: newVal ? 'Added to Top Picks' : 'Removed from Top Picks', severity: 'success' });
     } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setOpenDeleteDialog(false);
-      setCateringToDelete(null);
+      setPackages(p => p.map(pk => pk._id === _id ? { ...pk, isTopPick: !newVal } : pk));
+      setNotification({ open: true, message: 'Failed to update Top Pick', severity: 'error' });
     }
   };
 
-  /* ---------- Export ---------- */
-  const filtered = caterings.filter((c) =>
-    `${c.title} ${c.subtitle} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  const handleStatusToggle = async (_id) => {
+    const pkg = packages.find(p => p._id === _id);
+    const newVal = !pkg.isActive;
+    setPackages(p => p.map(pk => pk._id === _id ? { ...pk, isActive: newVal } : pk));
+    try {
+      await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
+      setNotification({ open: true, message: newVal ? 'Package Activated' : 'Package Deactivated', severity: 'success' });
+    } catch (e) {
+      setPackages(p => p.map(pk => pk._id === _id ? { ...pk, isActive: !newVal } : pk));
+      setNotification({ open: true, message: 'Failed to update status', severity: 'error' });
+    }
+  };
+
+  const handleViewClick = (pkg) => {
+    setViewPackage(pkg);
+    setOpenViewDialog(true);
+  };
+
+  const handleEditClick = (pkg) => {
+    setEditingPackage({ ...pkg });
+    setTabValue(0);
+    setOpenEditDialog(true);
+  };
+
+  const handleDeleteClick = (pkg) => {
+    setPackageToDelete(pkg);
+    setOpenDeleteDialog(true);
+  };
+
+  const handleDeleteConfirm = async () => {
+    try {
+      await makeAPICall(`${API_URL}/${packageToDelete._id}`, getFetchOptions('DELETE'));
+      setPackages(p => p.filter(pk => pk._id !== packageToDelete._id));
+      setAllPackages(p => p.filter(pk => pk._id !== packageToDelete._id));
+      setNotification({ open: true, message: 'Package deleted successfully', severity: 'success' });
+    } catch (e) {
+      setNotification({ open: true, message: 'Delete failed', severity: 'error' });
+    } finally {
+      setOpenDeleteDialog(false);
+      setPackageToDelete(null);
+    }
+  };
+
+  const handleSaveEdit = async () => {
+    if (!editingPackage) return;
+    setSaving(true);
+    try {
+      const payload = {
+        packageTitle: editingPackage.packageTitle,
+        description: editingPackage.description,
+        price: Number(editingPackage.price),
+        basicAddons: editingPackage.basicAddons,
+        includedServices: editingPackage.includedServices,
+        travelToVenue: editingPackage.travelToVenue,
+        advanceBookingAmount: editingPackage.advanceBookingAmount,
+        cancellationPolicy: editingPackage.cancellationPolicy,
+      };
+
+      await makeAPICall(`${API_URL}/${editingPackage._id}`, getFetchOptions('PATCH', payload));
+      await fetchPackages();
+      setOpenEditDialog(false);
+      setNotification({ open: true, message: 'Package updated successfully!', severity: 'success' });
+    } catch (e) {
+      setNotification({ open: true, message: 'Update failed: ' + e.message, severity: 'error' });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const filtered = packages.filter(p =>
+    `${p.packageTitle} ${p.providerName} ${p.categoryNames}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const exportCSV = () => {
-    const headers = [
-      'Sl',
-      'Package',
-      'Subtitle',
-      'Type',
-      'Price',
-      'Provider',
-      'Provider Email',
-      'Includes',
-      'Top-Pick',
-      'Status',
-    ];
-    const rows = filtered.map((c) => [
-      c.id,
-      `"${c.title}"`,
-      `"${c.subtitle}"`,
-      c.cateringType,
-      c.price,
-      `"${c.providerName}"`,
-      `"${c.providerEmail}"`,
-      `"${c.includes}"`,
-      c.isTopPick ? 'Yes' : 'No',
-      c.isActive ? 'Active' : 'Inactive',
-    ]);
-    const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `catering_${new Date().toISOString().split('T')[0]}.csv`;
-    a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'CSV exported', severity: 'success' });
-  };
-
-  const exportExcel = () => {
-    const html = `
-      <table border="1">
-        <thead><tr>${[
-          'Sl',
-          'Package',
-          'Subtitle',
-          'Type',
-          'Price',
-          'Provider',
-          'Provider Email',
-          'Includes',
-          'Top-Pick',
-          'Status',
-        ]
-          .map((h) => `<th>${h}</th>`)
-          .join('')}</tr></thead>
-        <tbody>${filtered
-          .map(
-            (c) => `<tr>
-              <td>${c.id}</td>
-              <td>${c.title}</td>
-              <td>${c.subtitle}</td>
-              <td>${c.cateringType}</td>
-              <td>${c.price}</td>
-              <td>${c.providerName}</td>
-              <td>${c.providerEmail}</td>
-              <td>${c.includes}</td>
-              <td>${c.isTopPick ? 'Yes' : 'No'}</td>
-              <td>${c.isActive ? 'Active' : 'Inactive'}</td>
-            </tr>`
-          )
-          .join('')}</tbody>
-      </table>`;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `catering_${new Date().toISOString().split('T')[0]}.xls`;
-    a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'Excel exported', severity: 'success' });
-  };
-
-  /* ---------- UI Helpers ---------- */
-  const stats = {
-    total: allCaterings.length,
-    active: allCaterings.filter((c) => c.isActive).length,
-    inactive: allCaterings.filter((c) => !c.isActive).length,
-    topPick: allCaterings.filter((c) => c.isTopPick).length,
+  const addonLabels = {
+    drone_video: 'Drone Video',
+    pre_wedding: 'Pre-Wedding',
+    candid_photography: 'Candid Photography',
+    traditional_photography: 'Traditional Photography',
+    video_editing: 'Video Editing',
+    photo_album: 'Photo Album',
+    led_wall: 'LED Wall',
+    crane_shoot: 'Crane Shoot',
   };
 
   return (
     <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
-      {/* ---- Stats Bar ---- */}
-      <Box
-        sx={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          p: 2,
-          bgcolor: '#f5f5f5',
-          gap: 1,
-        }}
-      >
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>
-            Total: {stats.total}
-          </Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>
-            Active: {stats.active}
-          </Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>
-            Inactive: {stats.inactive}
-          </Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>
-            Top-Pick: {stats.topPick}
-          </Box>
-        </Box>
-        <Button
-          variant="contained"
-          color="secondary"
-          size="small"
-          onClick={() => fetchCaterings(true)}
-          disabled={loading}
-        >
-          {loading ? 'Loading...' : 'Fetch Top-Picks'}
-        </Button>
+      <Box sx={{ p: 2, bgcolor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+        <Grid container spacing={2} alignItems="center">
+          <Grid item xs={12} md={8}>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              <Chip label={`Total: ${allPackages.length}`} color="primary" />
+              <Chip label={`Active: ${allPackages.filter(p => p.isActive).length}`} color="success" />
+              <Chip label={`Top Pick: ${allPackages.filter(p => p.isTopPick).length}`} color="secondary" />
+            </Stack>
+          </Grid>
+          <Grid item xs={12} md={4}>
+            <TextField
+              fullWidth
+              size="small"
+              placeholder="Search packages..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: <InputAdornment position="start"><SearchIcon /></InputAdornment>,
+              }}
+            />
+          </Grid>
+        </Grid>
       </Box>
 
-      {/* ---- Search & Export ---- */}
-      <Box
-        sx={{
-          p: 2,
-          display: 'flex',
-          flexWrap: 'wrap',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          gap: 1,
-          bgcolor: '#f5f5f5',
-        }}
-      >
-        <TextField
-          placeholder="Search Package / Provider"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          InputProps={{
-            startAdornment: <InputAdornment position="start">Search</InputAdornment>,
-          }}
-          sx={{ bgcolor: 'white', minWidth: 220 }}
-        />
-        <Button
-          variant="contained"
-          color="primary"
-          size="small"
-          endIcon={<Download />}
-          onClick={(e) => setAnchorEl(e.currentTarget)}
-        >
-          Export
-        </Button>
-        <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={exportExcel}>Excel</MenuItem>
-          <MenuItem onClick={exportCSV}>CSV</MenuItem>
-        </Menu>
-      </Box>
-
-      {/* ---- Table ---- */}
       {loading ? (
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading caterings...</Typography>
+        <Box sx={{ p: 8, textAlign: 'center' }}>
+          <CircularProgress />
+          <Typography sx={{ mt: 2 }}>Loading packages...</Typography>
         </Box>
       ) : (
-        <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                <TableCell>Sl</TableCell>
-                <TableCell>Package</TableCell>
-                <TableCell>Subtitle</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Provider</TableCell>
-                <TableCell>Includes</TableCell>
-                <TableCell>Top-Pick</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
+        <Table stickyHeader>
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#f1f5f9' }}>
+              <TableCell>#</TableCell>
+              <TableCell>Package</TableCell>
+              <TableCell>Price</TableCell>
+              <TableCell>Provider</TableCell>
+              <TableCell>Add-ons</TableCell>
+              <TableCell>Top</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filtered.map((p) => (
+              <TableRow key={p._id} hover>
+                <TableCell>{p.id}</TableCell>
+                <TableCell>
+                  <Typography fontWeight="medium">{p.packageTitle}</Typography>
+                  <Typography variant="caption" color="textSecondary">{p.categoryNames}</Typography>
+                </TableCell>
+                <TableCell>₹{p.price.toLocaleString()}</TableCell>
+                <TableCell>{p.providerName}</TableCell>
+                <TableCell>{p.basicAddons.length}</TableCell>
+                <TableCell>
+                  <Switch size="small" checked={p.isTopPick} onChange={() => handleTopPickToggle(p._id)} />
+                </TableCell>
+                <TableCell>
+                  <Switch size="small" checked={p.isActive} onChange={() => handleStatusToggle(p._id)} />
+                </TableCell>
+                <TableCell>
+                  <IconButton size="small" onClick={() => handleViewClick(p)}><VisibilityOutlined /></IconButton>
+                  <IconButton size="small" color="primary" onClick={() => handleEditClick(p)}><Edit /></IconButton>
+                  <IconButton size="small" color="error" onClick={() => handleDeleteClick(p)}><Delete /></IconButton>
+                </TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No catering packages found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map((c) => {
-                  const topKey = `${c._id}-topPick`;
-                  const statKey = `${c._id}-status`;
-                  return (
-                    <TableRow key={c._id} hover>
-                      <TableCell>{c.id}</TableCell>
-                      <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {c.title}
-                      </TableCell>
-                      <TableCell>{c.subtitle}</TableCell>
-                      <TableCell>{c.cateringType}</TableCell>
-                      <TableCell>{c.price}</TableCell>
-                      <TableCell>{c.providerName}</TableCell>
-                      <TableCell sx={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {c.includes}
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          size="small"
-                          checked={c.isTopPick}
-                          onChange={() => handleTopPickToggle(c._id)}
-                          disabled={toggleLoading[topKey]}
-                        />
-                        {toggleLoading[topKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell>
-                        <Switch
-                          size="small"
-                          checked={c.isActive}
-                          onChange={() => handleStatusToggle(c._id)}
-                          disabled={toggleLoading[statKey]}
-                        />
-                        {toggleLoading[statKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => alert(`View ${c.title}`)} // replace with real view page
-                        >
-                          <VisibilityOutlined />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          color="primary"
-                          onClick={() => navigate('/catering/edit', { state: { catering: c } })}
-                        >
-                          <Edit />
-                        </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)}>
-                          <Delete />
-                        </IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Box>
+            ))}
+          </TableBody>
+        </Table>
       )}
 
-      {/* ---- Delete Dialog ---- */}
-      <Dialog open={openDeleteDialog} onClose={handleDeleteCancel}>
-        <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent>
-          <DialogContentText>
-            Delete <strong>{cateringToDelete?.title}</strong>? This cannot be undone.
-          </DialogContentText>
+      {/* VIEW DIALOG - IMAGES FIXED */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="md" fullWidth
+        PaperProps={{ sx: { borderRadius: 3, overflow: 'hidden', boxShadow: '0 20px 60px rgba(0,0,0,0.2)' } }}>
+        <DialogTitle sx={{ bgcolor: '#e91e63', color: 'white', p: 3 }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Box>
+              <Typography variant="h5" fontWeight="bold">{viewPackage?.packageTitle || 'Package Details'}</Typography>
+              <Typography variant="body2" sx={{ opacity: 0.9, mt: 0.5 }}>ID: {viewPackage?.photographyId || '—'}</Typography>
+            </Box>
+            <IconButton onClick={() => setOpenViewDialog(false)} sx={{ color: 'white' }}><Close /></IconButton>
+          </Box>
+        </DialogTitle>
+
+        {/* HERO IMAGE - FIXED */}
+        {viewPackage?.gallery?.length > 0 && (
+          <Box sx={{ height: 320, bgcolor: '#000' }}>
+            <img
+src={fixImageUrl(viewPackage.gallery[0])}
+              alt="Package cover"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              onError={(e) => e.target.src = 'https://via.placeholder.com/800x400?text=No+Image'}
+            />
+          </Box>
+        )}
+
+        <Tabs value={tabValue} onChange={(_, v) => handkerchiefTabValue(v)} centered sx={{ bgcolor: '#f8f9fa' }}>
+          <Tab label="Basic Information" />
+          <Tab label="Pricing & Policies" />
+          <Tab label="Features & Gallery" />
+        </Tabs>
+
+        <DialogContent sx={{ p: 4, bgcolor: '#fafafa' }}>
+          {viewPackage && (
+            <>
+              {tabValue === 0 && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>Description</Typography>
+                    <Typography>{viewPackage.description || 'No description provided'}</Typography>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Categories</Typography>
+                    <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                      {viewPackage.categories.map(c => <Chip key={c._id} label={c.title} size="small" color="primary" />)}
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="subtitle2" color="textSecondary">Provider</Typography>
+                    <Typography fontWeight="bold">{viewPackage.providerName}</Typography>
+                  </Grid>
+                  {viewPackage.basicAddons.length > 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="subtitle2" color="textSecondary">Add-ons</Typography>
+                      <Box sx={{ mt: 1, display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                        {viewPackage.basicAddons.map(a => (
+                          <Chip key={a} label={addonLabels[a] || a} color="secondary" variant="outlined" size="small" />
+                        ))}
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {tabValue === 1 && (
+                <Grid container spacing={4}>
+                  <Grid item xs={12} sm={6}>
+                    <Box textAlign="center" p={3} bgcolor="white" borderRadius={3} boxShadow={1}>
+                      <Typography variant="h6" color="success.main" fontWeight="bold">Base Price</Typography>
+                      <Typography variant="h4" fontWeight="bold" color="primary">₹{viewPackage.price.toLocaleString()}</Typography>
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Box textAlign="center" p={3} bgcolor="white" borderRadius={3} boxShadow={1}>
+                      <Typography variant="h6" color="error.main" fontWeight="bold">Final Price</Typography>
+                      <Typography variant="h4" fontWeight="bold" color="error">₹{viewPackage.price.toLocaleString()}</Typography>
+                      <Typography variant="caption" color="textSecondary">(No discounts applied)</Typography>
+                    </Box>
+                  </Grid>
+                  {viewPackage.advanceBookingAmount && (
+                    <Grid item xs={12}>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <AttachMoney color="primary" />
+                        <Typography><strong>Advance Booking:</strong> {viewPackage.advanceBookingAmount}</Typography>
+                      </Box>
+                    </Grid>
+                  )}
+                  {viewPackage.cancellationPolicy && (
+                    <Grid item xs={12}>
+                      <Box display="flex" alignItems="flex-start" gap={2} mt={2}>
+                        <Policy color="warning" />
+                        <Box>
+                          <Typography fontWeight="bold" color="warning.main">Cancellation Policy</Typography>
+                          <Typography variant="body2">{viewPackage.cancellationPolicy}</Typography>
+                        </Box>
+                      </Box>
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+
+              {tabValue === 2 && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="h6" gutterBottom>Features</Typography>
+                    <Stack direction="row" spacing={2} flexWrap="wrap">
+                      <Chip icon={<LocationOn />} label={viewPackage.travelToVenue ? "Travel Included" : "No Travel"} color={viewPackage.travelToVenue ? "success" : "default"} />
+                      <Chip icon={<CheckCircle />} label={viewPackage.isTopPick ? "Top Pick" : "Regular"} color={viewPackage.isTopPick ? "secondary" : "default"} />
+                      <Chip icon={<CheckCircle />} label={viewPackage.isActive ? "Active" : "Inactive"} color={viewPackage.isActive ? "success" : "error"} />
+                    </Stack>
+                  </Grid>
+
+                  {/* GALLERY IMAGES - FIXED */}
+                  {viewPackage.gallery.length > 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom>Gallery</Typography>
+                      <Grid container spacing={2}>
+                        {viewPackage.gallery.map((img, i) => (
+                          <Grid item key={i}>
+                            <img
+src={fixImageUrl(img)}
+                              alt={`Gallery ${i + 1}`}
+                              style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
+                              onError={(e) => e.target.src = 'https://via.placeholder.com/150?text=No+Image'}
+                            />
+                          </Grid>
+                        ))}
+                      </Grid>
+                    </Grid>
+                  )}
+
+                  {viewPackage.includedServices.length > 0 && (
+                    <Grid item xs={12}>
+                      <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>Included Services</Typography>
+                      {viewPackage.includedServices.map((service, i) => (
+                        <Box key={i} sx={{ mb: 3, p: 3, bgcolor: 'white', borderRadius: 2, boxShadow: 1 }}>
+                          <Typography fontWeight="bold" color="primary">{service.title}</Typography>
+                          <Box sx={{ mt: 1, display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                            {service.items.map((item, j) => (
+                              <Chip key={j} label={item} size="small" color="info" variant="outlined" />
+                            ))}
+                          </Box>
+                        </Box>
+                      ))}
+                    </Grid>
+                  )}
+                </Grid>
+              )}
+            </>
+          )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={handleDeleteCancel} variant="outlined">
-            Cancel
+
+        <DialogActions sx={{ p: 3, bgcolor: '#f8f9fa', justifyContent: 'space-between' }}>
+          <Button variant="outlined" startIcon={<Edit />} onClick={() => { setOpenViewDialog(false); handleEditClick(viewPackage); }}>
+            Edit Package
           </Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">
-            Delete
+          <Button variant="contained" color="error" onClick={() => setOpenViewDialog(false)}>
+            Close
           </Button>
         </DialogActions>
       </Dialog>
 
-      {/* ---- Snackbar ---- */}
-      <Snackbar
-        open={notification.open}
-        autoHideDuration={4000}
-        onClose={() => setNotification((p) => ({ ...p, open: false }))}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert
-          onClose={() => setNotification((p) => ({ ...p, open: false }))}
-          severity={notification.severity}
-          variant="filled"
-        >
+      {/* EDIT DIALOG - GALLERY IMAGES FIXED */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="lg" fullWidth>
+        <DialogTitle sx={{ bgcolor: '#bb1010ff', color: 'white' }}>
+          <Box display="flex" justifyContent="space-between" alignItems="center">
+            <Typography variant="h6">Edit Photography Package</Typography>
+            <IconButton onClick={() => setOpenEditDialog(false)} sx={{ color: 'white' }}><Close /></IconButton>
+          </Box>
+        </DialogTitle>
+
+        <DialogContent dividers sx={{ bgcolor: '#f9f9f9' }}>
+          {editingPackage && (
+            <>
+              <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)} sx={{ mb: 3, borderBottom: 1, borderColor: 'divider' }}>
+                <Tab label="Basic Info" />
+                <Tab label="Add-ons & Services" />
+                <Tab label="Pricing & Policy" />
+                <Tab label="Gallery" />
+              </Tabs>
+
+              {tabValue === 3 && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>Current Gallery</Typography>
+                  {editingPackage.gallery.length > 0 ? (
+                    <Grid container spacing={3}>
+                      {editingPackage.gallery.map((img, i) => (
+                        <Grid item key={i}>
+                          <img
+                            src={API_BASE_URL + img}
+                            alt={`Gallery ${i + 1}`}
+                            style={{ width: 200, height: 200, objectFit: 'cover', borderRadius: 12, boxShadow: '0 6px 16px rgba(0,0,0,0.15)' }}
+                            onError={e => e.target.src = 'https://via.placeholder.com/200?text=No+Image'}
+                          />
+                        </Grid>
+                      ))}
+                    </Grid>
+                  ) : (
+                    <Typography color="textSecondary">No images uploaded</Typography>
+                  )}
+                </Box>
+              )}
+
+              {/* Other tabs (Basic Info, Add-ons, Pricing) remain unchanged */}
+              {tabValue === 0 && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={8}>
+                    <TextField fullWidth label="Package Title" value={editingPackage.packageTitle}
+                      onChange={e => setEditingPackage({ ...editingPackage, packageTitle: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} md={4}>
+                    <TextField fullWidth label="Price (₹)" type="number" value={editingPackage.price}
+                      onChange={e => setEditingPackage({ ...editingPackage, price: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth multiline rows={4} label="Description" value={editingPackage.description}
+                      onChange={e => setEditingPackage({ ...editingPackage, description: e.target.value })} />
+                  </Grid>
+                </Grid>
+              )}
+
+              {tabValue === 1 && (
+                <Box>
+                  <Typography variant="h6" gutterBottom>Basic Add-ons</Typography>
+                  <Grid container spacing={2}>
+                    {Object.entries(addonLabels).map(([key, label]) => (
+                      <Grid item xs={6} md={4} key={key}>
+                        <FormControlLabel
+                          control={<Checkbox checked={editingPackage.basicAddons.includes(key)}
+                            onChange={e => {
+                              const checked = e.target.checked;
+                              setEditingPackage(prev => ({
+                                ...prev,
+                                basicAddons: checked ? [...prev.basicAddons, key] : prev.basicAddons.filter(a => a !== key)
+                              }));
+                            }} />}
+                          label={label}
+                        />
+                      </Grid>
+                    ))}
+                  </Grid>
+
+                  <Typography variant="h6" gutterBottom sx={{ mt: 4 }}>Included Services</Typography>
+                  {editingPackage.includedServices.map((service, idx) => (
+                    <Box key={idx} sx={{ p: 3, mb: 3, bgcolor: 'white', borderRadius: 2, boxShadow: 1 }}>
+                      <Grid container spacing={2} alignItems="center">
+                        <Grid item xs={10}>
+                          <TextField fullWidth label="Service Title" value={service.title}
+                            onChange={e => {
+                              const newS = [...editingPackage.includedServices];
+                              newS[idx].title = e.target.value;
+                              setEditingPackage({ ...editingPackage, includedServices: newS });
+                            }} />
+                        </Grid>
+                        <Grid item xs={2}>
+                          <IconButton color="error" onClick={() => setEditingPackage(prev => ({
+                            ...prev,
+                            includedServices: prev.includedServices.filter((_, i) => i !== idx)
+                          }))}>
+                            <Remove />
+                          </IconButton>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField fullWidth multiline label="Items (comma separated)" value={service.items.join(', ')}
+                            onChange={e => {
+                              const newS = [...editingPackage.includedServices];
+                              newS[idx].items = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
+                              setEditingPackage({ ...editingPackage, includedServices: newS });
+                            }} />
+                        </Grid>
+                      </Grid>
+                    </Box>
+                  ))}
+                  <Button startIcon={<Add />} variant="outlined" onClick={() => setEditingPackage(prev => ({
+                    ...prev,
+                    includedServices: [...prev.includedServices, { title: '', items: [] }]
+                  }))}>
+                    Add Service
+                  </Button>
+                </Box>
+              )}
+
+              {tabValue === 2 && (
+                <Grid container spacing={3}>
+                  <Grid item xs={12} md={6}>
+                    <TextField fullWidth label="Advance Booking Amount" value={editingPackage.advanceBookingAmount}
+                      onChange={e => setEditingPackage({ ...editingPackage, advanceBookingAmount: e.target.value })} />
+                  </Grid>
+                  <Grid item xs={12} md={6}>
+                    <FormControlLabel control={<Checkbox checked={editingPackage.travelToVenue}
+                      onChange={e => setEditingPackage({ ...editingPackage, travelToVenue: e.target.checked })} />}
+                      label="Travel to Venue Included" />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <TextField fullWidth multiline rows={4} label="Cancellation Policy" value={editingPackage.cancellationPolicy}
+                      onChange={e => setEditingPackage({ ...editingPackage, cancellationPolicy: e.target.value })} />
+                  </Grid>
+                </Grid>
+              )}
+            </>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, bgcolor: '#f0f2f5', justifyContent: 'flex-end', gap: 2 }}>
+          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
+          <Button variant="contained" color="primary" startIcon={saving ? <CircularProgress size={20} /> : <Save />}
+            onClick={handleSaveEdit} disabled={saving}>
+            {saving ? 'Saving...' : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
+        <DialogTitle>Delete Package?</DialogTitle>
+        <DialogContent>
+          <Typography>Are you sure you want to delete <strong>{packageToDelete?.packageTitle}</strong>?</Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+          <Button color="error" variant="contained" onClick={handleDeleteConfirm}>Delete</Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification({ ...notification, open: false })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert severity={notification.severity} variant="filled">
           {notification.message}
         </Alert>
       </Snackbar>
@@ -561,4 +638,4 @@ const CateringList = () => {
   );
 };
 
-export default CateringList;
+export default PhotographyList;
