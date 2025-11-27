@@ -35,7 +35,7 @@ import {
 } from "@mui/icons-material";
 import axios from "axios";
 
-const API_BASE_URL = "http://localhost:5000";
+const API_BASE_URL = "https://api.bookmyevent.ae";
 const api = axios.create({ baseURL: API_BASE_URL });
 
 export default function PortfolioManagement({ providerId: propProviderId, moduleId: propModuleId }) {
