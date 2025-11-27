@@ -37,6 +37,7 @@ const MakeupProvidermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
+    
      
   ]
 };
