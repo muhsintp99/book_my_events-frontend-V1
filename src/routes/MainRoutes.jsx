@@ -106,6 +106,8 @@ const Photographycategory = Loadable(lazy(() => import('../photography/Photocate
 const PhotographyList = Loadable(lazy(() => import('../photography/PhotoList')));
 const Photographyprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
 const PhotographyCoupon = Loadable(lazy(() => import('../photography/PhotoCoupon')));
+const PhotographyPortfolio = Loadable(lazy(() => import('../photography/PhotoPortfolio')));
+
 
 
 
@@ -225,7 +227,9 @@ const MainRoutes = {
     { path: '/photography/category', element: <Photographycategory /> },
     { path: '/photography/photographylist', element: <PhotographyList /> },
     { path: '/photography/AddProvider', element: <Photographyprovider /> },
-    { path: '/photography/Coupons', element: <PhotographyCoupon /> }
+    { path: '/photography/Coupons', element: <PhotographyCoupon /> },
+        { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
+
 
    
 
