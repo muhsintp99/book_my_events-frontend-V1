@@ -42,14 +42,14 @@ const photographysections = {
       icon: icons.IconCategory,
       breadcrumbs: false
     },
-     {
-      id: 'photography-portfolio',
-      title: 'Portfolio',
-      type: 'item',
-      url: '/photography/portfolio',
-      icon: icons.IconCategory,
-      breadcrumbs: false
-    },
+    //  {
+    //   id: 'photography-portfolio',
+    //   title: 'Portfolio',
+    //   type: 'item',
+    //   url: '/photography/portfolio',
+    //   icon: icons.IconCategory,
+    //   breadcrumbs: false
+    // },
     //     {
     //   id: 'Venuelist',
     //   title: 'Top Picks',

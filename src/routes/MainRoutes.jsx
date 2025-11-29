@@ -96,7 +96,7 @@ const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
 const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
 const MakeupCoupon = Loadable(lazy(() => import('../makeup/MakeupCoupon')));
 const Makeuptypes = Loadable(lazy(() => import('../makeup/Makeuptypes')));
-const Makeupportfolio = Loadable(lazy(() => import('../makeup/Portfolio')));
+// const Makeupportfolio = Loadable(lazy(() => import('../makeup/Portfolio')));
 
 // photography/////////////
 
@@ -106,7 +106,7 @@ const Photographycategory = Loadable(lazy(() => import('../photography/Photocate
 const PhotographyList = Loadable(lazy(() => import('../photography/PhotoList')));
 const Photographyprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
 const PhotographyCoupon = Loadable(lazy(() => import('../photography/PhotoCoupon')));
-const PhotographyPortfolio = Loadable(lazy(() => import('../photography/PhotoPortfolio')));
+// const PhotographyPortfolio = Loadable(lazy(() => import('../photography/PhotoPortfolio')));
 
 
 
@@ -217,7 +217,7 @@ const MainRoutes = {
     { path: '/makeup/provider', element: <Makeupprovider /> },
     { path: '/makeup/Coupons', element: <MakeupCoupon /> },
         { path: 'makeup/types', element: <Makeuptypes /> },
-                { path: '/makeup/portfolio', element: <Makeupportfolio /> },
+                // { path: '/makeup/portfolio', element: <Makeupportfolio /> },
 
 
     // photographyyyy///////////////////////
@@ -228,7 +228,7 @@ const MainRoutes = {
     { path: '/photography/photographylist', element: <PhotographyList /> },
     { path: '/photography/AddProvider', element: <Photographyprovider /> },
     { path: '/photography/Coupons', element: <PhotographyCoupon /> },
-        { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
+        // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
 
 
    

@@ -54,14 +54,14 @@ const makeupsections = {
       icon: icons.IconCategory2,
       breadcrumbs: false
     },
-    {
-      id: 'portfolio',
-      title: 'Portfolio',
-      type: 'item',
-      url: '/makeup/portfolio',
-      icon: icons.IconPhoto, // Fixed Portfolio Icon
-      breadcrumbs: false
-    }
+    // {
+    //   id: 'portfolio',
+    //   title: 'Portfolio',
+    //   type: 'item',
+    //   url: '/makeup/portfolio',
+    //   icon: icons.IconPhoto, // Fixed Portfolio Icon
+    //   breadcrumbs: false
+    // }
   ]
 };
 
