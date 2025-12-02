@@ -709,28 +709,33 @@ export default function Header() {
               }}
             >
               <Box
-                sx={{
-                  width: 56,
-                  height: 56,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  mb: 1.5
-                }}
-              >
-                <img
-                  src={getImageUrl(item.icon, isSecondary)}
-                  alt={item.title || 'Module'}
-                  style={{ 
-                    width: '100%', 
-                    height: '100%', 
-                    objectFit: 'contain'
-                  }}
-                  onError={(e) => { 
-                    e.currentTarget.src = '/default-icon.png'; 
-                  }}
-                />
-              </Box>
+  sx={{
+    width: 56,
+    height: 56,
+    borderRadius: '50%',
+    overflow: 'hidden',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    mb: 1.5,
+    border: '2px solid #eee',
+    background: '#fff'
+  }}
+>
+  <img
+    src={getImageUrl(item.icon, isSecondary)}
+    alt={item.title || 'Module'}
+    style={{
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover'
+    }}
+    onError={(e) => {
+      e.currentTarget.src = '/default-icon.png';
+    }}
+  />
+</Box>
+
               <Typography 
                 variant="body2" 
                 sx={{ 
