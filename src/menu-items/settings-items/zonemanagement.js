@@ -1,18 +1,14 @@
 // menu-items/auditorium/customers.js
 import {
-  IconPhoto,
-  IconTicket,
-  IconBell
+  IconMapPinCog
 } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto,     // for Banners
-  IconTicket,    // for Coupons
-  IconBell       // for Push Notifications
+  IconMapPinCog   // Zone Setup
 };
 
 const zonemanagement = {
-  id: 'zone-managemet',
+  id: 'zone-management',
   title: 'Zone Management',
   type: 'group',
   children: [
@@ -21,10 +17,9 @@ const zonemanagement = {
       title: 'Zone Setup',
       type: 'item',
       url: '/settings/zone-setup',
-      icon: icons.IconPhoto,
+      icon: icons.IconMapPinCog,
       breadcrumbs: false
     }
-   
   ]
 };
 

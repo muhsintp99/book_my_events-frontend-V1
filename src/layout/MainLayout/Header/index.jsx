@@ -360,14 +360,6 @@
 //   );
 // }
 
-
-
-
-
-
-
-
-
 import React, { useEffect, useState } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { useNavigate, useLocation } from 'react-router-dom';
@@ -420,22 +412,22 @@ export default function Header() {
 
   // Module mapping: maps display titles to their target modules and routes
   const moduleMapping = {
-    'venues': { targetModule: 'auditorium', route: '/auditorium/dashboard' },
-    'transport': { targetModule: 'rental', route: '/rental/dashboard' }
+    venues: { targetModule: 'auditorium', route: '/auditorium/dashboard' },
+    transport: { targetModule: 'rental', route: '/rental/dashboard' }
   };
 
   // Utility function to dispatch module events
   const dispatchModuleEvents = (moduleName, sidebarType) => {
     localStorage.setItem('activeModule', moduleName);
     localStorage.setItem('sidebarType', sidebarType);
-    
+
     const events = [
       { name: 'moduleChanged', detail: { module: moduleName, sidebarType } },
       { name: 'sidebarTypeChanged', detail: { sidebarType } },
       { name: 'menuItemsChanged', detail: { moduleType: moduleName } },
       { name: 'refreshSidebar', detail: { moduleType: moduleName } }
     ];
-    
+
     events.forEach(({ name, detail }) => {
       window.dispatchEvent(new CustomEvent(name, { detail }));
     });
@@ -445,25 +437,27 @@ export default function Header() {
   const formatModuleTitle = (title) => {
     const trimmed = title.trim();
     const titleLower = trimmed.toLowerCase();
-    
+
     const specialCases = {
-      'mehandi': 'Mehandi',
-      'mahandi': 'Mehandi',
-      'photography': 'Photography',
-      'catering': 'Catering',
-      'makeup': 'Makeup',
-      'dj': 'DJ',
-      'music': 'Music',
+      mehandi: 'Mehandi',
+      mahandi: 'Mehandi',
+      photography: 'Photography',
+      catering: 'Catering',
+ makeup: 'Makeupartist',
+  makeupartist: 'Makeupartist',
+  'makeup artist': 'Makeupartist',      dj: 'DJ',
+      music: 'Music',
       'invitation and printing': 'Invitation & Printing',
       'stage decoration': 'Stage Decoration'
     };
-    
+
     if (specialCases[titleLower]) {
       return specialCases[titleLower];
     }
-    
-    return trimmed.split(' ')
-      .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+
+    return trimmed
+      .split(' ')
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
       .join(' ');
   };
 
@@ -488,18 +482,18 @@ export default function Header() {
         // Reorder modules to prioritize Rental, Events, Auditorium
         const priorityOrder = ['Rental', 'Events', 'Auditorium'];
         const reorderedModules = [];
-        
-        priorityOrder.forEach(title => {
-          const module = formattedApiModules.find(m => m.title === title);
+
+        priorityOrder.forEach((title) => {
+          const module = formattedApiModules.find((m) => m.title === title);
           if (module) reorderedModules.push(module);
         });
-        
-        formattedApiModules.forEach(m => {
-          if (!reorderedModules.some(rm => rm.title === m.title)) {
+
+        formattedApiModules.forEach((m) => {
+          if (!reorderedModules.some((rm) => rm.title === m.title)) {
             reorderedModules.push(m);
           }
         });
-        
+
         setModules(reorderedModules);
       } catch (err) {
         console.error('Error fetching modules:', err);
@@ -565,18 +559,18 @@ export default function Header() {
 
     // Update selected module name immediately
     setSelectedModuleName(module.title);
-    
+
     // Store the selected module name in localStorage so it persists
     localStorage.setItem('selectedModuleName', module.title);
 
     // Check if this module has a mapping (like venues -> auditorium)
     const mapping = moduleMapping[moduleName];
-    
+
     if (mapping) {
       // Use the mapped target module and route
       const targetModule = mapping.targetModule;
       const targetRoute = mapping.route;
-      
+
       localStorage.setItem('moduleId', moduleId);
       if (moduleDbId && !module.isStatic) {
         localStorage.setItem('moduleDbId', moduleDbId);
@@ -588,7 +582,7 @@ export default function Header() {
     } else {
       // Default behavior for non-mapped modules
       const sidebarType = module.type || 'crm';
-      
+
       localStorage.setItem('moduleId', moduleId);
       if (moduleDbId && !module.isStatic) {
         localStorage.setItem('moduleDbId', moduleDbId);
@@ -598,7 +592,7 @@ export default function Header() {
       navigate(`/${moduleName}/dashboard`);
       setTimeout(() => window.location.reload(), 100);
     }
-    
+
     handleClose();
   };
 
@@ -609,18 +603,18 @@ export default function Header() {
 
     // Update selected module name immediately
     setSelectedModuleName(module.title);
-    
+
     // Store the selected module name in localStorage so it persists
     localStorage.setItem('selectedModuleName', module.title);
 
     // Check if this secondary module has a mapping
     const mapping = moduleMapping[moduleName];
-    
+
     if (mapping) {
       // Use the mapped target module and route
       const targetModule = mapping.targetModule;
       const targetRoute = mapping.route;
-      
+
       localStorage.setItem('moduleId', moduleId);
       if (moduleDbId) {
         localStorage.setItem('moduleDbId', moduleDbId);
@@ -640,7 +634,7 @@ export default function Header() {
       navigate(`/${moduleName}/dashboard`);
       setTimeout(() => window.location.reload(), 100);
     }
-    
+
     handleClose();
   };
 
@@ -662,23 +656,21 @@ export default function Header() {
   const getImageUrl = (icon, isSecondary = false) => {
     if (!icon) return '/default-icon.png';
     if (icon.startsWith('http') || icon.startsWith('/')) return icon;
-    return isSecondary 
-      ? `https://api.bookmyevent.ae/${icon}`
-      : `https://api.bookmyevent.ae/${icon}`;
+    return isSecondary ? `https://api.bookmyevent.ae/${icon}` : `https://api.bookmyevent.ae/${icon}`;
   };
 
   const renderModuleGrid = (moduleList, handleClick, isSecondary = false) => (
     <Grid container spacing={2}>
       {moduleList.length === 0 ? (
         <Grid item xs={12}>
-          <Box sx={{ 
-            textAlign: 'center', 
-            py: 4,
-            color: '#999'
-          }}>
-            <Typography variant="body2">
-              No {isSecondary ? 'secondary ' : ''}modules available
-            </Typography>
+          <Box
+            sx={{
+              textAlign: 'center',
+              py: 4,
+              color: '#999'
+            }}
+          >
+            <Typography variant="body2">No {isSecondary ? 'secondary ' : ''}modules available</Typography>
           </Box>
         </Grid>
       ) : (
@@ -700,7 +692,7 @@ export default function Header() {
                 aspectRatio: '1 / 1',
                 width: '100%',
                 p: 2.5,
-                '&:hover': { 
+                '&:hover': {
                   bgcolor: '#f8f9fa',
                   transform: 'translateY(-2px)',
                   boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
@@ -709,37 +701,37 @@ export default function Header() {
               }}
             >
               <Box
-  sx={{
-    width: 56,
-    height: 56,
-    borderRadius: '50%',
-    overflow: 'hidden',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    mb: 1.5,
-    border: '2px solid #eee',
-    background: '#fff'
-  }}
->
-  <img
-    src={getImageUrl(item.icon, isSecondary)}
-    alt={item.title || 'Module'}
-    style={{
-      width: '100%',
-      height: '100%',
-      objectFit: 'cover'
-    }}
-    onError={(e) => {
-      e.currentTarget.src = '/default-icon.png';
-    }}
-  />
-</Box>
+                sx={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: '50%',
+                  overflow: 'hidden',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  mb: 1.5,
+                  border: '2px solid #eee',
+                  background: '#fff'
+                }}
+              >
+                <img
+                  src={getImageUrl(item.icon, isSecondary)}
+                  alt={item.title || 'Module'}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                  onError={(e) => {
+                    e.currentTarget.src = '/default-icon.png';
+                  }}
+                />
+              </Box>
 
-              <Typography 
-                variant="body2" 
-                sx={{ 
-                  textAlign: 'center', 
+              <Typography
+                variant="body2"
+                sx={{
+                  textAlign: 'center',
                   fontWeight: 500,
                   color: '#333',
                   fontSize: '0.875rem',
@@ -771,7 +763,7 @@ export default function Header() {
           border: `1.5px dashed ${color}`,
           textTransform: 'none',
           transition: 'all 0.2s ease',
-          '&:hover': { 
+          '&:hover': {
             bgcolor: color === '#4caf50' ? '#f1f8e9' : '#fff3e0',
             borderColor: color === '#4caf50' ? '#388e3c' : '#f57c00',
             transform: 'translateY(-1px)'
@@ -851,7 +843,9 @@ export default function Header() {
                 sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
               >
                 <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
-                <Typography variant="body2" sx={{ color: '#333' }}>{item.label}</Typography>
+                <Typography variant="body2" sx={{ color: '#333' }}>
+                  {item.label}
+                </Typography>
               </MenuItem>
             ))}
           </Menu>
@@ -861,11 +855,11 @@ export default function Header() {
             <Button
               variant="contained"
               size="large"
-              sx={{ 
-                textTransform: 'none', 
-                borderRadius: '50px', 
-                px: 3, 
-                py: 1.5, 
+              sx={{
+                textTransform: 'none',
+                borderRadius: '50px',
+                px: 3,
+                py: 1.5,
                 fontSize: '1rem',
                 bgcolor: '#EA4C46',
                 '&:hover': {
@@ -916,16 +910,18 @@ export default function Header() {
               <Box sx={{ p: 3 }}>
                 {/* Main Modules Section */}
                 <Box sx={{ mb: 4 }}>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    mb: 2.5,
-                    pb: 1,
-                    borderBottom: '2px solid #f0f0f0'
-                  }}>
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      mb: 2.5,
+                      pb: 1,
+                      borderBottom: '2px solid #f0f0f0'
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
                         fontWeight: 600,
                         color: '#1a1a1a',
                         fontSize: '1.1rem'
@@ -933,16 +929,18 @@ export default function Header() {
                     >
                       Main Modules
                     </Typography>
-                    <Box sx={{ 
-                      ml: 1.5,
-                      px: 1.5,
-                      py: 0.5,
-                      bgcolor: '#e3f2fd',
-                      borderRadius: '12px'
-                    }}>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
+                    <Box
+                      sx={{
+                        ml: 1.5,
+                        px: 1.5,
+                        py: 0.5,
+                        bgcolor: '#e3f2fd',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
                           color: '#1976d2',
                           fontWeight: 600,
                           fontSize: '0.75rem'
@@ -961,16 +959,18 @@ export default function Header() {
 
                 {/* Secondary Modules Section */}
                 <Box>
-                  <Box sx={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    mb: 2.5,
-                    pb: 1,
-                    borderBottom: '2px solid #f0f0f0'
-                  }}>
-                    <Typography 
-                      variant="h6" 
-                      sx={{ 
+                  <Box
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      mb: 2.5,
+                      pb: 1,
+                      borderBottom: '2px solid #f0f0f0'
+                    }}
+                  >
+                    <Typography
+                      variant="h6"
+                      sx={{
                         fontWeight: 600,
                         color: '#1a1a1a',
                         fontSize: '1.1rem'
@@ -978,16 +978,18 @@ export default function Header() {
                     >
                       Secondary Modules
                     </Typography>
-                    <Box sx={{ 
-                      ml: 1.5,
-                      px: 1.5,
-                      py: 0.5,
-                      bgcolor: '#fff3e0',
-                      borderRadius: '12px'
-                    }}>
-                      <Typography 
-                        variant="caption" 
-                        sx={{ 
+                    <Box
+                      sx={{
+                        ml: 1.5,
+                        px: 1.5,
+                        py: 0.5,
+                        bgcolor: '#fff3e0',
+                        borderRadius: '12px'
+                      }}
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
                           color: '#f57c00',
                           fontWeight: 600,
                           fontSize: '0.75rem'

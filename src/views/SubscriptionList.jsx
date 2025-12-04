@@ -1,60 +1,92 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Box, Button, Card, CardContent, Typography,
   Table, TableBody, TableCell, TableHead, TableRow,
-  Switch, IconButton, Menu, MenuItem, Dialog, DialogTitle,
-  DialogContent, DialogActions, Select, FormControl, InputLabel
+  Switch, IconButton, Menu, MenuItem
 } from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
+
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import AddIcon from '@mui/icons-material/Add';
 import { MoreVert } from '@mui/icons-material';
+
 import { useNavigate } from 'react-router-dom';
-import * as XLSX from 'xlsx'; // For Excel export
+import * as XLSX from 'xlsx';
 
 const SubscriptionList = () => {
   const navigate = useNavigate();
 
-  const [packages, setPackages] = useState([
-    { id: 1, name: 'Pro', price: '$1,199.00', duration: '365 Days', subscribers: 0, status: true },
-    { id: 2, name: 'Standard', price: '$700.00', duration: '180 Days', subscribers: 0, status: true },
-    { id: 3, name: 'Basic', price: '$399.00', duration: '120 Days', subscribers: 0, status: true },
-  ]);
-
-  const [anchorEl, setAnchorEl] = useState(null);
+  const [packages, setPackages] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewOpen, setViewOpen] = useState(false);
-  const [selectedPkg, setSelectedPkg] = useState(null);
-  const [selectedModule, setSelectedModule] = useState('All');
+  const [anchorEl, setAnchorEl] = useState(null);
 
   const open = Boolean(anchorEl);
 
-  const handleClick = (event) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  // ===================== FETCH DATA ======================
+  useEffect(() => {
+    fetchPackages();
+  }, []);
 
-  const handleAddPackage = () => navigate('/settings/sub/add');
-  const handleEditPackage = (id) => navigate(`/settings/sub/add/${id}`);
+  const fetchPackages = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/subscription/plan");
+      const data = await res.json();
 
-  const filteredPackages = packages.filter(pkg =>
-    pkg.name.toLowerCase().includes(searchQuery.toLowerCase()) &&
-    (selectedModule === 'All' || selectedModule === pkg.name.split(' ')[0])
-  );
+      if (data.success) {
+        const mapped = data.plans.map((p) => ({
+          id: p._id,
+          name: p.name,
+          price: `₹${p.price}`,
+          duration: `${p.durationInDays} Days`,
+          subscribers: p.subscriberCount || 0,
+          status: p.isActive,
+        }));
+        setPackages(mapped);
+      }
 
-  const handleView = (pkg) => {
-    setSelectedPkg(pkg);
-    setViewOpen(true);
+    } catch (err) {
+      console.error("Error:", err);
+    }
   };
 
-  const handleViewClose = () => {
-    setSelectedPkg(null);
-    setViewOpen(false);
+  // ===================== ACTIONS ======================
+  const handleAdd = () => navigate('/settings/sub/add');
+
+  const handleEdit = (id) => {
+    navigate(`/settings/sub/add/${id}`); // open AddPackage.jsx in edit mode
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm("Are you sure you want to delete this plan?")) return;
+
+    try {
+      const res = await fetch(`http://localhost:5000/api/subscription/plan/${id}`, {
+        method: "DELETE",
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        alert("Plan deleted successfully");
+        fetchPackages();
+      }
+    } catch (err) {
+      alert("Error deleting plan");
+    }
   };
 
   const handleToggleStatus = (id) => {
-    setPackages(packages.map(pkg => pkg.id === id ? { ...pkg, status: !pkg.status } : pkg));
+    setPackages(
+      packages.map((pkg) =>
+        pkg.id === id ? { ...pkg, status: !pkg.status } : pkg
+      )
+    );
   };
 
-  // --------- EXPORT FUNCTIONS ----------
+  const filteredPackages = packages.filter(pkg =>
+    pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  // ===================== EXPORT FUNCTIONS ======================
   const exportCSV = () => {
     const csvRows = [];
     const headers = ['ID', 'Package Name', 'Price', 'Duration', 'Subscribers', 'Status'];
@@ -75,120 +107,104 @@ const SubscriptionList = () => {
     const csvData = new Blob([csvRows.join('\n')], { type: 'text/csv' });
     const url = window.URL.createObjectURL(csvData);
     const a = document.createElement('a');
-    a.setAttribute('hidden', '');
     a.href = url;
     a.download = 'subscriptions.csv';
-    document.body.appendChild(a);
     a.click();
-    document.body.removeChild(a);
   };
 
   const exportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(packages.map(pkg => ({
-      ID: pkg.id,
-      'Package Name': pkg.name,
-      Price: pkg.price,
-      Duration: pkg.duration,
-      Subscribers: pkg.subscribers,
-      Status: pkg.status ? 'Active' : 'Inactive'
-    })));
+    const worksheet = XLSX.utils.json_to_sheet(
+      packages.map(pkg => ({
+        ID: pkg.id,
+        'Package Name': pkg.name,
+        Price: pkg.price,
+        Duration: pkg.duration,
+        Subscribers: pkg.subscribers,
+        Status: pkg.status ? 'Active' : 'Inactive'
+      }))
+    );
+
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Subscriptions');
     XLSX.writeFile(workbook, 'subscriptions.xlsx');
   };
-  // -----------------------------------
 
   return (
     <Box sx={{ padding: 3, backgroundColor: 'white' }}>
-      {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Typography variant="h6">Subscription Package List</Typography>
-      </Box>
 
-      {/* Filter Buttons */}
+      {/* Header */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', }}>
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel>All Module</InputLabel>
-            <Select
-              value={selectedModule}
-              label="All Module"
-              onChange={(e) => setSelectedModule(e.target.value)}
-            >
-              <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Rental">Rental</MenuItem>
-              <MenuItem value="Event">Event</MenuItem>
-              <MenuItem value="Auditorium">Auditorium</MenuItem>
-            </Select>
-          </FormControl>
-        </Box>
-        <Box>
-          <Button variant="contained" color="primary" size="small">All</Button>
-          <Button variant="outlined" color="primary" size="small">This Year</Button>
-          <Button variant="outlined" color="primary" size="small">This Month</Button>
-          <Button variant="outlined" color="primary" size="small">This Week</Button>
-        </Box>
+        <Typography variant="h6">Subscription Package List</Typography>
       </Box>
 
       {/* Summary Cards */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
-          <CardContent>
-            <Typography variant="h6" color="primary">Basic</Typography>
-            <Typography variant="h4" color="primary">$798.00</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ width: '30%', backgroundColor: '#fff3e0', textAlign: 'center', p: 2 }}>
-          <CardContent>
-            <Typography variant="h6" color="text.secondary">Standard</Typography>
-            <Typography variant="h4" color="text.secondary">$700.00</Typography>
-          </CardContent>
-        </Card>
-        <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
-          <CardContent>
-            <Typography variant="h6" color="primary">Pro</Typography>
-            <Typography variant="h4" color="primary">$3,597.00</Typography>
-          </CardContent>
-        </Card>
+        {packages[2] && (
+          <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
+            <CardContent>
+              <Typography variant="h6">{packages[2].name}</Typography>
+              <Typography variant="h4">{packages[2].price}</Typography>
+            </CardContent>
+          </Card>
+        )}
+
+        {packages[1] && (
+          <Card sx={{ width: '30%', backgroundColor: '#fff3e0', textAlign: 'center', p: 2 }}>
+            <CardContent>
+              <Typography variant="h6">{packages[1].name}</Typography>
+              <Typography variant="h4">{packages[1].price}</Typography>
+            </CardContent>
+          </Card>
+        )}
+
+        {packages[0] && (
+          <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
+            <CardContent>
+              <Typography variant="h6">{packages[0].name}</Typography>
+              <Typography variant="h4">{packages[0].price}</Typography>
+            </CardContent>
+          </Card>
+        )}
       </Box>
 
-      {/* Search + Export */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 2 }}>
-        
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          
-          <input
-            type="text"
-            placeholder="Search by name"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{ padding: '8px', borderRadius: '4px', border: '1px solid #ccc' }}
-            
-          />
-        </Box>
-        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mr: 2, mb: 2 , marginLeft: '50%'}}>
-  <Button
-    variant="contained"
-    color="primary"
-    startIcon={<AddIcon />}
-    onClick={handleAddPackage}
-  >
-    Add Subscription Package
-  </Button>
-</Box>
+      {/* Search + Add + Export */}
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
 
-        <Box>
+        <input
+          type="text"
+          placeholder="Search package..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            padding: "8px",
+            border: "1px solid #ccc",
+            borderRadius: "4px",
+            width: "230px"
+          }}
+        />
+
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<AddIcon />}
+            onClick={handleAdd}
+          >
+            Add Subscription Package
+          </Button>
+
           <Button
             variant="outlined"
             color="primary"
             startIcon={<MoreVert />}
-            onClick={handleClick}
+            onClick={(e) => setAnchorEl(e.currentTarget)}
           >
             Export
           </Button>
-          <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-            <MenuItem onClick={() => { exportCSV(); handleClose(); }}>CSV</MenuItem>
-            <MenuItem onClick={() => { exportExcel(); handleClose(); }}>Excel</MenuItem>
+
+          <Menu anchorEl={anchorEl} open={open} onClose={() => setAnchorEl(null)}>
+            <MenuItem onClick={() => { exportCSV(); setAnchorEl(null); }}>CSV</MenuItem>
+            <MenuItem onClick={() => { exportExcel(); setAnchorEl(null); }}>Excel</MenuItem>
           </Menu>
         </Box>
       </Box>
@@ -201,11 +217,12 @@ const SubscriptionList = () => {
             <TableCell>Package Name</TableCell>
             <TableCell>Pricing</TableCell>
             <TableCell>Duration</TableCell>
-            <TableCell>Current Subscriber</TableCell>
+            <TableCell>Subscribers</TableCell>
             <TableCell>Status</TableCell>
             <TableCell>Actions</TableCell>
           </TableRow>
         </TableHead>
+
         <TableBody>
           {filteredPackages.map((pkg, index) => (
             <TableRow key={pkg.id}>
@@ -214,6 +231,7 @@ const SubscriptionList = () => {
               <TableCell>{pkg.price}</TableCell>
               <TableCell>{pkg.duration}</TableCell>
               <TableCell>{pkg.subscribers}</TableCell>
+
               <TableCell>
                 <Switch
                   checked={pkg.status}
@@ -221,16 +239,24 @@ const SubscriptionList = () => {
                   color="success"
                 />
               </TableCell>
+
               <TableCell>
-                <IconButton color="primary" onClick={() => handleEditPackage(pkg.id)}>
+                <IconButton color="primary" onClick={() => handleEdit(pkg.id)}>
                   <EditIcon />
+                </IconButton>
+
+                <IconButton color="error" onClick={() => handleDelete(pkg.id)}>
+                  <DeleteIcon />
                 </IconButton>
               </TableCell>
             </TableRow>
           ))}
+
           {filteredPackages.length === 0 && (
             <TableRow>
-              <TableCell colSpan={7} align="center">No packages found</TableCell>
+              <TableCell colSpan={7} align="center">
+                No packages found
+              </TableCell>
             </TableRow>
           )}
         </TableBody>

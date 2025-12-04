@@ -1,288 +1,213 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from "react";
 import {
-  Box, Typography, Card, CardContent, Button, 
+  Box, Typography, Card, CardContent, Button,
   Select, MenuItem, FormControl, InputLabel,
   Table, TableBody, TableCell, TableHead, TableRow,
-  IconButton, Menu, TextField, InputAdornment, Chip
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import { MoreVert } from '@mui/icons-material';
-import { styled } from '@mui/system';
+  Menu, TextField, InputAdornment, Chip
+} from "@mui/material";
+import SearchIcon from "@mui/icons-material/Search";
+import { MoreVert } from "@mui/icons-material";
+import { styled } from "@mui/system";
 
-const StyledCard = styled(Card)(({ theme }) => ({
+const StyledCard = styled(Card)({
   borderRadius: 8,
-  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
-  border: '1px solid #e0e0e0',
-}));
+  boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+  border: "1px solid #e0e0e0",
+});
 
-const StatsBox = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  gap: 16,
-  marginBottom: 24,
-}));
-
-const StatCard = styled(Box)(({ theme }) => ({
-  backgroundColor: '#f8f9fa',
+const StatCard = styled(Box)({
   padding: 24,
   borderRadius: 8,
   flex: 1,
-  textAlign: 'center',
-  position: 'relative',
-  border: '1px solid #e0e0e0',
-}));
+  textAlign: "center",
+  border: "1px solid #e0e0e0",
+});
 
-const StoreIcon = styled(Box)(({ theme }) => ({
+const StoreIcon = styled(Box)({
   width: 40,
   height: 40,
-  borderRadius: '50%',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
   marginRight: 12,
-  fontSize: '18px',
-}));
-
-const MetricsRow = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  justifyContent: 'space-between',
-  marginBottom: 24,
-  padding: '16px 0',
-}));
-
-const MetricItem = styled(Box)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  gap: 8,
-  fontSize: 14,
-  fontWeight: 500,
-}));
-
-const MetricDot = styled(Box)(({ theme }) => ({
-  width: 8,
-  height: 8,
-  borderRadius: '50%',
-}));
+  fontSize: "20px",
+});
 
 const SubscribedStore = () => {
-  const [stores, setStores] = useState([
-    { 
-      id: 1, 
-      name: 'CityLink Taxis', 
-      rating: 4.0, 
-      package: 'Regular', 
-      price: '$500.00', 
-      expDate: '05 Feb 2026', 
-      used: 1, 
-      icon: '🚕',
-      iconBg: '#ff6b35',
-      category: 'rental'
-    },
-    { 
-      id: 2, 
-      name: 'RideMaster Taxis', 
-      rating: 5.0, 
-      package: 'Premium', 
-      price: '$1,000.00', 
-      expDate: '05 Feb 2026', 
-      used: 1, 
-      icon: '🚗',
-      iconBg: '#6c5ce7',
-      category: 'rental'
-    },
-    { 
-      id: 3, 
-      name: 'Country Fair', 
-      rating: 0.0, 
-      package: 'Basic', 
-      price: '$399.00', 
-      expDate: '04 Oct 2024', 
-      used: 1, 
-      icon: '🌾',
-      iconBg: '#00b894',
-      category: 'event'
-    },
-    { 
-      id: 4, 
-      name: 'Sk General Store', 
-      rating: 0.0, 
-      package: 'Pro', 
-      price: '$1,199.00', 
-      expDate: '06 Jun 2025', 
-      used: 1, 
-      icon: '🏪',
-      iconBg: '#fdcb6e',
-      category: 'auditorium'
-    },
-    { 
-      id: 5, 
-      name: 'Drug Store', 
-      rating: 0.0, 
-      package: 'Basic', 
-      price: '$399.00', 
-      expDate: '04 Oct 2024', 
-      used: 1, 
-      icon: '💊',
-      iconBg: '#00cec9',
-      category: 'event'
-    },
-  ]);
-
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState('All');
+  const [stores, setStores] = useState([]);
+  const [modules, setModules] = useState([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedModule, setSelectedModule] = useState("All");
   const [anchorEl, setAnchorEl] = useState(null);
 
   const open = Boolean(anchorEl);
 
-  const handleClick = (event) => setAnchorEl(event.currentTarget);
-  const handleClose = () => setAnchorEl(null);
+  useEffect(() => {
+    fetchSubscribedStores();
+    fetchModules();
+  }, []);
 
-  // Filter stores based on search and category
-  const filteredStores = stores.filter(store => {
-    const matchesSearch = store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                         store.package.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesCategory = selectedCategory === 'All' || store.category === selectedCategory.toLowerCase();
-    return matchesSearch && matchesCategory;
-  });
+  // Fetch Subscribed Stores
+  const fetchSubscribedStores = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/subscription/all");
+      const data = await res.json();
 
-  // Export functions
-  const exportCSV = () => {
-    const csvRows = [];
-    const headers = ['Sl', 'Store Name', 'Rating', 'Package', 'Price', 'Exp Date', 'Used'];
-    csvRows.push(headers.join(','));
+      if (data.success) {
+        const mapped = data.subscriptions.map((sub) => {
+          const expDate = new Date(sub.endDate);
 
-    filteredStores.forEach((store, index) => {
-      const values = [
-        index + 1,
-        store.name,
-        store.rating,
-        store.package,
-        store.price,
-        store.expDate,
-        store.used
-      ];
-      csvRows.push(values.join(','));
-    });
+          return {
+            id: sub._id,
+            name: sub.userId?.storeName || sub.userId?.businessName || sub.userId?.name || "Unknown Store",
+            module: sub.moduleId?.title || "Unknown",
+            moduleId: sub.moduleId?._id || "none",
+            package: sub.planId?.name || "N/A",
+            price: `₹${sub.planId?.price || 0}`,
+            expDate,
+            expDateString: expDate.toDateString(),
+            used: 1,
+            icon: "🏪",
+            iconBg: "#6c5ce7"
+          };
+        });
 
-    const csvData = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(csvData);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
-    a.href = url;
-    a.download = 'subscribed_stores.csv';
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+        setStores(mapped);
+      }
+    } catch (err) {
+      console.log("Error fetching subscriptions:", err);
+    }
   };
 
-  const exportExcel = () => {
-    // Since XLSX is not available in this environment, we'll create a simple Excel-like CSV
+  // Fetch Modules
+  const fetchModules = async () => {
+    try {
+      const res = await fetch("http://localhost:5000/api/modules");
+      const data = await res.json();
+
+      // your backend returns array (per controller) — accept either array or { modules: [...] }
+      if (Array.isArray(data)) {
+        setModules(data);
+      } else if (Array.isArray(data.modules)) {
+        setModules(data.modules);
+      } else if (Array.isArray(data.data)) {
+        setModules(data.data);
+      }
+    } catch (err) {
+      console.log("Error fetching modules:", err);
+    }
+  };
+
+  // Filter logic
+  const filteredStores = stores.filter((store) => {
+    const matchSearch =
+      store.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      store.package.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      store.module.toLowerCase().includes(searchQuery.toLowerCase());
+
+    const matchModule =
+      selectedModule === "All" || store.moduleId === selectedModule;
+
+    return matchSearch && matchModule;
+  });
+
+  // Stats
+  const totalSubscribed = stores.length;
+  const activeSubscriptions = stores.filter((s) => s.expDate > new Date()).length;
+  const expiredSubscriptions = stores.filter((s) => s.expDate < new Date()).length;
+  const expiringSoon = stores.filter((s) => {
+    const now = new Date();
+    const diffDays = (s.expDate - now) / (1000 * 60 * 60 * 24);
+    return diffDays > 0 && diffDays <= 7;
+  }).length;
+
+  // Export CSV
+  const exportCSV = () => {
     const csvRows = [];
-    const headers = ['Sl', 'Store Name', 'Rating', 'Package', 'Price', 'Exp Date', 'Used'];
-    csvRows.push(headers.join('\t')); // Use tabs for Excel format
+    csvRows.push(["Sl", "Store Name", "Module", "Package", "Price", "Exp Date", "Used"].join(","));
 
     filteredStores.forEach((store, index) => {
-      const values = [
+      csvRows.push([
         index + 1,
         store.name,
-        store.rating,
+        store.module,
         store.package,
         store.price,
-        store.expDate,
+        store.expDateString,
         store.used
-      ];
-      csvRows.push(values.join('\t'));
+      ].join(","));
     });
 
-    const csvData = new Blob([csvRows.join('\n')], { type: 'application/vnd.ms-excel' });
-    const url = window.URL.createObjectURL(csvData);
-    const a = document.createElement('a');
-    a.setAttribute('hidden', '');
+    const file = new Blob([csvRows.join("\n")], { type: "text/csv" });
+    const url = URL.createObjectURL(file);
+    const a = document.createElement("a");
     a.href = url;
-    a.download = 'subscribed_stores.xls';
-    document.body.appendChild(a);
+    a.download = "subscribed_store_list.csv";
     a.click();
-    document.body.removeChild(a);
   };
 
   return (
-    <Box sx={{ padding: 3, backgroundColor: '#fafafa', minHeight: '100vh' }}>
+    <Box sx={{ padding: 3, backgroundColor: "#fafafa", minHeight: "100vh" }}>
       {/* Header */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Box sx={{ fontSize: '20px' }}>📋</Box>
-          <Typography variant="h5" fontWeight={600}>
-            Subscribed Store List
-          </Typography>
-        </Box>
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 3 }}>
+        <Typography variant="h5" fontWeight={600}>Subscribed Store List</Typography>
         <Chip label="All Zones" variant="outlined" />
       </Box>
 
-      {/* Stats Cards */}
-      <StatsBox>
-        <StatCard sx={{ backgroundColor: '#e3f2fd' }}>
-          <Box sx={{ position: 'absolute', top: 8, right: 8, color: '#1976d2' }}>📊</Box>
-          <Typography variant="h3" fontWeight="bold" color="#1976d2">8</Typography>
-          <Typography variant="body2" color="#666">Total Subscribed User</Typography>
+      {/* Stats row with updated color tones */}
+      <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
+        {/* Blue tone (Total) */}
+        <StatCard sx={{ background: "linear-gradient(180deg, #e8f4ff 0%, #e6f3ff 100%)", borderColor: "#d0eaff" }}>
+          <Typography variant="h4" fontWeight={700} color="#0b66b2">{totalSubscribed}</Typography>
+          <Typography color="#0b66b2">Total Subscribed User</Typography>
         </StatCard>
-        <StatCard sx={{ backgroundColor: '#e8f5e9' }}>
-          <Box sx={{ position: 'absolute', top: 8, right: 8, color: '#4caf50' }}>📈</Box>
-          <Typography variant="h3" fontWeight="bold" color="#4caf50">2</Typography>
-          <Typography variant="body2" color="#666">Active Subscriptions</Typography>
-        </StatCard>
-        <StatCard sx={{ backgroundColor: '#fff3e0' }}>
-          <Box sx={{ position: 'absolute', top: 8, right: 8, color: '#ff9800' }}>📉</Box>
-          <Typography variant="h3" fontWeight="bold" color="#ff9800">6</Typography>
-          <Typography variant="body2" color="#666">Expired Subscription</Typography>
-        </StatCard>
-        <StatCard sx={{ backgroundColor: '#fff8e1' }}>
-          <Box sx={{ position: 'absolute', top: 8, right: 8, color: '#ffc107' }}>👑</Box>
-          <Typography variant="h3" fontWeight="bold" color="#ffc107">0</Typography>
-          <Typography variant="body2" color="#666">Expiring Soon</Typography>
-        </StatCard>
-      </StatsBox>
 
-      {/* Metrics Row */}
-      <MetricsRow>
-        <MetricItem sx={{ color: '#1976d2' }}>
-          <MetricDot sx={{ backgroundColor: '#1976d2' }}></MetricDot>
-          TOTAL TRANSACTIONS 8
-        </MetricItem>
-        <MetricItem sx={{ color: '#4caf50' }}>
-          <MetricDot sx={{ backgroundColor: '#4caf50' }}></MetricDot>
-          TOTAL EARNING $6,595.00
-        </MetricItem>
-        <MetricItem sx={{ color: '#ff5722' }}>
-          <MetricDot sx={{ backgroundColor: '#ff5722' }}></MetricDot>
-          EARNED THIS MONTH $0.00
-        </MetricItem>
-      </MetricsRow>
+        {/* Green tone (Active) */}
+        <StatCard sx={{ background: "linear-gradient(180deg, #eaf6ea 0%, #e8f5e9 100%)", borderColor: "#dff0df" }}>
+          <Typography variant="h4" fontWeight={700} color="#2e7d32">{activeSubscriptions}</Typography>
+          <Typography color="#2e7d32">Active Subscriptions</Typography>
+        </StatCard>
 
-      {/* Store List Section */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
-        <Typography variant="h6" fontWeight={600}>
-          Store List <span style={{ color: '#666' }}>{filteredStores.length}</span>
-        </Typography>
-        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
-          {/* Category Dropdown */}
-          <FormControl sx={{ minWidth: 120 }}>
-            <InputLabel>Category</InputLabel>
+        {/* Peach/soft orange tone (Expired) */}
+        <StatCard sx={{ background: "linear-gradient(180deg, #fff6ea 0%, #fff3e0 100%)", borderColor: "#ffe9cc" }}>
+          <Typography variant="h4" fontWeight={700} color="#b45f08">{expiredSubscriptions}</Typography>
+          <Typography color="#b45f08">Expired Subscription</Typography>
+        </StatCard>
+
+        {/* Pale yellow tone (Expiring soon) */}
+        <StatCard sx={{ background: "linear-gradient(180deg, #fffdf2 0%, #fff8e1 100%)", borderColor: "#fff2c9" }}>
+          <Typography variant="h4" fontWeight={700} color="#a66a00">{expiringSoon}</Typography>
+          <Typography color="#a66a00">Expiring Soon</Typography>
+        </StatCard>
+      </Box>
+
+      {/* Filters */}
+      <Box sx={{ display: "flex", justifyContent: "space-between", mb: 2 }}>
+        <Typography variant="h6">Store List {filteredStores.length}</Typography>
+
+        <Box sx={{ display: "flex", gap: 2 }}>
+          {/* Module selector */}
+          <FormControl size="small" sx={{ minWidth: 150 }}>
+            <InputLabel>Module</InputLabel>
             <Select
-              value={selectedCategory}
-              label="Category"
-              onChange={(e) => setSelectedCategory(e.target.value)}
-              size="small"
+              value={selectedModule}
+              label="Module"
+              onChange={(e) => setSelectedModule(e.target.value)}
             >
               <MenuItem value="All">All</MenuItem>
-              <MenuItem value="Rental">Rental</MenuItem>
-              <MenuItem value="Event">Event</MenuItem>
-              <MenuItem value="Auditorium">Auditorium</MenuItem>
+              {modules.map((mod) => (
+                <MenuItem key={mod._id} value={mod._id}>
+                  {mod.title}
+                </MenuItem>
+              ))}
             </Select>
           </FormControl>
 
-          {/* Search Field */}
+          {/* Search */}
           <TextField
             size="small"
-            placeholder="Ex: Search by name & pack"
+            placeholder="Search store / plan / module"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             InputProps={{
@@ -292,20 +217,16 @@ const SubscribedStore = () => {
                 </InputAdornment>
               ),
             }}
-            sx={{ minWidth: 250 }}
+            sx={{ minWidth: 260 }}
           />
 
-          {/* Export Button */}
-          <Button
-            variant="outlined"
-            startIcon={<MoreVert />}
-            onClick={handleClick}
-          >
+          {/* Export */}
+          <Button variant="outlined" startIcon={<MoreVert />} onClick={(e) => setAnchorEl(e.currentTarget)}>
             Export
           </Button>
-          <Menu anchorEl={anchorEl} open={open} onClose={handleClose}>
-            <MenuItem onClick={() => { exportCSV(); handleClose(); }}>CSV</MenuItem>
-            <MenuItem onClick={() => { exportExcel(); handleClose(); }}>Excel</MenuItem>
+
+          <Menu open={open} anchorEl={anchorEl} onClose={() => setAnchorEl(null)}>
+            <MenuItem onClick={() => { exportCSV(); setAnchorEl(null); }}>CSV</MenuItem>
           </Menu>
         </Box>
       </Box>
@@ -315,69 +236,43 @@ const SubscribedStore = () => {
         <CardContent sx={{ p: 0 }}>
           <Table>
             <TableHead>
-              <TableRow sx={{ backgroundColor: '#f8f9fa' }}>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '8%' }}>Sl</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '30%' }}>Store Info</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '20%' }}>Current Package Name</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '15%' }}>Package Price</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '15%' }}>Exp Date</TableCell>
-                <TableCell sx={{ fontWeight: 600, color: '#666', width: '12%', textAlign: 'center' }}>Total Subscription Used</TableCell>
+              <TableRow sx={{ backgroundColor: "#f8f9fa" }}>
+                <TableCell>Sl</TableCell>
+                <TableCell>Store Info</TableCell>
+                <TableCell>Module</TableCell>
+                <TableCell>Package</TableCell>
+                <TableCell>Price</TableCell>
+                <TableCell>Exp Date</TableCell>
+                <TableCell align="center">Used</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
               {filteredStores.map((store, index) => (
                 <TableRow key={store.id} hover>
+                  <TableCell>{index + 1}</TableCell>
+
                   <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
-                      {index + 1}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <Box sx={{ display: "flex", alignItems: "center" }}>
                       <StoreIcon sx={{ backgroundColor: store.iconBg }}>
                         {store.icon}
                       </StoreIcon>
-                      <Box>
-                        <Typography variant="body2" fontWeight={500}>
-                          {store.name}
-                        </Typography>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mt: 0.5 }}>
-                          <Typography variant="body2" color="#ffa726" sx={{ mr: 0.5 }}>
-                            ⭐
-                          </Typography>
-                          <Typography variant="body2" color="#666">
-                            {store.rating.toFixed(1)}
-                          </Typography>
-                        </Box>
-                      </Box>
+                      <Typography>{store.name}</Typography>
                     </Box>
                   </TableCell>
-                  <TableCell>
-                    <Typography variant="body2">{store.package}</Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" fontWeight={500}>
-                      {store.price}
-                    </Typography>
-                  </TableCell>
-                  <TableCell>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-line' }}>
-                      {store.expDate}
-                    </Typography>
-                  </TableCell>
-                  <TableCell align="center">
-                    <Typography variant="body2" fontWeight={500}>
-                      {store.used}
-                    </Typography>
-                  </TableCell>
+
+                  <TableCell>{store.module}</TableCell>
+                  <TableCell>{store.package}</TableCell>
+                  <TableCell>{store.price}</TableCell>
+                  <TableCell>{store.expDateString}</TableCell>
+                  <TableCell align="center">{store.used}</TableCell>
                 </TableRow>
               ))}
+
               {filteredStores.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Typography variant="body2" color="#666" sx={{ py: 4 }}>
-                      No stores found matching your search criteria
-                    </Typography>
+                  <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                    No stores found
                   </TableCell>
                 </TableRow>
               )}

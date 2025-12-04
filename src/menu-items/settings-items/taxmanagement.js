@@ -1,20 +1,16 @@
-
-
 // menu-items/auditorium/customers.js
 import {
-  IconPhoto,
-  IconTicket,
-  IconBell
+  IconReceipt,
+  IconPercentage
 } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto,     // for Banners
-  IconTicket,    // for Coupons
-  IconBell       // for Push Notifications
+  IconReceipt,      // Create Tax
+  IconPercentage    // Tax Setup
 };
 
 const taxmanagement = {
-  id: 'tax-managemet',
+  id: 'tax-management',
   title: 'Tax Management',
   type: 'group',
   children: [
@@ -23,7 +19,7 @@ const taxmanagement = {
       title: 'Create',
       type: 'item',
       url: '/settings/tax',
-      icon: icons.IconPhoto,
+      icon: icons.IconReceipt,
       breadcrumbs: false
     },
     {
@@ -31,10 +27,9 @@ const taxmanagement = {
       title: 'Tax Setup',
       type: 'item',
       url: '/settings/tax',
-      icon: icons.IconPhoto,
+      icon: icons.IconPercentage,
       breadcrumbs: false
     }
-   
   ]
 };
 

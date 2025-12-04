@@ -1,18 +1,18 @@
 // menu-items/auditorium/customers.js
 import {
-  IconPhoto,
-  IconTicket,
-  IconBell
+  IconClipboardList,
+  IconBuildingStore,
+  IconPackage,
 } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto,     // for Banners
-  IconTicket,    // for Coupons
-  IconBell       // for Push Notifications
+  IconClipboardList,   // Subscription List
+  IconBuildingStore,   // Subscribed Store List
+  IconPackage          // Packages / Plans
 };
 
 const subscriptionmanagement = {
-  id: 'subscription-managemet',
+  id: 'subscription-management',
   title: 'Subscription Management',
   type: 'group',
   children: [
@@ -21,7 +21,7 @@ const subscriptionmanagement = {
       title: 'Subscription List',
       type: 'item',
       url: '/settings/sub/list',
-      icon: icons.IconPhoto,
+      icon: icons.IconClipboardList,
       breadcrumbs: false
     },
     {
@@ -29,7 +29,7 @@ const subscriptionmanagement = {
       title: 'Subscribed Store List',
       type: 'item',
       url: '/settings/sub/store',
-      icon: icons.IconPhoto,
+      icon: icons.IconBuildingStore,
       breadcrumbs: false
     },
     // {
@@ -37,10 +37,9 @@ const subscriptionmanagement = {
     //   title: 'Add Package',
     //   type: 'item',
     //   url: '/settings/sub/add',
-    //   icon: icons.IconPhoto,
+    //   icon: icons.IconPackage,
     //   breadcrumbs: false
     // }
-   
   ]
 };
 

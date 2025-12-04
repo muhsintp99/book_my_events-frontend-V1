@@ -1,20 +1,16 @@
-
-
 // menu-items/auditorium/customers.js
 import {
-  IconPhoto,
-  IconTicket,
-  IconBell
+  IconUserCog,
+  IconUserPlus
 } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto,     // for Banners
-  IconTicket,    // for Coupons
-  IconBell       // for Push Notifications
+  IconUserCog,   // Roles
+  IconUserPlus   // Add New Employee
 };
 
 const employeemanagement = {
-  id: 'employee-managemet',
+  id: 'employee-management',
   title: 'Employee Management',
   type: 'group',
   children: [
@@ -23,7 +19,7 @@ const employeemanagement = {
       title: 'Roles',
       type: 'item',
       url: '/settings/employee',
-      icon: icons.IconPhoto,
+      icon: icons.IconUserCog,
       breadcrumbs: false
     },
     {
@@ -31,10 +27,9 @@ const employeemanagement = {
       title: 'Add New',
       type: 'item',
       url: '/settings/employee',
-      icon: icons.IconPhoto,
+      icon: icons.IconUserPlus,
       breadcrumbs: false
     }
-   
   ]
 };
 

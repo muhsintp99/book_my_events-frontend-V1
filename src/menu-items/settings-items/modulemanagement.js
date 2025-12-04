@@ -1,18 +1,16 @@
 // menu-items/auditorium/customers.js
 import {
-  IconPhoto,
-  IconTicket,
-  IconBell
+  IconApps,
+  IconHierarchy2
 } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto,     // for Banners
-  IconTicket,    // for Coupons
-  IconBell       // for Push Notifications
+  IconApps,        // All Modules
+  IconHierarchy2   // Secondary Modules
 };
 
 const modulemanagement = {
-  id: 'module-managemet',
+  id: 'module-management',
   title: 'Module Management',
   type: 'group',
   children: [
@@ -21,18 +19,17 @@ const modulemanagement = {
       title: 'All Modules',
       type: 'item',
       url: '/settings/module-setup',
-      icon: icons.IconPhoto,
+      icon: icons.IconApps,
       breadcrumbs: false
     },
-     {
+    {
       id: 'secondary-module',
       title: 'Secondary Modules',
       type: 'item',
       url: '/settings/secondery-module-setup',
-      icon: icons.IconPhoto,
+      icon: icons.IconHierarchy2,
       breadcrumbs: false
     }
-   
   ]
 };
 

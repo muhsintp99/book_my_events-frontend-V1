@@ -61,7 +61,7 @@ const moduleMenuItems = {
   catering: {
     items: [dashboard,cateringmanagement,cateringsections,CateringProvidermanagement] 
   },
-   makeup: {
+   makeupartist: {
     items: [dashboard,makeupmanangement,makeupsections,MakeupProvidermanagement] 
   },
    photography: {

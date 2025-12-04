@@ -155,6 +155,8 @@ const MainRoutes = {
 
     { path: '/settings/sub/list', element: <SubscriptionList /> },
     { path: '/settings/sub/add', element: <Addpackage /> },
+    { path: '/settings/sub/add/:id', element: <Addpackage /> },
+
     { path: '/settings/sub/store', element: <SubscribedStore /> },
 
     // Bookingssss
@@ -210,7 +212,7 @@ const MainRoutes = {
 
     // makeup/////////////////////////////////
 
-    { path: 'makeup/dashboard', element: <Makeupdashboard /> },
+    { path: 'makeupartist/dashboard', element: <Makeupdashboard /> },
     { path: 'makeup/AddProvider', element: <Makeupaddprovider /> },
     { path: 'makeup/category', element: <Makeupcategory /> },
     { path: 'makeup/makeuplist', element: <MakeupList /> },
