@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Box,
   Button,
@@ -13,50 +13,43 @@ import {
   Stack,
   TextField,
 } from "@mui/material";
+import axios from "axios";
 
 const PaymentFailedbookings = () => {
   const [search, setSearch] = useState("");
+  const [failedPayments, setFailedPayments] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const failedPaymentsData = [
-    {
-      id: 1,
-      paymentId: "PMT1001",
-      tripId: 100036,
-      customerInfo: "John Doe j*@gmail.com",
-      amount: "$247.50",
-      paymentDate: "08 Feb 2025 12:40pm",
-      status: "Failed",
-      reason: "Insufficient Funds",
-    },
-    {
-      id: 2,
-      paymentId: "PMT1002",
-      tripId: 100035,
-      customerInfo: "Jane Smith j*@gmail.com",
-      amount: "$33.75",
-      paymentDate: "06 Feb 2025 05:56pm",
-      status: "Failed",
-      reason: "Card Expired",
-    },
-    {
-      id: 3,
-      paymentId: "PMT1003",
-      tripId: 100033,
-      customerInfo: "MS 133 m*@gmail.com",
-      amount: "$180.60",
-      paymentDate: "06 Feb 2025 05:43pm",
-      status: "Failed",
-      reason: "Payment Gateway Error",
-    },
-  ];
+  // Fetch all bookings & filter failed
+  useEffect(() => {
+    const fetchFailed = async () => {
+      try {
+        const res = await axios.get("http://localhost:5000/api/bookings");
+        const all = res.data.bookings || [];
+
+        // Filter payment failed
+        const failed = all.filter(
+          (b) => b.paymentStatus?.toLowerCase() === "failed"
+        );
+
+        setFailedPayments(failed);
+      } catch (err) {
+        console.error("Error fetching failed payments", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchFailed();
+  }, []);
 
   const handleSearchChange = (e) => setSearch(e.target.value);
 
-  const filteredPayments = failedPaymentsData.filter(
-    (payment) =>
-      payment.paymentId.toLowerCase().includes(search.toLowerCase()) ||
-      payment.customerInfo.toLowerCase().includes(search.toLowerCase()) ||
-      payment.tripId.toString().includes(search)
+  const filteredPayments = failedPayments.filter(
+    (b) =>
+      b._id.includes(search) ||
+      (b.fullName || "").toLowerCase().includes(search.toLowerCase()) ||
+      (b.emailAddress || "").toLowerCase().includes(search.toLowerCase())
   );
 
   return (
@@ -74,7 +67,7 @@ const PaymentFailedbookings = () => {
           p={2}
         >
           <TextField
-            label="Search by Payment ID, Trip ID, Customer"
+            label="Search by Booking ID, Name, Email"
             variant="outlined"
             size="small"
             value={search}
@@ -91,42 +84,54 @@ const PaymentFailedbookings = () => {
             <TableHead>
               <TableRow>
                 <TableCell>S#</TableCell>
-                <TableCell>Payment ID</TableCell>
-                <TableCell>Trip ID</TableCell>
-                <TableCell>Customer Info</TableCell>
+                <TableCell>Booking ID</TableCell>
+                <TableCell>Full Name</TableCell>
+                <TableCell>Email</TableCell>
                 <TableCell>Amount</TableCell>
-                <TableCell>Payment Date</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Failure Reason</TableCell>
+                <TableCell>Booking Date</TableCell>
+                <TableCell>Payment Status</TableCell>
                 <TableCell>Action</TableCell>
               </TableRow>
             </TableHead>
+
             <TableBody>
-              {filteredPayments.map((payment, index) => (
-                <TableRow key={payment.id}>
-                  <TableCell>{index + 1}</TableCell>
-                  <TableCell>{payment.paymentId}</TableCell>
-                  <TableCell>{payment.tripId}</TableCell>
-                  <TableCell>{payment.customerInfo}</TableCell>
-                  <TableCell>{payment.amount}</TableCell>
-                  <TableCell>{payment.paymentDate}</TableCell>
-                  <TableCell>{payment.status}</TableCell>
-                  <TableCell>{payment.reason}</TableCell>
-                  <TableCell>
-                    <Stack direction="row" spacing={1}>
-                      <Button variant="outlined" size="small">
-                        Retry
-                      </Button>
-                      <Button variant="outlined" size="small">
-                        View
-                      </Button>
-                    </Stack>
+              {loading && (
+                <TableRow>
+                  <TableCell colSpan={8} align="center">
+                    Loading...
                   </TableCell>
                 </TableRow>
-              ))}
-              {filteredPayments.length === 0 && (
+              )}
+
+              {!loading &&
+                filteredPayments.map((b, index) => (
+                  <TableRow key={b._id}>
+                    <TableCell>{index + 1}</TableCell>
+                    <TableCell>{b._id}</TableCell>
+                    <TableCell>{b.fullName}</TableCell>
+                    <TableCell>{b.emailAddress}</TableCell>
+                    <TableCell>{b.finalPrice}</TableCell>
+                    <TableCell>
+                      {new Date(b.bookingDate).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>{b.paymentStatus}</TableCell>
+
+                    <TableCell>
+                      <Stack direction="row" spacing={1}>
+                        <Button variant="outlined" size="small">
+                          Retry
+                        </Button>
+                        <Button variant="outlined" size="small">
+                          View
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                ))}
+
+              {!loading && filteredPayments.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={9} align="center">
+                  <TableCell colSpan={8} align="center">
                     No failed payments found
                   </TableCell>
                 </TableRow>

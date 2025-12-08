@@ -443,9 +443,10 @@ export default function Header() {
       mahandi: 'Mehandi',
       photography: 'Photography',
       catering: 'Catering',
- makeup: 'Makeupartist',
-  makeupartist: 'Makeupartist',
-  'makeup artist': 'Makeupartist',      dj: 'DJ',
+      makeup: 'Makeup',
+      makeupartist: 'Makeup',
+      'makeup artist': 'Makeup',
+      dj: 'DJ',
       music: 'Music',
       'invitation and printing': 'Invitation & Printing',
       'stage decoration': 'Stage Decoration'
