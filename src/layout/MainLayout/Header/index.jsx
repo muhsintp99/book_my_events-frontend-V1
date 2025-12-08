@@ -438,19 +438,24 @@ export default function Header() {
     const trimmed = title.trim();
     const titleLower = trimmed.toLowerCase();
 
-    const specialCases = {
-      mehandi: 'Mehandi',
-      mahandi: 'Mehandi',
-      photography: 'Photography',
-      catering: 'Catering',
-      makeup: 'Makeup',
-      makeupartist: 'Makeup',
-      'makeup artist': 'Makeup',
-      dj: 'DJ',
-      music: 'Music',
-      'invitation and printing': 'Invitation & Printing',
-      'stage decoration': 'Stage Decoration'
-    };
+   const specialCases = {
+  mehandi: 'Mehandi',
+  mahandi: 'Mehandi',
+  photography: 'Photography',
+  catering: 'Catering',
+
+  // Makeup variations
+  makeup: 'Makeup',
+  'makeup artist': 'Makeup',
+  makeupartist: 'Makeup',
+  'makeup_artist': 'Makeup',
+  'makeup-artist': 'Makeup',
+
+  dj: 'DJ',
+  music: 'Music',
+  'invitation and printing': 'Invitation & Printing',
+  'stage decoration': 'Stage Decoration'
+};
 
     if (specialCases[titleLower]) {
       return specialCases[titleLower];

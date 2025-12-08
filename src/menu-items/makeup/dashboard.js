@@ -15,7 +15,7 @@ const dashboard = {
       id: 'default',
       title: 'Dashboard',
       type: 'item',
-      url: '/makeupartist/dashboard',
+      url: '/makeup/dashboard',
       icon: icons.IconDashboard,
       breadcrumbs: false
     }

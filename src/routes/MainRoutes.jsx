@@ -212,7 +212,7 @@ const MainRoutes = {
 
     // makeup/////////////////////////////////
 
-    { path: 'makeupartist/dashboard', element: <Makeupdashboard /> },
+    { path: 'makeupa/dashboard', element: <Makeupdashboard /> },
     { path: 'makeup/AddProvider', element: <Makeupaddprovider /> },
     { path: 'makeup/category', element: <Makeupcategory /> },
     { path: 'makeup/makeuplist', element: <MakeupList /> },
