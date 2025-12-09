@@ -19,24 +19,41 @@ import {
   CircularProgress,
   Tooltip,
   Fab,
-  Container
+  Container,
+  Menu
 } from '@mui/material';
 import {
   Add as AddIcon,
   Save as SaveIcon,
   RestartAlt as ResetIcon,
   Star as StarIcon,
-  Tag as TagIcon,
-  CheckCircle as CheckIcon,
   Upload as UploadIcon,
   Group as GroupIcon,
   Inventory as ProductIcon,
   Description as DescriptionIcon,
   CurrencyRupee as PriceIcon,
-  AccessTime as DurationIcon
+  AccessTime as DurationIcon,
+  Storage as StorageIcon
 } from '@mui/icons-material';
 
 const API = 'http://localhost:5000';
+
+// --------------------------------------------------
+// DEFAULT BENEFITS FOR ALL PLANS
+// --------------------------------------------------
+const DEFAULT_BENEFITS = [
+  "Included Benefits:",
+  "2× visibility compared to Free Plan",
+  "Dedicated profile management support",
+  "Call support + priority response",
+  "Guaranteed visibility on the first page",
+  "5 relationship calls per year",
+  "Pin two reviews at the top of your profile",
+  "Full analytics access",
+  "Multi-city listing option",
+  "Visible customer contact details for incoming leads",
+  "Maximum photo and video uploads"
+];
 
 export default function AddPackage() {
   const navigate = useNavigate();
@@ -50,14 +67,29 @@ export default function AddPackage() {
   const [price, setPrice] = useState('');
   const [durationInDays, setDurationInDays] = useState(365);
 
+  // -----------------------
+  // PLAN BENEFITS (Separate Field)
+  // -----------------------
+  const [planBenefits, setPlanBenefits] = useState(DEFAULT_BENEFITS);
+  const [benefitInput, setBenefitInput] = useState('');
+
+  // -----------------------
+  // FEATURES (Custom)
+  // -----------------------
   const [features, setFeatures] = useState([]);
   const [featureInput, setFeatureInput] = useState('');
+
   const [tags, setTags] = useState([]);
   const [tagInput, setTagInput] = useState('');
 
-  const [maxUploads, setMaxUploads] = useState(20);
-  const [allowedProducts, setAllowedProducts] = useState(100);
-  const [allowedMembers, setAllowedMembers] = useState(3);
+  // -----------------------
+  // USAGE LIMITS (restored)
+  // -----------------------
+  const [maxUploads, setMaxUploads] = useState('');
+  const [maxStorage, setMaxStorage] = useState('');
+  const [storageUnit, setStorageUnit] = useState('MB'); // 'MB' or 'GB'
+  const [allowedProducts, setAllowedProducts] = useState('');
+  const [allowedMembers, setAllowedMembers] = useState('');
 
   const [isPopular, setIsPopular] = useState(false);
   const [isActive, setIsActive] = useState(true);
@@ -66,6 +98,9 @@ export default function AddPackage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
+  // --------------------------------------------------
+  // FETCH MODULES
+  // --------------------------------------------------
   useEffect(() => {
     const fetchModules = async () => {
       setLoading(true);
@@ -81,45 +116,32 @@ export default function AddPackage() {
     fetchModules();
   }, []);
 
+  // --------------------------------------------------
+  // EDIT MODE — LOAD PLAN
+  // --------------------------------------------------
   useEffect(() => {
     if (!isEdit) return;
+
     const fetchPlan = async () => {
       try {
         const res = await axios.get(`${API}/api/subscription/plan/${id}`);
-        // if (res.data.success) {
-        //   const p = res.data.plan;
-        //   setModuleId(p.moduleId?._id || "");
-        //   setName(p.name || "");
-        //   setDescription(p.description || "");
-        //   setPrice(p.price || "");
-        //   setDurationInDays(p.durationInDays || 365);
-        //   setFeatures(p.features || []);
-        //   setTags(p.tags || []);
-        //   setMaxUploads(p.maxUploads ?? 20);
-        //   setAllowedProducts(p.allowedProducts ?? 100);
-        //   setAllowedMembers(p.allowedMembers ?? 3);
-        //   setIsPopular(!!p.isPopular);
-        //   setIsActive(p.isActive !== false);
-        //   setTrialAvailable(!!p.trialAvailable);
-        // }
         if (res.data.success) {
           const p = res.data.plan;
 
           setModuleId(p.moduleId?._id || '');
           setName(p.name || '');
           setDescription(p.description || '');
-
-          // Only default 365
           setDurationInDays(p.durationInDays ?? 365);
-
           setPrice(p.price ?? '');
 
-          // Use values as received (no default)
+          setPlanBenefits(p.planBenefits ?? DEFAULT_BENEFITS);
           setFeatures(p.features ?? []);
           setTags(p.tags ?? []);
 
-          // No default values here
+          // USAGE LIMITS: load stored values (may be undefined)
           setMaxUploads(p.maxUploads ?? '');
+          setMaxStorage(p.maxStorage ?? '');
+          setStorageUnit(p.storageUnit ?? 'MB');
           setAllowedProducts(p.allowedProducts ?? '');
           setAllowedMembers(p.allowedMembers ?? '');
 
@@ -134,22 +156,61 @@ export default function AddPackage() {
     fetchPlan();
   }, [id, isEdit]);
 
+  // ---------------------------------------------
+  // BENEFIT FUNCTIONS
+  // ---------------------------------------------
+  const addBenefit = () => {
+    const val = benefitInput.trim();
+    if (!val) return;
+    if (planBenefits.includes(val)) {
+      setBenefitInput(''); // clear but don't add duplicate
+      return;
+    }
+    setPlanBenefits([...planBenefits, val]);
+    setBenefitInput('');
+  };
+
+  const deleteBenefit = (b) => {
+    if (b === "Included Benefits:")
+      return alert("This heading cannot be removed.");
+    setPlanBenefits(planBenefits.filter((x) => x !== b));
+  };
+
+  // ---------------------------------------------
+  // FEATURE FUNCTIONS
+  // ---------------------------------------------
   const addFeature = () => {
     const val = featureInput.trim();
-    if (val && !features.includes(val)) {
-      setFeatures([...features, val]);
+    if (!val) return;
+    if (features.includes(val)) {
       setFeatureInput('');
+      return;
     }
+    setFeatures([...features, val]);
+    setFeatureInput('');
   };
 
+  const deleteFeature = (f) => {
+    setFeatures(features.filter((x) => x !== f));
+  };
+
+  // ---------------------------------------------
+  // TAG FUNCTIONS
+  // ---------------------------------------------
   const addTag = () => {
     const val = tagInput.trim();
-    if (val && !tags.includes(val)) {
-      setTags([...tags, val]);
+    if (!val) return;
+    if (tags.includes(val)) {
       setTagInput('');
+      return;
     }
+    setTags([...tags, val]);
+    setTagInput('');
   };
 
+  // --------------------------------------------------
+  // SUBMIT PLAN
+  // --------------------------------------------------
   const handleSubmit = async () => {
     if (!moduleId) return alert('Please select a module');
     if (!name.trim()) return alert('Package name is required');
@@ -162,11 +223,21 @@ export default function AddPackage() {
       price: Number(price),
       currency: 'INR',
       durationInDays: Number(durationInDays),
+
+      // NEW FIELD
+      planBenefits,
+
+      // OLD
       features,
       tags,
-      maxUploads: Number(maxUploads),
-      allowedProducts: Number(allowedProducts),
-      allowedMembers: Number(allowedMembers),
+
+      // USAGE LIMITS included in payload
+      maxUploads: maxUploads ? Number(maxUploads) : null,
+      maxStorage: maxStorage ? Number(maxStorage) : null,
+      storageUnit: storageUnit || 'MB',
+      allowedProducts: allowedProducts ? Number(allowedProducts) : null,
+      allowedMembers: allowedMembers ? Number(allowedMembers) : null,
+
       isPopular,
       isActive,
       trialAvailable,
@@ -175,8 +246,14 @@ export default function AddPackage() {
 
     setSubmitting(true);
     try {
-      isEdit ? await axios.put(`${API}/api/subscription/plan/${id}`, payload) : await axios.post(`${API}/api/subscription/plan`, payload);
-      alert(isEdit ? 'Package updated!' : 'Package created!');
+      if (isEdit) {
+        await axios.put(`${API}/api/subscription/plan/${id}`, payload);
+        alert("Plan updated successfully!");
+      } else {
+        await axios.post(`${API}/api/subscription/plan`, payload);
+        alert("Plan created successfully!");
+      }
+
       navigate('/settings/sub/list');
     } catch (err) {
       alert(err.response?.data?.message || 'Error saving');
@@ -185,203 +262,144 @@ export default function AddPackage() {
     }
   };
 
+  // --------------------------------------------------
+  // RESET FORM
+  // --------------------------------------------------
   const resetForm = () => {
-    if (window.confirm('Reset all fields?')) {
-      setModuleId('');
-      setName('');
-      setDescription('');
-      setPrice('');
-      setDurationInDays(365);
-      setFeatures([]);
-      setTags([]);
-      setMaxUploads(20);
-      setAllowedProducts(100);
-      setAllowedMembers(3);
-      setIsPopular(false);
-      setIsActive(true);
-      setTrialAvailable(false);
-    }
+    if (!window.confirm("Reset all fields?")) return;
+
+    setModuleId("");
+    setName("");
+    setDescription("");
+    setPrice("");
+    setDurationInDays(365);
+
+    setPlanBenefits(DEFAULT_BENEFITS);
+    setFeatures([]);
+    setTags([]);
+
+    // Reset usage limits
+    setMaxUploads("");
+    setMaxStorage("");
+    setStorageUnit("MB");
+    setAllowedProducts("");
+    setAllowedMembers("");
+
+    setIsPopular(false);
+    setIsActive(true);
+    setTrialAvailable(false);
   };
+
+  // --------------------------------------------------
+  // UI STARTS HERE
+  // --------------------------------------------------
 
   return (
     <Box sx={{ bgcolor: '#f5f8ff', minHeight: '100vh', py: 4 }}>
-      {/* FULL WIDTH CONTAINER - Extra Wide */}
       <Container maxWidth={false} sx={{ maxWidth: 1600, px: { xs: 2, lg: 4 } }}>
-        {/* Header */}
-        <Paper elevation={8} sx={{ borderRadius: 5, overflow: 'hidden', mb: 5 }}>
-          <Box sx={{ bgcolor: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', color: 'white', p: 6, textAlign: 'center' }}>
+
+        {/* HEADER */}
+        <Paper elevation={8} sx={{ borderRadius: 5, mb: 5, overflow: 'hidden' }}>
+          <Box sx={{ bgcolor: '#667eea', color: 'white', textAlign: 'center', p: 6 }}>
             <Typography variant="h3" fontWeight="bold">
-              {isEdit ? 'Edit Subscription Package' : 'Create New Package'}
+              {isEdit ? "Edit Subscription Package" : "Create New Subscription Package"}
             </Typography>
-            <Typography variant="h6" sx={{ mt: 2, opacity: 0.95, fontWeight: 400 }}>
-              Design a powerful, attractive, and scalable subscription plan
+            <Typography variant="h6" sx={{ opacity: 0.9 }}>
+              Design powerful subscription plans with benefits & features
             </Typography>
           </Box>
         </Paper>
 
-        {/* Main Wide Form Card */}
-        <Paper elevation={6} sx={{ borderRadius: 5, p: { xs: 4, md: 6, lg: 8 } }}>
-          <Stack spacing={7}>
-            {/* Module Selection - Full Width */}
+        {/* MAIN CARD */}
+        <Paper elevation={6} sx={{ borderRadius: 5, p: { xs: 3, md: 6 } }}>
+          <Stack spacing={6}>
+
+            {/* MODULE SELECT */}
             <Box>
-              <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                Select Module
-              </Typography>
-              <FormControl fullWidth size="large">
-                <InputLabel>Choose Module</InputLabel>
-                <Select value={moduleId} label="Choose Module" onChange={(e) => setModuleId(e.target.value)}>
-                  <MenuItem value="">
-                    <em>Select a module</em>
-                  </MenuItem>
+              <Typography variant="h5" fontWeight={700} color="primary">Select Module</Typography>
+              <FormControl fullWidth>
+                <InputLabel>Select Module</InputLabel>
+                <Select value={moduleId} label="Select Module" onChange={(e) => setModuleId(e.target.value)}>
+                  <MenuItem value=""><em>Select a module</em></MenuItem>
                   {modules.map((m) => (
-                    <MenuItem key={m._id} value={m._id}>
-                      {m.title || m.name}
-                    </MenuItem>
+                    <MenuItem key={m._id} value={m._id}>{m.title || m.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
             </Box>
 
-            <Divider sx={{ borderColor: '#e0e0e0' }} />
+            <Divider />
 
-            {/* Basic Info - Wide Layout */}
+            {/* BASIC INFO */}
             <Box>
-              <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                Basic Information
-              </Typography>
-              <Stack spacing={4} mt={4}>
+              <Typography variant="h5" fontWeight={700} color="primary">Basic Information</Typography>
+              <Stack spacing={4} mt={3}>
+                
                 <TextField
-                  fullWidth
                   label="Package Name *"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  size="large"
-                  InputProps={{ startAdornment: <DescriptionIcon sx={{ mr: 2, color: 'action' }} /> }}
+                  fullWidth
                 />
-                <Stack direction={{ xs: 'column', md: 'row' }} spacing={4}>
+
+                <Stack direction={{ xs: 'column', md: 'row' }} spacing={3}>
                   <TextField
-                    fullWidth
                     label="Price (INR) *"
                     type="number"
                     value={price}
                     onChange={(e) => setPrice(e.target.value)}
-                    size="large"
-                    InputProps={{ startAdornment: <PriceIcon sx={{ mr: 2, color: 'action' }} /> }}
+                    fullWidth
                   />
                   <TextField
-                    fullWidth
                     label="Duration (Days)"
                     type="number"
                     value={durationInDays}
                     onChange={(e) => setDurationInDays(e.target.value)}
-                    size="large"
-                    InputProps={{ startAdornment: <DurationIcon sx={{ mr: 2, color: 'action' }} /> }}
+                    fullWidth
                   />
                 </Stack>
+
                 <TextField
-                  fullWidth
+                  multiline rows={4}
                   label="Description"
-                  multiline
-                  rows={4}
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe what this package offers..."
+                  fullWidth
                 />
+
               </Stack>
             </Box>
 
             <Divider />
 
-            {/* Features & Limits - Side by Side on Large Screens */}
-            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={6}>
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                  Features
-                </Typography>
-                <Stack direction="row" spacing={2} mt={3}>
-                  <TextField
-                    fullWidth
-                    placeholder="e.g. Unlimited events, Custom branding, Priority support"
-                    value={featureInput}
-                    onChange={(e) => setFeatureInput(e.target.value)}
-                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
-                  />
-                  <Tooltip title="Add Feature">
-                    <Fab color="primary" size="medium" onClick={addFeature}>
-                      <AddIcon />
-                    </Fab>
-                  </Tooltip>
-                </Stack>
-                <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                  {features.map((f) => (
-                    <Chip key={f} label={f} onDelete={() => setFeatures(features.filter((x) => x !== f))} color="primary" size="medium" />
-                  ))}
-                  {features.length === 0 && <Typography color="text.secondary">No features added</Typography>}
-                </Box>
-              </Box>
-
-              <Box sx={{ flex: 1 }}>
-                <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                  Usage Limits
-                </Typography>
-                <Stack spacing={4} mt={3}>
-                  <TextField
-                    fullWidth
-                    label="Max Uploads"
-                    type="number"
-                    value={maxUploads}
-                    onChange={(e) => setMaxUploads(e.target.value)}
-                    InputProps={{ startAdornment: <UploadIcon sx={{ mr: 2, color: 'action' }} /> }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="Allowed Products"
-                    type="number"
-                    value={allowedProducts}
-                    onChange={(e) => setAllowedProducts(e.target.value)}
-                    InputProps={{ startAdornment: <ProductIcon sx={{ mr: 2, color: 'action' }} /> }}
-                  />
-                  <TextField
-                    fullWidth
-                    label="Team Members"
-                    type="number"
-                    value={allowedMembers}
-                    onChange={(e) => setAllowedMembers(e.target.value)}
-                    InputProps={{ startAdornment: <GroupIcon sx={{ mr: 2, color: 'action' }} /> }}
-                  />
-                </Stack>
-              </Box>
-            </Stack>
-
-            <Divider />
-
-            {/* Tags */}
+            {/* PLAN BENEFITS (SEPARATE FIELD) */}
             <Box>
-              <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                Tags
-              </Typography>
+              <Typography variant="h5" fontWeight={700} color="primary">Plan Benefits</Typography>
+
+              {/* Benefit input */}
               <Stack direction="row" spacing={2} mt={3}>
                 <TextField
                   fullWidth
-                  placeholder="e.g. bestseller, premium, enterprise"
-                  value={tagInput}
-                  onChange={(e) => setTagInput(e.target.value)}
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                  placeholder="Add a benefit..."
+                  value={benefitInput}
+                  onChange={(e) => setBenefitInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addBenefit())}
                 />
-                <Tooltip title="Add Tag">
-                  <Fab color="secondary" size="medium" onClick={addTag}>
+                <Tooltip title="Add Benefit">
+                  <Fab color="secondary" onClick={addBenefit}>
                     <AddIcon />
                   </Fab>
                 </Tooltip>
               </Stack>
+
+              {/* Benefit chips */}
               <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
-                {tags.map((t) => (
+                {planBenefits.map((b) => (
                   <Chip
-                    key={t}
-                    label={t}
-                    onDelete={() => setTags(tags.filter((x) => x !== t))}
-                    color="success"
-                    variant="outlined"
+                    key={b}
+                    label={b}
+                    onDelete={() => deleteBenefit(b)}
+                    color="secondary"
                     size="medium"
                   />
                 ))}
@@ -390,58 +408,178 @@ export default function AddPackage() {
 
             <Divider />
 
-            {/* Options */}
+            {/* FEATURES + USAGE LIMITS */}
+            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={6}>
+
+              {/* FEATURES SECTION */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
+                  Features
+                </Typography>
+
+                <Stack direction="row" spacing={2} mt={3}>
+                  <TextField
+                    fullWidth
+                    placeholder="Add a custom feature..."
+                    value={featureInput}
+                    onChange={(e) => setFeatureInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
+                  />
+                  <Tooltip title="Add Feature">
+                    <Fab color="primary" onClick={addFeature}>
+                      <AddIcon />
+                    </Fab>
+                  </Tooltip>
+                </Stack>
+
+                <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                  {features.map((f) => (
+                    <Chip
+                      key={f}
+                      label={f}
+                      onDelete={() => deleteFeature(f)}
+                      color="primary"
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* USAGE LIMITS SECTION (RESTORED) */}
+              <Box sx={{ flex: 1 }}>
+                <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
+                  Usage Limits
+                </Typography>
+
+                <Stack spacing={3} mt={3}>
+                  <TextField
+                    fullWidth
+                    label="Max Uploads"
+                    type="number"
+                    value={maxUploads}
+                    onChange={(e) => setMaxUploads(e.target.value)}
+                    InputProps={{ startAdornment: <UploadIcon sx={{ mr: 1 }} /> }}
+                  />
+
+                  <Stack direction="row" spacing={2}>
+                    <TextField
+                      fullWidth
+                      label="Max Storage"
+                      type="number"
+                      value={maxStorage}
+                      onChange={(e) => setMaxStorage(e.target.value)}
+                      InputProps={{ startAdornment: <StorageIcon sx={{ mr: 1 }} /> }}
+                    />
+                    <FormControl sx={{ minWidth: 120 }}>
+                      <InputLabel>Unit</InputLabel>
+                      <Select
+                        value={storageUnit}
+                        label="Unit"
+                        onChange={(e) => setStorageUnit(e.target.value)}
+                      >
+                        <MenuItem value="MB">MB</MenuItem>
+                        <MenuItem value="GB">GB</MenuItem>
+                        <MenuItem value="TB">TB</MenuItem>
+                      </Select>
+                    </FormControl>
+                  </Stack>
+
+                  <TextField
+                    fullWidth
+                    label="Allowed Products"
+                    type="number"
+                    value={allowedProducts}
+                    onChange={(e) => setAllowedProducts(e.target.value)}
+                    InputProps={{ startAdornment: <ProductIcon sx={{ mr: 1 }} /> }}
+                  />
+
+                  <TextField
+                    fullWidth
+                    label="Team Members"
+                    type="number"
+                    value={allowedMembers}
+                    onChange={(e) => setAllowedMembers(e.target.value)}
+                    InputProps={{ startAdornment: <GroupIcon sx={{ mr: 1 }} /> }}
+                  />
+                </Stack>
+              </Box>
+            </Stack>
+
+            <Divider />
+
+            {/* TAGS */}
             <Box>
-              <Typography variant="h5" color="primary" fontWeight={700} gutterBottom>
-                Plan Options
-              </Typography>
-              <Stack direction="row" spacing={6} mt={4} flexWrap="wrap">
-                <FormControlLabel
-                  control={<Switch checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} color="warning" size="large" />}
-                  label={
-                    <Typography variant="h6">
-                      <StarIcon sx={{ verticalAlign: 'middle', mr: 1 }} /> Popular Plan
-                    </Typography>
-                  }
+              <Typography variant="h5" fontWeight={700} color="primary">Tags</Typography>
+              <Stack direction="row" spacing={2} mt={3}>
+                <TextField
+                  fullWidth
+                  placeholder="Add a tag..."
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addTag())}
                 />
+                <Tooltip title="Add Tag">
+                  <Fab color="success" onClick={addTag}>
+                    <AddIcon />
+                  </Fab>
+                </Tooltip>
+              </Stack>
+
+              <Box sx={{ mt: 3, display: 'flex', flexWrap: 'wrap', gap: 1.5 }}>
+                {tags.map((t) => (
+                  <Chip
+                    key={t}
+                    label={t}
+                    onDelete={() => setTags(tags.filter((x) => x !== t))}
+                    variant="outlined"
+                    color="success"
+                  />
+                ))}
+              </Box>
+            </Box>
+
+            <Divider />
+
+            {/* PLAN OPTIONS */}
+            <Box>
+              <Typography variant="h5" fontWeight={700} color="primary">Plan Options</Typography>
+              <Stack direction="row" spacing={4} mt={3}>
+
                 <FormControlLabel
-                  control={<Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} size="large" />}
+                  control={<Switch checked={isPopular} onChange={(e) => setIsPopular(e.target.checked)} color="warning" />}
+                  label={<Typography variant="h6"><StarIcon sx={{ mr: 1 }} /> Popular Plan</Typography>}
+                />
+
+                <FormControlLabel
+                  control={<Switch checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />}
                   label={<Typography variant="h6">Active Plan</Typography>}
                 />
+
                 <FormControlLabel
-                  control={
-                    <Switch checked={trialAvailable} onChange={(e) => setTrialAvailable(e.target.checked)} color="success" size="large" />
-                  }
+                  control={<Switch checked={trialAvailable} onChange={(e) => setTrialAvailable(e.target.checked)} color="success" />}
                   label={<Typography variant="h6">Free Trial Available</Typography>}
                 />
+
               </Stack>
             </Box>
 
             <Divider />
 
-            {/* Action Buttons - Wide & Prominent */}
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 3, mt: 4 }}>
-              <Button
-                variant="outlined"
-                size="large"
-                startIcon={<ResetIcon />}
-                onClick={resetForm}
-                disabled={submitting}
-                sx={{ minWidth: 180, py: 1.5 }}
-              >
-                Reset Form
+            {/* ACTION BUTTONS */}
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 3 }}>
+              <Button variant="outlined" size="large" startIcon={<ResetIcon />} onClick={resetForm}>
+                Reset
               </Button>
               <Button
                 variant="contained"
                 size="large"
-                startIcon={submitting ? <CircularProgress size={26} /> : <SaveIcon />}
-                onClick={handleSubmit}
+                startIcon={submitting ? <CircularProgress size={24} /> : <SaveIcon />}
                 disabled={submitting}
-                sx={{ minWidth: 240, py: 1.8, fontSize: '1.1rem', fontWeight: 'bold', boxShadow: 6 }}
+                onClick={handleSubmit}
               >
-                {submitting ? 'Saving Package...' : isEdit ? 'Update Package' : 'Create Package'}
+                {submitting ? "Saving..." : isEdit ? "Update Package" : "Create Package"}
               </Button>
             </Box>
+
           </Stack>
         </Paper>
       </Container>
