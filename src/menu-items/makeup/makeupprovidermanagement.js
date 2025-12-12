@@ -17,7 +17,7 @@ const MakeupProvidermanagement = {
       id: 'new-providers-request',
       title: 'New Providers Request',
       type: 'item',
-      url: '/makeup/provider',
+      url: '/providers/list',
       icon: icons.IconBuildingSkyscraper,
       breadcrumbs: false
     },
