@@ -13,9 +13,21 @@ import {
   CircularProgress,
   Snackbar,
   Alert,
+  Avatar,
+  IconButton,
+  Chip,
+  InputAdornment,
+  Paper
 } from '@mui/material';
 
+import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
+import SearchIcon from '@mui/icons-material/Search';
+import { useNavigate } from 'react-router-dom';
+
 function CateringProvider({ isVerified }) {
+  const navigate = useNavigate();
+
   const [tabValue, setTabValue] = useState(0);
   const [users, setUsers] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,72 +35,40 @@ function CateringProvider({ isVerified }) {
   const [notification, setNotification] = useState({
     open: false,
     message: '',
-    severity: 'error',
+    severity: 'error'
   });
 
-  const handleTabChange = (event, newValue) => {
+  const handleTabChange = (_, newValue) => {
     setTabValue(newValue);
   };
 
-  const getFetchOptions = (method = 'GET', body = null) => {
-    const options = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      mode: 'cors',
-    };
-    if (body) {
-      options.body = JSON.stringify(body);
-    }
-    return options;
-  };
+  const getFetchOptions = () => ({
+    method: 'GET',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json'
+    },
+    mode: 'cors'
+  });
 
-  const makeAPICall = async (url, options, retries = 2) => {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
-        const response = await fetch(url, {
-          ...options,
-          signal: controller.signal,
-        });
-        clearTimeout(timeoutId);
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error('❌ API Error Response:', errorText);
-          if (response.status === 401) {
-            throw new Error('Authentication required - please login again');
-          } else if (response.status === 403) {
-            throw new Error('Access forbidden - insufficient permissions');
-          } else if (response.status === 404) {
-            throw new Error('Resource not found');
-          } else if (response.status >= 500) {
-            throw new Error('Server error - please try again later');
-          } else {
-            throw new Error(`HTTP ${response.status}: ${response.statusText} - ${errorText}`);
-          }
-        }
-        const data = await response.json();
-        return data;
-      } catch (error) {
-        console.error(`❌ API Call Failed (attempt ${attempt + 1}):`, {
-          message: error.message,
-          url,
-          stack: error.stack,
-        });
-        if (attempt < retries) {
-          await new Promise((resolve) => setTimeout(resolve, 1000));
-          continue;
-        }
-        if (error.name === 'AbortError') {
-          throw new Error('Request timed out - please check your connection');
-        } else if (error.message.includes('Failed to fetch') || error.message.includes('NetworkError')) {
-          throw new Error('Network error - please check if the server is running and CORS is properly configured');
-        }
-        throw error;
+  const makeAPICall = async (url, options) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
       }
+
+      return await response.json();
+    } finally {
+      clearTimeout(timeoutId);
     }
   };
 
@@ -96,159 +76,185 @@ function CateringProvider({ isVerified }) {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const url = 'https://api.bookmyevent.ae/api/users';
-        const options = getFetchOptions();
-        const data = await makeAPICall(url, options);
+
+        const data = await makeAPICall(
+          'https://api.bookmyevent.ae/api/users',
+          getFetchOptions()
+        );
+
         if (Array.isArray(data.users)) {
           const mappedUsers = data.users.map((user, index) => ({
             id: index + 1,
             _id: user._id,
-            userInfo: `${user.firstName || ''} ${user.lastName || ''}`,
+            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
             email: user.email || 'N/A',
             role: user.role || 'N/A',
-            status: user.isVerified ? 'Verified' : 'Pending',
+            phone: user.phone || user.mobile || 'N/A',
             isVerified: user.isVerified || false,
-            phone: user.phone || user.mobile || 'N/A',}));
+            status: user.isVerified ? 'Verified' : 'Pending'
+          }));
+
           setUsers(mappedUsers);
-        } else {
-          throw new Error('Unexpected data format');
         }
       } catch (error) {
-        console.error('Error fetching users:', error);
         setNotification({
           open: true,
-          message: `Error fetching users: ${error.message}`,
-          severity: 'error',
+          message: error.message,
+          severity: 'error'
         });
       } finally {
         setLoading(false);
       }
     };
+
     fetchUsers();
   }, []);
 
-  const handleCloseNotification = (event, reason) => {
-    if (reason === 'clickaway') return;
-    setNotification({ ...notification, open: false });
-  };
-
-  // If isVerified prop is true, show verified message
   if (isVerified) {
     return (
-      <Box
-        sx={{
-          p: { xs: 2, sm: 3 },
-          backgroundColor: 'white',
-          display: 'flex',
-          justifyContent: 'center',
-          alignItems: 'center',
-          height: '100%',
-        }}
-      >
+      <Box p={3} display="flex" justifyContent="center">
         <Typography variant="h6">Provider is verified</Typography>
       </Box>
     );
   }
 
-  // Filter users based on tab and search term
   const filteredUsers = users.filter((user) => {
     const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
     const matchesSearch =
-      user.userInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       user.email.toLowerCase().includes(searchTerm.toLowerCase());
     return matchesTab && matchesSearch;
   });
 
   return (
-    <Box
-      sx={{
-        p: { xs: 2, sm: 3 },
-        backgroundColor: 'white',
-        overflowX: 'auto',
-      }}
-    >
-      <Tabs
-        value={tabValue}
-        onChange={handleTabChange}
-        sx={{ mb: 2, minHeight: { xs: 40, sm: 48 } }}
-        variant="scrollable"
-        scrollButtons="auto"
-      >
-        <Tab label="Pending Stores" sx={{ minWidth: { xs: 120, sm: 160 } }} />
-        <Tab label="Verified Stores" sx={{ minWidth: { xs: 120, sm: 160 } }} />
-      </Tabs>
-      <Box
-        sx={{
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          justifyContent: 'space-between',
-          alignItems: { xs: 'flex-start', sm: 'center' },
-          mb: 2,
-          gap: 1,
-        }}
-      >
-        <Typography variant="h6" sx={{ mb: { xs: 1, sm: 0 } }}>
-          Stores List ({filteredUsers.length})
+    <Box p={3} bgcolor="#f4f6f8" minHeight="100vh">
+      {/* Header */}
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
+        <Typography variant="h5" fontWeight={600}>
+          Providers List
         </Typography>
-        <TextField
-          variant="outlined"
-          placeholder="Search User or Email"
-          size="small"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          sx={{ width: { xs: '100%', sm: 200 } }}
-        />
-      </Box>
-      <Box sx={{ overflowX: 'auto' }}>
-        {loading ? (
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, p: 2 }}>
-            <CircularProgress size={20} />
-            <Typography>Loading users...</Typography>
+        <Typography variant="body2" color="text.secondary">
+          Manage providers with edit & delete options
+        </Typography>
+      </Paper>
+
+      {/* Table Card */}
+      <Paper sx={{ borderRadius: 2 }}>
+        <Tabs value={tabValue} onChange={handleTabChange}>
+          <Tab label="Pending Stores" />
+          <Tab label="Verified Stores" />
+        </Tabs>
+
+        <Box p={3}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+            gap={2}
+          >
+            <Typography variant="h6">
+              Stores ({filteredUsers.length})
+            </Typography>
+
+            <TextField
+              size="small"
+              placeholder="Search user or email"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <SearchIcon />
+                  </InputAdornment>
+                )
+              }}
+            />
           </Box>
-        ) : (
-          <Table sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow>
-                <TableCell>Sl</TableCell>
-                <TableCell>User Information</TableCell>
-                <TableCell>Role</TableCell>
-                <TableCell>Email</TableCell>
-                <TableCell>Phone</TableCell>
-                <TableCell>Status</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredUsers.length === 0 ? (
+
+          {loading ? (
+            <Box display="flex" gap={2}>
+              <CircularProgress size={22} />
+              <Typography>Loading users...</Typography>
+            </Box>
+          ) : (
+            <Table>
+              <TableHead>
                 <TableRow>
-                  <TableCell colSpan={6} align="center">
-                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 3 }}>
-                      <Typography variant="h6">No Data Found</Typography>
-                    </Box>
-                  </TableCell>
+                  <TableCell>User</TableCell>
+                  <TableCell>Role</TableCell>
+                  <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
+                  <TableCell>Status</TableCell>
+                  <TableCell align="center">Actions</TableCell>
                 </TableRow>
-              ) : (
-                filteredUsers.map((user) => (
-                  <TableRow key={user.id}>
-                    <TableCell>{user.id}</TableCell>
-                    <TableCell>{user.userInfo}</TableCell>
+              </TableHead>
+
+              <TableBody>
+                {filteredUsers.map((user) => (
+                  <TableRow key={user._id} hover>
+                    <TableCell>
+                      <Box display="flex" alignItems="center" gap={2}>
+                        <Avatar>{user.name.charAt(0)}</Avatar>
+                        <Typography>{user.name}</Typography>
+                      </Box>
+                    </TableCell>
+
                     <TableCell>{user.role}</TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.phone}</TableCell>
-                    <TableCell>{user.status}</TableCell>
+
+                    <TableCell>
+                      <Chip
+                        label={user.status}
+                        size="small"
+                        color={user.isVerified ? 'success' : 'warning'}
+                      />
+                    </TableCell>
+
+                    <TableCell align="center">
+                      <IconButton
+                        color="primary"
+                        onClick={() =>
+                          navigate(`/makeup/AddProvider/${user._id}`)
+                        }
+                      >
+                        <EditIcon />
+                      </IconButton>
+
+                      <IconButton
+                        color="error"
+                        onClick={() =>
+                          alert(`Delete provider: ${user.name}`)
+                        }
+                      >
+                        <DeleteIcon />
+                      </IconButton>
+                    </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        )}
-      </Box>
+                ))}
+
+                {filteredUsers.length === 0 && (
+                  <TableRow>
+                    <TableCell colSpan={6} align="center">
+                      No Data Found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          )}
+        </Box>
+      </Paper>
+
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
-        onClose={handleCloseNotification}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+        onClose={() =>
+          setNotification((p) => ({ ...p, open: false }))
+        }
       >
-        <Alert onClose={handleCloseNotification} severity={notification.severity} variant="filled" sx={{ width: '100%' }}>
+        <Alert severity={notification.severity} variant="filled">
           {notification.message}
         </Alert>
       </Snackbar>

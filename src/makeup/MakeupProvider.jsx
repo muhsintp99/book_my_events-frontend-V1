@@ -681,8 +681,13 @@ import {
   Radio,
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
+import { useParams, useNavigate } from 'react-router-dom';
 
 function AddAuditorium() {
+  const { id } = useParams(); // Get the ID from URL
+  const navigate = useNavigate();
+  const [isEditMode, setIsEditMode] = useState(false);
+  
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
   const [alertSeverity, setAlertSeverity] = useState("success");
@@ -747,6 +752,85 @@ function AddAuditorium() {
       ? "http://localhost:5000/api"
       : "https://api.bookmyevent.ae/api";
 
+  // Fetch vendor data when editing
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      fetchVendorData(id);
+    }
+  }, [id]);
+
+  const fetchVendorData = async (vendorId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/users/${vendorId}`);
+      
+      if (!response.ok) {
+        throw new Error('Failed to fetch vendor data');
+      }
+      
+      const data = await response.json();
+      const vendor = data.user || data;
+      
+      console.log('Fetched vendor data:', vendor); // Debug log
+      
+      // Determine full name - could be from storeName or combined firstName/lastName
+      const fullName = vendor.storeName || 
+                       (vendor.firstName && vendor.lastName ? `${vendor.firstName} ${vendor.lastName}` : '') ||
+                       vendor.fullName || '';
+      
+      // Populate form with vendor data
+      setFormData({
+        vendorType: vendor.vendorType || 'individual',
+        fullName: fullName,
+        storeName: vendor.storeName || fullName,
+        firstName: vendor.firstName || '',
+        lastName: vendor.lastName || '',
+        email: vendor.email || '',
+        phone: vendor.phone || vendor.mobile || '',
+        bioTitle: vendor.bioTitle || vendor.bio?.title || '',
+        bioSubtitle: vendor.bioSubtitle || vendor.bio?.subtitle || '',
+        bioDescription: vendor.bioDescription || vendor.bio?.description || '',
+        storeAddress: {
+          street: vendor.storeAddress?.street || vendor.address?.street || '',
+          city: vendor.storeAddress?.city || vendor.address?.city || '',
+          state: vendor.storeAddress?.state || vendor.address?.state || '',
+          zipCode: vendor.storeAddress?.zipCode || vendor.address?.zipCode || '',
+          fullAddress: vendor.storeAddress?.fullAddress || vendor.address?.fullAddress || '',
+        },
+        zone: vendor.zone?._id || vendor.zone || '',
+        module: vendor.module?._id || vendor.module || activeModuleId || '',
+        latitude: vendor.location?.latitude || vendor.latitude || '',
+        longitude: vendor.location?.longitude || vendor.longitude || '',
+        ownerFirstName: vendor.ownerFirstName || vendor.owner?.firstName || '',
+        ownerLastName: vendor.ownerLastName || vendor.owner?.lastName || '',
+        ownerPhone: vendor.ownerPhone || vendor.owner?.phone || '',
+        ownerEmail: vendor.ownerEmail || vendor.owner?.email || '',
+        status: vendor.status || 'pending',
+        isActive: vendor.isActive !== undefined ? vendor.isActive : true,
+      });
+      
+      // Set previews if images exist
+      if (vendor.logo) {
+        setLogoPreview(vendor.logo);
+      }
+      if (vendor.coverImage) {
+        setCoverPreview(vendor.coverImage);
+      }
+      
+      if (vendor.zone?._id || vendor.zone) {
+        setSelectedZone(vendor.zone?._id || vendor.zone);
+      }
+      
+      showAlert('Vendor data loaded successfully', 'success');
+    } catch (error) {
+      console.error('Error fetching vendor:', error);
+      showAlert('Failed to load vendor data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // ----------------------------------------------------
   // GOOGLE MAPS
   // ----------------------------------------------------
@@ -768,7 +852,7 @@ function AddAuditorium() {
     if (mapsLoaded && window.google?.maps) {
       initMap();
     }
-  }, [mapsLoaded]);
+  }, [mapsLoaded, formData.latitude, formData.longitude]);
 
   const initMap = useCallback(() => {
     if (!window.google || !mapRef.current) return;
@@ -1041,8 +1125,15 @@ function AddAuditorium() {
       if (files.logo) payload.append("logo", files.logo);
       if (files.coverImage) payload.append("coverImage", files.coverImage);
 
-      const res = await fetch(`${API_BASE_URL}/auth/register`, {
-        method: "POST",
+      // Change the URL and method based on edit mode
+      const url = isEditMode 
+        ? `${API_BASE_URL}/users/${id}` 
+        : `${API_BASE_URL}/auth/register`;
+      
+      const method = isEditMode ? 'PUT' : 'POST';
+
+      const res = await fetch(url, {
+        method: method,
         body: payload,
       });
 
@@ -1051,9 +1142,22 @@ function AddAuditorium() {
       if (!res.ok) {
         showAlert(result.message, "error");
       } else {
-        showAlert("Provider added successfully!", "success");
+        showAlert(
+          isEditMode 
+            ? 'Provider updated successfully!' 
+            : 'Provider added successfully!', 
+          'success'
+        );
         console.log("Response:", result);
-        handleReset();
+        
+        if (!isEditMode) {
+          handleReset();
+        } else {
+          // Optionally navigate back to the list after update
+          setTimeout(() => {
+            navigate('/makeup/CateringProvider');
+          }, 2000);
+        }
       }
     } catch (error) {
       showAlert("Error saving provider", "error");
@@ -1125,7 +1229,7 @@ function AddAuditorium() {
   return (
     <Box sx={{ p: 3, backgroundColor: "#f9f9f9", borderRadius: 2 }}>
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Add Provider
+        {isEditMode ? 'Edit Provider' : 'Add Provider'}
       </Typography>
 
       {/* Vendor Type Selection */}
@@ -1199,7 +1303,7 @@ function AddAuditorium() {
           component="label"
           startIcon={<CloudUploadIcon />}
         >
-          Upload Logo
+          {logoPreview ? 'Change Logo' : 'Upload Logo'}
           <input
             hidden
             type="file"
@@ -1227,7 +1331,7 @@ function AddAuditorium() {
           component="label"
           startIcon={<CloudUploadIcon />}
         >
-          Upload Cover Image
+          {coverPreview ? 'Change Cover Image' : 'Upload Cover Image'}
           <input
             hidden
             type="file"
@@ -1585,7 +1689,7 @@ function AddAuditorium() {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} /> : null}
         >
-          {loading ? "Submitting..." : "Submit"}
+          {loading ? "Submitting..." : isEditMode ? "Update" : "Submit"}
         </Button>
       </Box>
 

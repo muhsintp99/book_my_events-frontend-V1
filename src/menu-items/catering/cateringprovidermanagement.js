@@ -17,7 +17,7 @@ const CateringProvidermanagement = {
       id: 'new-providers-request',
       title: 'New Providers Request',
       type: 'item',
-      url: '/catering/provider',
+      url: '/catering/cateringprovider',
       icon: icons.IconBuildingSkyscraper,
       breadcrumbs: false
     },

@@ -40,6 +40,7 @@ const Paymentfailed = Loadable(lazy(() => import('../views/Paymentfailed')));
 const Createnew = Loadable(lazy(() => import('../views/Createnew')));
 const Vehiclelist = Loadable(lazy(() => import('../views/Vehiclelist')));
 const Vehicleattributes = Loadable(lazy(() => import('../views/Vehicleattributes')));
+const Vehiclevendorlist = Loadable(lazy(() => import('../views/Newprovider')));
 
 
 const AddModule = Loadable(lazy(() => import('../views/AddModule')));
@@ -91,6 +92,7 @@ const CateringCoupon = Loadable(lazy(() => import('../catering/CateringCoupon'))
 // makeup/////////////////////
 const Makeupdashboard = Loadable(lazy(() => import('../makeup/dashboard')));
 const Makeupaddprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
+const Makeupproviders =Loadable(lazy(() => import('../makeup/New Provider')))
 const Makeupcategory = Loadable(lazy(() => import('../makeup/Category')));
 const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
 const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
@@ -102,6 +104,8 @@ const Makeuptypes = Loadable(lazy(() => import('../makeup/Makeuptypes')));
 
 const Photographydashboard = Loadable(lazy(() => import('../photography/dashboard')));
 const Photographyaddprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
+const Photographyvendorslist = Loadable(lazy(() => import('../photography/NewProvider')));
+
 const Photographycategory = Loadable(lazy(() => import('../photography/Photocategory')));
 const PhotographyList = Loadable(lazy(() => import('../photography/PhotoList')));
 const Photographyprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
@@ -134,7 +138,7 @@ const MainRoutes = {
     { path: 'providers/new', element: <NewProvider /> },
     { path: 'providers/add', element: <AddProvider /> },
     { path: 'providers/list', element: <ProviderList /> },
-    { path: 'providers/edit', element: <EditList /> },
+    // { path: 'providers/edit', element: <EditList /> },
 
     // Trips
 
@@ -177,6 +181,7 @@ const MainRoutes = {
     { path: 'vehicles/list', element: <Vehiclelist /> },
     { path: 'vehicles/brands', element: <Brands /> },
         { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
+            { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist/> },
 
 
     // Auditorium Routes
@@ -203,6 +208,7 @@ const MainRoutes = {
 
     // cateringgggg///////////////////
     { path: 'catering/dashboard', element: <Cateringdashboard /> },
+        { path: '/catering/cateringprovider', element: <Cateringprovider /> },
 
     { path: 'catering/addprovider', element: <Cateringaddprovider /> },
     { path: 'catering/Category', element: <Cateringcategory /> },
@@ -215,6 +221,9 @@ const MainRoutes = {
     { path: '/makeup/dashboard', element: <Makeupdashboard /> },
     { path: 'makeup/AddProvider', element: <Makeupaddprovider /> },
     { path: 'makeup/category', element: <Makeupcategory /> },
+    { path: 'makeup/AddProvider/:id', element: <Makeupaddprovider /> }, // Add this line for edit
+    { path: '/providers/makeupprovider', element: <Makeupproviders /> },
+
     { path: 'makeup/makeuplist', element: <MakeupList /> },
     { path: '/makeup/provider', element: <Makeupprovider /> },
     { path: '/makeup/Coupons', element: <MakeupCoupon /> },
@@ -225,8 +234,13 @@ const MainRoutes = {
     // photographyyyy///////////////////////
 
 { path: '/photography/dashboard', element: <Photographydashboard /> },
-    { path: '/photography/provider', element: <Photographyaddprovider /> },
-    { path: '/photography/category', element: <Photographycategory /> },
+ { path: '/photography/provider', element: <Photographyaddprovider /> },
+ { path: '/photography/provider', element: <Photographyaddprovider /> },
+   { path: '/photography/photographyvendors', element: <Photographyvendorslist /> },
+
+
+    
+   { path: '/photography/category', element: <Photographycategory /> },
     { path: '/photography/photographylist', element: <PhotographyList /> },
     { path: '/photography/AddProvider', element: <Photographyprovider /> },
     { path: '/photography/Coupons', element: <PhotographyCoupon /> },

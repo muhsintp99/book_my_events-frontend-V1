@@ -23,14 +23,14 @@ const Providermgt = {
   title: 'Provider Management',
   type: 'group',
   children: [
-    {
-      id: 'new-providers-request',
-      title: 'New Providers Request',
-      type: 'item',
-      url: '/providers/new',
-      icon: icons.IconUserPlus,
-      breadcrumbs: false
-    },
+    // {
+    //   id: 'new-providers-request',
+    //   title: 'New Providers Request',
+    //   type: 'item',
+    //   url: '/providers/new',
+    //   icon: icons.IconUserPlus,
+    //   breadcrumbs: false
+    // },
     {
       id: 'add-new-provider',
       title: 'Add New Provider',
@@ -43,7 +43,7 @@ const Providermgt = {
       id: 'providers-list',
       title: 'Providers List',
       type: 'item',
-      url: '/providers/list',
+      url: '/providers/vehiclevendorlist',
       icon: icons.IconUsers,
       breadcrumbs: false
     },
