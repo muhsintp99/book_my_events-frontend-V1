@@ -40,7 +40,7 @@ const Paymentfailed = Loadable(lazy(() => import('../views/Paymentfailed')));
 const Createnew = Loadable(lazy(() => import('../views/Createnew')));
 const Vehiclelist = Loadable(lazy(() => import('../views/Vehiclelist')));
 const Vehicleattributes = Loadable(lazy(() => import('../views/Vehicleattributes')));
-const Vehiclevendorlist = Loadable(lazy(() => import('../views/Newprovider')));
+const Vehiclevendorlist = Loadable(lazy(() => import('../views/Providerslist')));
 
 
 const AddModule = Loadable(lazy(() => import('../views/AddModule')));
