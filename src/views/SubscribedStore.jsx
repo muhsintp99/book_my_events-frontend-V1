@@ -51,7 +51,7 @@ const SubscribedStore = () => {
   // Fetch Subscribed Stores
   const fetchSubscribedStores = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/subscription/all");
+      const res = await fetch("https://api.bookmyevent.ae/api/subscription/all");
       const data = await res.json();
 
       if (data.success) {
@@ -83,7 +83,7 @@ const SubscribedStore = () => {
   // Fetch Modules
   const fetchModules = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/modules");
+      const res = await fetch("https://api.bookmyevent.ae/api/modules");
       const data = await res.json();
 
       // your backend returns array (per controller) — accept either array or { modules: [...] }
