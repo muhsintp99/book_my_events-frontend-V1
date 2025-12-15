@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
-  Box, Button, Card, CardContent, Typography,
+  Box, Button, Typography,
   Table, TableBody, TableCell, TableHead, TableRow,
   Switch, IconButton, Menu, MenuItem
 } from '@mui/material';
@@ -29,176 +29,119 @@ const SubscriptionList = () => {
 
   const fetchPackages = async () => {
     try {
-      const res = await fetch("http://localhost:5000/api/subscription/plan");
+      const res = await fetch("https://api.bookmyevent.ae/api/subscription/plan");
       const data = await res.json();
 
       if (data.success) {
-        const mapped = data.plans.map((p) => ({
+        const mapped = data.plans.map(p => ({
           id: p._id,
           name: p.name,
+          module: p.moduleId?.title || 'Other',
           price: `₹${p.price}`,
           duration: `${p.durationInDays} Days`,
           subscribers: p.subscriberCount || 0,
           status: p.isActive,
         }));
+
         setPackages(mapped);
       }
-
     } catch (err) {
       console.error("Error:", err);
     }
   };
 
+  // ===================== GROUP BY MODULE ======================
+  const groupedByModule = useMemo(() => {
+    return packages.reduce((acc, pkg) => {
+      if (!acc[pkg.module]) acc[pkg.module] = [];
+      acc[pkg.module].push(pkg);
+      return acc;
+    }, {});
+  }, [packages]);
+
   // ===================== ACTIONS ======================
   const handleAdd = () => navigate('/settings/sub/add');
-
-  const handleEdit = (id) => {
-    navigate(`/settings/sub/add/${id}`); // open AddPackage.jsx in edit mode
-  };
+  const handleEdit = (id) => navigate(`/settings/sub/add/${id}`);
 
   const handleDelete = async (id) => {
     if (!window.confirm("Are you sure you want to delete this plan?")) return;
 
     try {
-      const res = await fetch(`http://localhost:5000/api/subscription/plan/${id}`, {
+      const res = await fetch(`https://api.bookmyevent.ae/api/subscription/plan/${id}`, {
         method: "DELETE",
       });
-
       const data = await res.json();
-      if (data.success) {
-        alert("Plan deleted successfully");
-        fetchPackages();
-      }
-    } catch (err) {
+      if (data.success) fetchPackages();
+    } catch {
       alert("Error deleting plan");
     }
   };
 
   const handleToggleStatus = (id) => {
-    setPackages(
-      packages.map((pkg) =>
-        pkg.id === id ? { ...pkg, status: !pkg.status } : pkg
-      )
+    setPackages(prev =>
+      prev.map(p => p.id === id ? { ...p, status: !p.status } : p)
     );
   };
 
-  const filteredPackages = packages.filter(pkg =>
-    pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
+  // ===================== FILTER ======================
+  const filteredGroups = Object.entries(groupedByModule).reduce(
+    (acc, [module, list]) => {
+      const filtered = list.filter(pkg =>
+        pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      if (filtered.length) acc[module] = filtered;
+      return acc;
+    },
+    {}
   );
 
-  // ===================== EXPORT FUNCTIONS ======================
+  // ===================== EXPORT ======================
   const exportCSV = () => {
-    const csvRows = [];
-    const headers = ['ID', 'Package Name', 'Price', 'Duration', 'Subscribers', 'Status'];
-    csvRows.push(headers.join(','));
+    const rows = [
+      ['Module', 'Package Name', 'Price', 'Duration', 'Subscribers', 'Status'],
+      ...packages.map(p => [
+        p.module,
+        p.name,
+        p.price,
+        p.duration,
+        p.subscribers,
+        p.status ? 'Active' : 'Inactive'
+      ])
+    ];
 
-    packages.forEach(pkg => {
-      const values = [
-        pkg.id,
-        pkg.name,
-        pkg.price,
-        pkg.duration,
-        pkg.subscribers,
-        pkg.status ? 'Active' : 'Inactive'
-      ];
-      csvRows.push(values.join(','));
-    });
-
-    const csvData = new Blob([csvRows.join('\n')], { type: 'text/csv' });
-    const url = window.URL.createObjectURL(csvData);
+    const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
     const a = document.createElement('a');
-    a.href = url;
+    a.href = URL.createObjectURL(blob);
     a.download = 'subscriptions.csv';
     a.click();
   };
 
   const exportExcel = () => {
-    const worksheet = XLSX.utils.json_to_sheet(
-      packages.map(pkg => ({
-        ID: pkg.id,
-        'Package Name': pkg.name,
-        Price: pkg.price,
-        Duration: pkg.duration,
-        Subscribers: pkg.subscribers,
-        Status: pkg.status ? 'Active' : 'Inactive'
-      }))
-    );
-
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, 'Subscriptions');
-    XLSX.writeFile(workbook, 'subscriptions.xlsx');
+    const ws = XLSX.utils.json_to_sheet(packages);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Subscriptions');
+    XLSX.writeFile(wb, 'subscriptions.xlsx');
   };
 
   return (
     <Box sx={{ padding: 3, backgroundColor: 'white' }}>
+      <Typography variant="h6" mb={3}>Subscription Package List</Typography>
 
-      {/* Header */}
+      {/* Search + Actions */}
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h6">Subscription Package List</Typography>
-      </Box>
-
-      {/* Summary Cards */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-        {packages[2] && (
-          <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
-            <CardContent>
-              <Typography variant="h6">{packages[2].name}</Typography>
-              <Typography variant="h4">{packages[2].price}</Typography>
-            </CardContent>
-          </Card>
-        )}
-
-        {packages[1] && (
-          <Card sx={{ width: '30%', backgroundColor: '#fff3e0', textAlign: 'center', p: 2 }}>
-            <CardContent>
-              <Typography variant="h6">{packages[1].name}</Typography>
-              <Typography variant="h4">{packages[1].price}</Typography>
-            </CardContent>
-          </Card>
-        )}
-
-        {packages[0] && (
-          <Card sx={{ width: '30%', backgroundColor: '#e6f3ff', textAlign: 'center', p: 2 }}>
-            <CardContent>
-              <Typography variant="h6">{packages[0].name}</Typography>
-              <Typography variant="h4">{packages[0].price}</Typography>
-            </CardContent>
-          </Card>
-        )}
-      </Box>
-
-      {/* Search + Add + Export */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 3 }}>
-
         <input
-          type="text"
           placeholder="Search package..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          style={{
-            padding: "8px",
-            border: "1px solid #ccc",
-            borderRadius: "4px",
-            width: "230px"
-          }}
+          style={{ padding: 8, width: 230 }}
         />
 
         <Box sx={{ display: 'flex', gap: 2 }}>
-          <Button
-            variant="contained"
-            color="primary"
-            startIcon={<AddIcon />}
-            onClick={handleAdd}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
             Add Subscription Package
           </Button>
 
-          <Button
-            variant="outlined"
-            color="primary"
-            startIcon={<MoreVert />}
-            onClick={(e) => setAnchorEl(e.currentTarget)}
-          >
+          <Button variant="outlined" startIcon={<MoreVert />} onClick={(e) => setAnchorEl(e.currentTarget)}>
             Export
           </Button>
 
@@ -209,58 +152,54 @@ const SubscriptionList = () => {
         </Box>
       </Box>
 
-      {/* Table */}
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>SI</TableCell>
-            <TableCell>Package Name</TableCell>
-            <TableCell>Pricing</TableCell>
-            <TableCell>Duration</TableCell>
-            <TableCell>Subscribers</TableCell>
-            <TableCell>Status</TableCell>
-            <TableCell>Actions</TableCell>
-          </TableRow>
-        </TableHead>
+      {/* MODULE SECTIONS */}
+      {Object.entries(filteredGroups).map(([module, plans]) => (
+        <Box key={module} sx={{ mb: 5 }}>
+          <Typography variant="h6" sx={{ mb: 2 }}>
+            {module}
+          </Typography>
 
-        <TableBody>
-          {filteredPackages.map((pkg, index) => (
-            <TableRow key={pkg.id}>
-              <TableCell>{index + 1}</TableCell>
-              <TableCell>{pkg.name}</TableCell>
-              <TableCell>{pkg.price}</TableCell>
-              <TableCell>{pkg.duration}</TableCell>
-              <TableCell>{pkg.subscribers}</TableCell>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>SI</TableCell>
+                <TableCell>Package Name</TableCell>
+                <TableCell>Pricing</TableCell>
+                <TableCell>Duration</TableCell>
+                <TableCell>Subscribers</TableCell>
+                <TableCell>Status</TableCell>
+                <TableCell>Actions</TableCell>
+              </TableRow>
+            </TableHead>
 
-              <TableCell>
-                <Switch
-                  checked={pkg.status}
-                  onChange={() => handleToggleStatus(pkg.id)}
-                  color="success"
-                />
-              </TableCell>
+            <TableBody>
+              {plans.map((pkg, i) => (
+                <TableRow key={pkg.id}>
+                  <TableCell>{i + 1}</TableCell>
+                  <TableCell>{pkg.name}</TableCell>
+                  <TableCell>{pkg.price}</TableCell>
+                  <TableCell>{pkg.duration}</TableCell>
+                  <TableCell>{pkg.subscribers}</TableCell>
+                  <TableCell>
+                    <Switch
+                      checked={pkg.status}
+                      onChange={() => handleToggleStatus(pkg.id)}
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <IconButton onClick={() => handleEdit(pkg.id)}><EditIcon /></IconButton>
+                    <IconButton onClick={() => handleDelete(pkg.id)}><DeleteIcon /></IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </Box>
+      ))}
 
-              <TableCell>
-                <IconButton color="primary" onClick={() => handleEdit(pkg.id)}>
-                  <EditIcon />
-                </IconButton>
-
-                <IconButton color="error" onClick={() => handleDelete(pkg.id)}>
-                  <DeleteIcon />
-                </IconButton>
-              </TableCell>
-            </TableRow>
-          ))}
-
-          {filteredPackages.length === 0 && (
-            <TableRow>
-              <TableCell colSpan={7} align="center">
-                No packages found
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+      {Object.keys(filteredGroups).length === 0 && (
+        <Typography align="center">No packages found</Typography>
+      )}
     </Box>
   );
 };

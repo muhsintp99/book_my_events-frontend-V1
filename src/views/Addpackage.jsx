@@ -36,7 +36,7 @@ import {
   Storage as StorageIcon
 } from '@mui/icons-material';
 
-const API = 'http://localhost:5000';
+const API = 'https://api.bookmyevent.ae';
 
 // --------------------------------------------------
 // DEFAULT BENEFITS FOR ALL PLANS
@@ -454,7 +454,7 @@ export default function AddPackage() {
                   <TextField
                     fullWidth
                     label="Max Uploads"
-                    type="number"
+                    type="text"
                     value={maxUploads}
                     onChange={(e) => setMaxUploads(e.target.value)}
                     InputProps={{ startAdornment: <UploadIcon sx={{ mr: 1 }} /> }}
@@ -464,7 +464,7 @@ export default function AddPackage() {
                     <TextField
                       fullWidth
                       label="Max Storage"
-                      type="number"
+                      type="text"
                       value={maxStorage}
                       onChange={(e) => setMaxStorage(e.target.value)}
                       InputProps={{ startAdornment: <StorageIcon sx={{ mr: 1 }} /> }}
@@ -486,7 +486,7 @@ export default function AddPackage() {
                   <TextField
                     fullWidth
                     label="Allowed Products"
-                    type="number"
+                    type="text"
                     value={allowedProducts}
                     onChange={(e) => setAllowedProducts(e.target.value)}
                     InputProps={{ startAdornment: <ProductIcon sx={{ mr: 1 }} /> }}

@@ -1403,7 +1403,6 @@
 
 
 
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   Box,
@@ -1432,7 +1431,7 @@ function AddAuditorium() {
 
   const activeModuleId = localStorage.getItem('moduleDbId');
 
-  // ⭐ NEW: subscription & free trial state
+  // Subscription & free trial state
   const [plansLoading, setPlansLoading] = useState(true);
   const [plans, setPlans] = useState([]);
   const [subscriptionPlan, setSubscriptionPlan] = useState('');
@@ -1495,22 +1494,25 @@ function AddAuditorium() {
     ? 'http://localhost:5000/api'
     : 'https://api.bookmyevent.ae/api';
 
-  // -----------------------------
   // Fetch subscription plans
-  // -----------------------------
   useEffect(() => {
     const fetchPlans = async () => {
+      if (!formData.module) {
+        setPlans([]);
+        setPlansLoading(false);
+        return;
+      }
+
       try {
         setPlansLoading(true);
         const res = await fetch(`${API_BASE_URL}/subscription/plan/module/${formData.module}`);
         const data = await res.json();
-        // support either { success: true, plans: [...] } or direct array
+        
         if (data && data.success && Array.isArray(data.plans)) {
           setPlans(data.plans);
         } else if (Array.isArray(data)) {
           setPlans(data);
         } else if (data && Array.isArray(data.data)) {
-          // fallback
           setPlans(data.data);
         } else {
           setPlans([]);
@@ -1524,11 +1526,9 @@ function AddAuditorium() {
     };
 
     fetchPlans();
-  }, []);
+  }, [formData.module, API_BASE_URL]);
 
-  // -----------------------------
   // Load Google Maps script
-  // -----------------------------
   useEffect(() => {
     if (!GOOGLE_MAPS_API_KEY) {
       console.warn('Google Maps API key not provided');
@@ -1550,12 +1550,9 @@ function AddAuditorium() {
     };
   }, [GOOGLE_MAPS_API_KEY]);
 
-  // -----------------------------
   // Init map
-  // -----------------------------
   useEffect(() => {
     if (mapsLoaded && window.google?.maps) initMap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [mapsLoaded]);
 
   const initMap = useCallback(() => {
@@ -1608,9 +1605,7 @@ function AddAuditorium() {
     setMap(newMap);
   }, [mapsLoaded, formData.latitude, formData.longitude]);
 
-  // -----------------------------
   // Autocomplete for search input
-  // -----------------------------
   useEffect(() => {
     if (!mapsLoaded || !map || !searchInputRef.current || !window.google) return;
 
@@ -1655,15 +1650,11 @@ function AddAuditorium() {
     });
 
     return () => {
-      // remove listener if possible
       if (listener && listener.remove) listener.remove();
-      // older API: window.google.maps.event.removeListener(listener);
     };
   }, [mapsLoaded, map]);
 
-  // -----------------------------
   // Update marker when lat/lng change
-  // -----------------------------
   useEffect(() => {
     if (!map || !formData.latitude || !formData.longitude) return;
     const pos = { lat: parseFloat(formData.latitude), lng: parseFloat(formData.longitude) };
@@ -1674,16 +1665,12 @@ function AddAuditorium() {
     } else {
       markerRef.current.setPosition(pos);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [formData.latitude, formData.longitude, map]);
 
-  // -----------------------------
   // Fetch zones & modules
-  // -----------------------------
   useEffect(() => {
     fetchZones();
     fetchModules();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const fetchZones = async () => {
@@ -1724,9 +1711,6 @@ function AddAuditorium() {
     }
   };
 
-  // -----------------------------
-  // Helpers
-  // -----------------------------
   const showAlert = (msg, severity = 'success') => {
     setAlertMessage(msg);
     setAlertSeverity(severity);
@@ -1758,9 +1742,6 @@ function AddAuditorium() {
     reader.readAsDataURL(file);
   };
 
-  // -----------------------------
-  // Validation
-  // -----------------------------
   const validateForm = () => {
     const errs = [];
     if (!formData.firstName.trim()) errs.push('First name is required');
@@ -1771,16 +1752,11 @@ function AddAuditorium() {
     if (!formData.ownerEmail.trim()) errs.push('Owner email is required');
     if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(formData.ownerEmail))
       errs.push('Owner email is invalid');
-    // Module required (keeps original behavior)
     if (!formData.module) errs.push('Module is required');
-    // subscriptionPlan required only when not free trial
-    if (!isFreeTrial && !subscriptionPlan) errs.push('Subscription plan is required');
+    if (!isFreeTrial && !subscriptionPlan) errs.push('Subscription plan is required (or enable Free Trial)');
     return errs;
   };
 
-  // -----------------------------
-  // Submit
-  // -----------------------------
   const handleSubmit = async () => {
     const errors = validateForm();
     if (errors.length) {
@@ -1791,17 +1767,23 @@ function AddAuditorium() {
     try {
       setLoading(true);
       const payload = new FormData();
+      
+      // Basic info
       payload.append('firstName', formData.firstName);
       payload.append('lastName', formData.lastName);
       payload.append('email', formData.email);
       payload.append('phone', formData.phone);
       payload.append('role', 'vendor');
       payload.append('storeName', formData.storeName);
+      
+      // Address
       payload.append('storeAddress[street]', formData.storeAddress.street);
       payload.append('storeAddress[city]', formData.storeAddress.city);
       payload.append('storeAddress[state]', formData.storeAddress.state);
       payload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
       payload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
+      
+      // Other fields
       payload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
       payload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
       payload.append('latitude', formData.latitude);
@@ -1820,49 +1802,139 @@ function AddAuditorium() {
       payload.append('isActive', formData.isActive);
       payload.append('approvedProvider', formData.approvedProvider);
 
-      // subscription info (free trial or plan)
+      // Subscription info
       payload.append('isFreeTrial', isFreeTrial);
       if (!isFreeTrial && subscriptionPlan) {
         payload.append('subscriptionPlan', subscriptionPlan);
       }
 
+      // Files
       if (files.logo) payload.append('logo', files.logo);
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
-      const res = await fetch(`${API_BASE_URL}/auth/register`, { method: 'POST', body: payload });
-      const result = await res.json();
-
-      if (res.ok) {
-        if (isFreeTrial) {
-          showAlert('Provider added successfully with Free Trial', 'success');
-          handleReset();
-          return;
-        }
-
-        // Paid plan: redirect to payment page with providerId & planId
-        const providerId = result.providerId || result._id || result.id || (result.data && (result.data.providerId || result.data._id));
-        if (providerId) {
-          // frontend payment route (Option A)
-          window.location.href = `/payment?providerId=${providerId}&planId=${subscriptionPlan}`;
-        } else {
-          // fallback: show success and ask to contact admin
-          showAlert('Provider added. No providerId returned for payment.', 'warning');
-          handleReset();
-        }
-      } else {
-        showAlert(result.message || 'Failed to add provider', 'error');
+      // Register provider
+      const res = await fetch(`${API_BASE_URL}/auth/register`, { 
+        method: 'POST', 
+        body: payload 
+      });
+      
+      let result;
+      try {
+        result = await res.json();
+      } catch (parseError) {
+        console.error('Failed to parse response:', parseError);
+        showAlert('Invalid response from server', 'error');
+        setLoading(false);
+        return;
       }
+
+      console.log('=== REGISTRATION RESPONSE ===');
+      console.log('Status:', res.status);
+      console.log('Response:', JSON.stringify(result, null, 2));
+      console.log('============================');
+
+      if (!res.ok) {
+        showAlert(result.message || 'Failed to add provider', 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Extract provider ID from response
+      const providerId = result.providerId || 
+                        result.userId || 
+                        result._id || 
+                        result.id ||
+                        (result.data && (result.data.providerId || result.data._id)) ||
+                        (result.user && (result.user._id || result.user.id));
+
+      console.log('Extracted providerId:', providerId);
+
+      if (isFreeTrial) {
+        showAlert('Provider added successfully with Free Trial!', 'success');
+        setTimeout(() => {
+          handleReset();
+        }, 2000);
+        setLoading(false);
+        return;
+      }
+
+      // Paid plan: Create payment session
+      if (!providerId) {
+        console.error('=== PROVIDER ID NOT FOUND ===');
+        console.error('Full response:', JSON.stringify(result, null, 2));
+        console.error('============================');
+        
+        // Show detailed error with the actual response structure
+        const responsePreview = JSON.stringify(result).substring(0, 200);
+        showAlert(
+          `Provider created but ID not found in response. Check console for details. Response preview: ${responsePreview}...`, 
+          'error'
+        );
+        
+        // Still reset form so user can try again
+        setTimeout(() => {
+          handleReset();
+        }, 5000);
+        
+        setLoading(false);
+        return;
+      }
+
+      // Get selected plan details
+      const selectedPlanDetails = plans.find(p => (p._id || p.id) === subscriptionPlan);
+      const amount = selectedPlanDetails ? (selectedPlanDetails.price || selectedPlanDetails.amount || 0) : 0;
+
+      // Create payment session
+      const paymentRes = await fetch(`${API_BASE_URL}/payment/create-subscription-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          providerId: providerId,
+          planId: subscriptionPlan,
+          amount: amount,
+          customerEmail: formData.email,
+          customerPhone: formData.phone || '9999999999'
+        })
+      });
+
+      const paymentData = await paymentRes.json();
+
+      if (!paymentRes.ok) {
+        showAlert('Provider created but payment session failed: ' + (paymentData.message || 'Unknown error'), 'error');
+        setLoading(false);
+        return;
+      }
+
+      // Redirect to payment page
+      if (paymentData.success && paymentData.payment_links && paymentData.payment_links.web) {
+        showAlert('Redirecting to payment page...', 'info');
+        
+        // Store necessary data in localStorage for return handling
+        localStorage.setItem('pendingPayment', JSON.stringify({
+          providerId: providerId,
+          planId: subscriptionPlan,
+          orderId: paymentData.order_id,
+          sessionId: paymentData.id
+        }));
+
+        // Redirect to SmartGateway payment page
+        setTimeout(() => {
+          window.location.href = paymentData.payment_links.web;
+        }, 1500);
+      } else {
+        showAlert('Payment link not available. Please contact admin.', 'error');
+      }
+
     } catch (err) {
-      console.error(err);
-      showAlert('Error adding provider', 'error');
+      console.error('Error:', err);
+      showAlert('Error processing request: ' + err.message, 'error');
     } finally {
       setLoading(false);
     }
   };
 
-  // -----------------------------
-  // Reset
-  // -----------------------------
   const handleReset = () => {
     setFormData({
       firstName: '',
@@ -1914,9 +1986,6 @@ function AddAuditorium() {
     }
   };
 
-  // -----------------------------
-  // JSX return (UI preserved, only added Free Trial checkbox + plan section toggle)
-  // -----------------------------
   return (
     <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
@@ -2066,12 +2135,12 @@ function AddAuditorium() {
         <TextField fullWidth label="Owner Phone" variant="outlined" value={formData.ownerPhone} onChange={handleInputChange('ownerPhone')} sx={{ mb: 2 }} />
       </Box>
 
-      {/* ⭐ NEW: SUBSCRIPTION INFORMATION */}
+      {/* Subscription Information */}
       <Box sx={{ mb: 3, mt: 4, p: 2, borderRadius: 2, border: '1px solid #ddd', background: '#fafafa' }}>
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Subscription Information</Typography>
 
-        {/* FREE TRIAL TOGGLE (Option A: checkbox) */}
-        <Box sx={{ mb: 1 }}>
+        {/* FREE TRIAL TOGGLE */}
+        <Box sx={{ mb: 2 }}>
           <FormControlLabel
             control={
               <Checkbox
@@ -2087,44 +2156,77 @@ function AddAuditorium() {
           />
         </Box>
 
-        {/* HIDE PLAN SECTION IF FREE TRIAL ENABLED */}
+        {/* PLAN SECTION - HIDE IF FREE TRIAL */}
         {!isFreeTrial && (
           <>
             {plansLoading ? (
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                 <CircularProgress size={20} />
                 <Typography>Loading plans...</Typography>
               </Box>
-            ) : (
+            ) : plans.length > 0 ? (
               <FormControl fullWidth>
                 <InputLabel>Subscription Plan *</InputLabel>
-                <Select label="Subscription Plan *" value={subscriptionPlan} onChange={(e) => setSubscriptionPlan(e.target.value)}>
+                <Select 
+                  label="Subscription Plan *" 
+                  value={subscriptionPlan} 
+                  onChange={(e) => setSubscriptionPlan(e.target.value)}
+                >
                   <MenuItem value=""><em>Select Subscription Plan</em></MenuItem>
                   {plans.map((p) => (
                     <MenuItem key={p._id || p.id} value={p._id || p.id}>
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
                         <Typography sx={{ fontWeight: 'bold' }}>{p.name || p.title}</Typography>
-                        <Typography sx={{ fontSize: '14px', color: '#555' }}>Price: ₹ {p.price ?? p.amount ?? 0}</Typography>
+                        <Typography sx={{ fontSize: '14px', color: '#555' }}>
+                          Price: ₹{p.price ?? p.amount ?? 0} / {p.duration || 'month'}
+                        </Typography>
                       </Box>
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
+            ) : (
+              <Alert severity="info">No subscription plans available for this module</Alert>
             )}
           </>
+        )}
+
+        {isFreeTrial && (
+          <Alert severity="info" sx={{ mt: 2 }}>
+            Free trial enabled. Provider will have limited access until subscription is purchased.
+          </Alert>
         )}
       </Box>
 
       {/* Buttons */}
-      <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
-        <Button variant="outlined" onClick={handleReset} disabled={loading}>Reset</Button>
-        <Button variant="contained" color="primary" onClick={handleSubmit} disabled={loading} startIcon={loading ? <CircularProgress size={20} /> : null}>
-          {loading ? 'Submitting...' : 'Submit'}
+      <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2, mt: 3 }}>
+        <Button variant="outlined" onClick={handleReset} disabled={loading}>
+          Reset
+        </Button>
+        <Button 
+          variant="contained" 
+          color="primary" 
+          onClick={handleSubmit} 
+          disabled={loading}
+          startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+        >
+          {loading ? 'Processing...' : (isFreeTrial ? 'Submit' : 'Proceed to Payment')}
         </Button>
       </Box>
 
-      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
-        <Alert onClose={() => setOpen(false)} severity={alertSeverity} sx={{ width: '100%' }}>{alertMessage}</Alert>
+      <Snackbar 
+        open={open} 
+        autoHideDuration={6000} 
+        onClose={() => setOpen(false)} 
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert 
+          onClose={() => setOpen(false)} 
+          severity={alertSeverity} 
+          sx={{ width: '100%' }}
+        >
+          {alertMessage}
+        </Alert>
       </Snackbar>
     </Box>
   );
