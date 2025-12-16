@@ -26,6 +26,20 @@ function AddAuditorium() {
 
   const activeModuleId = localStorage.getItem('moduleDbId');
 
+  /* ---------------- BANK DETAILS (NEW) ---------------- */
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+    accountType: 'savings',
+    upiId: ''
+  });
+
+  const handleBankChange = (field) => (e) => {
+    setBankDetails({ ...bankDetails, [field]: e.target.value });
+  };
   // Subscription & free trial state
   const [plansLoading, setPlansLoading] = useState(true);
   const [plans, setPlans] = useState([]);
@@ -85,9 +99,7 @@ function AddAuditorium() {
     coverImage: null
   });
 
-  const API_BASE_URL = import.meta.env.MODE === 'development'
-    ? 'http://localhost:5000/api'
-    : 'https://api.bookmyevent.ae/api';
+  const API_BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://api.bookmyevent.ae/api';
 
   // Fetch subscription plans
   useEffect(() => {
@@ -102,7 +114,7 @@ function AddAuditorium() {
         setPlansLoading(true);
         const res = await fetch(`${API_BASE_URL}/subscription/plan/module/${formData.module}`);
         const data = await res.json();
-        
+
         if (data && data.success && Array.isArray(data.plans)) {
           setPlans(data.plans);
         } else if (Array.isArray(data)) {
@@ -173,11 +185,11 @@ function AddAuditorium() {
           const address = results[0].address_components || [];
 
           const get = (type) => {
-            const item = address.find(a => a.types.includes(type));
+            const item = address.find((a) => a.types.includes(type));
             return item ? item.long_name : '';
           };
 
-          setFormData(prev => ({
+          setFormData((prev) => ({
             ...prev,
             storeAddress: {
               street: get('route'),
@@ -225,7 +237,7 @@ function AddAuditorium() {
       const address = place.address_components || [];
 
       const get = (type) => {
-        const item = address.find(a => a.types.includes(type));
+        const item = address.find((a) => a.types.includes(type));
         return item ? item.long_name : '';
       };
 
@@ -289,13 +301,13 @@ function AddAuditorium() {
       const res = await fetch(`${API_BASE_URL}/modules`);
       const data = await res.json();
 
-      setAllModules(Array.isArray(data) ? data : (data.data || []));
-      const sourceArray = Array.isArray(data) ? data : (data.data || []);
+      setAllModules(Array.isArray(data) ? data : data.data || []);
+      const sourceArray = Array.isArray(data) ? data : data.data || [];
       const filtered = activeModuleId ? sourceArray.filter((m) => m._id === activeModuleId) : sourceArray;
       setModules(filtered);
 
       if (activeModuleId && filtered.length) {
-        setFormData(prev => ({ ...prev, module: activeModuleId }));
+        setFormData((prev) => ({ ...prev, module: activeModuleId }));
       }
     } catch (err) {
       console.error('Error fetching modules:', err);
@@ -345,8 +357,7 @@ function AddAuditorium() {
     if (!formData.ownerFirstName.trim()) errs.push('Owner first name is required');
     if (!formData.ownerLastName.trim()) errs.push('Owner last name is required');
     if (!formData.ownerEmail.trim()) errs.push('Owner email is required');
-    if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(formData.ownerEmail))
-      errs.push('Owner email is invalid');
+    if (formData.ownerEmail && !/^\w+([.-]?\w+)*@\w+([.-]?\w+)*(\.\w{2,})+$/.test(formData.ownerEmail)) errs.push('Owner email is invalid');
     if (!formData.module) errs.push('Module is required');
     if (!isFreeTrial && !subscriptionPlan) errs.push('Subscription plan is required (or enable Free Trial)');
     return errs;
@@ -362,7 +373,7 @@ function AddAuditorium() {
     try {
       setLoading(true);
       const payload = new FormData();
-      
+
       // Basic info
       payload.append('firstName', formData.firstName);
       payload.append('lastName', formData.lastName);
@@ -370,14 +381,24 @@ function AddAuditorium() {
       payload.append('phone', formData.phone);
       payload.append('role', 'vendor');
       payload.append('storeName', formData.storeName);
-      
+
+      // ---------------- BANK DETAILS ----------------
+      payload.append('accountHolderName', bankDetails.accountHolderName);
+      payload.append('bankName', bankDetails.bankName);
+      payload.append('accountNumber', bankDetails.accountNumber);
+      payload.append('ifscCode', bankDetails.ifscCode);
+      payload.append('branchName', bankDetails.branchName);
+      payload.append('upiId', bankDetails.upiId);
+      payload.append('accountType', bankDetails.accountType);
+
       // Address
-      payload.append('storeAddress[street]', formData.storeAddress.street);
-      payload.append('storeAddress[city]', formData.storeAddress.city);
-      payload.append('storeAddress[state]', formData.storeAddress.state);
-      payload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
-      payload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
-      
+      // payload.append('storeAddress[street]', formData.storeAddress.street);
+      // payload.append('storeAddress[city]', formData.storeAddress.city);
+      // payload.append('storeAddress[state]', formData.storeAddress.state);
+      // payload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
+      // payload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
+      payload.append('storeAddress', JSON.stringify(formData.storeAddress));
+
       // Other fields
       payload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
       payload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
@@ -408,11 +429,11 @@ function AddAuditorium() {
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
       // Register provider
-      const res = await fetch(`${API_BASE_URL}/auth/register`, { 
-        method: 'POST', 
-        body: payload 
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        body: payload
       });
-      
+
       let result;
       try {
         result = await res.json();
@@ -435,12 +456,13 @@ function AddAuditorium() {
       }
 
       // Extract provider ID from response
-      const providerId = result.providerId || 
-                        result.userId || 
-                        result._id || 
-                        result.id ||
-                        (result.data && (result.data.providerId || result.data._id)) ||
-                        (result.user && (result.user._id || result.user.id));
+      const providerId =
+        result.providerId ||
+        result.userId ||
+        result._id ||
+        result.id ||
+        (result.data && (result.data.providerId || result.data._id)) ||
+        (result.user && (result.user._id || result.user.id));
 
       console.log('Extracted providerId:', providerId);
 
@@ -458,32 +480,32 @@ function AddAuditorium() {
         console.error('=== PROVIDER ID NOT FOUND ===');
         console.error('Full response:', JSON.stringify(result, null, 2));
         console.error('============================');
-        
+
         // Show detailed error with the actual response structure
         const responsePreview = JSON.stringify(result).substring(0, 200);
         showAlert(
-          `Provider created but ID not found in response. Check console for details. Response preview: ${responsePreview}...`, 
+          `Provider created but ID not found in response. Check console for details. Response preview: ${responsePreview}...`,
           'error'
         );
-        
+
         // Still reset form so user can try again
         setTimeout(() => {
           handleReset();
         }, 5000);
-        
+
         setLoading(false);
         return;
       }
 
       // Get selected plan details
-      const selectedPlanDetails = plans.find(p => (p._id || p.id) === subscriptionPlan);
-      const amount = selectedPlanDetails ? (selectedPlanDetails.price || selectedPlanDetails.amount || 0) : 0;
+      const selectedPlanDetails = plans.find((p) => (p._id || p.id) === subscriptionPlan);
+      const amount = selectedPlanDetails ? selectedPlanDetails.price || selectedPlanDetails.amount || 0 : 0;
 
       // Create payment session
       const paymentRes = await fetch(`${API_BASE_URL}/payment/create-subscription-payment`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json',
+          'Content-Type': 'application/json'
         },
         body: JSON.stringify({
           providerId: providerId,
@@ -505,14 +527,17 @@ function AddAuditorium() {
       // Redirect to payment page
       if (paymentData.success && paymentData.payment_links && paymentData.payment_links.web) {
         showAlert('Redirecting to payment page...', 'info');
-        
+
         // Store necessary data in localStorage for return handling
-        localStorage.setItem('pendingPayment', JSON.stringify({
-          providerId: providerId,
-          planId: subscriptionPlan,
-          orderId: paymentData.order_id,
-          sessionId: paymentData.id
-        }));
+        localStorage.setItem(
+          'pendingPayment',
+          JSON.stringify({
+            providerId: providerId,
+            planId: subscriptionPlan,
+            orderId: paymentData.order_id,
+            sessionId: paymentData.id
+          })
+        );
 
         // Redirect to SmartGateway payment page
         setTimeout(() => {
@@ -521,7 +546,6 @@ function AddAuditorium() {
       } else {
         showAlert('Payment link not available. Please contact admin.', 'error');
       }
-
     } catch (err) {
       console.error('Error:', err);
       showAlert('Error processing request: ' + err.message, 'error');
@@ -605,7 +629,9 @@ function AddAuditorium() {
       {/* Logo */}
       {logoPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Logo:</Typography>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Selected Logo:
+          </Typography>
           <img src={logoPreview} alt="Logo" style={{ maxWidth: '100px', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
@@ -619,7 +645,9 @@ function AddAuditorium() {
       {/* Cover */}
       {coverPreview && (
         <Box sx={{ mb: 2, p: 2, border: '1px solid #ddd', borderRadius: '4px' }}>
-          <Typography variant="subtitle2" sx={{ mb: 1 }}>Selected Cover:</Typography>
+          <Typography variant="subtitle2" sx={{ mb: 1 }}>
+            Selected Cover:
+          </Typography>
           <img src={coverPreview} alt="Cover" style={{ maxWidth: '100%', maxHeight: '200px', objectFit: 'contain' }} />
         </Box>
       )}
@@ -632,30 +660,75 @@ function AddAuditorium() {
 
       {/* User Info */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>User Information</Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          User Information
+        </Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="First Name *" required variant="outlined" value={formData.firstName} onChange={handleInputChange('firstName')} />
-          <TextField fullWidth label="Last Name *" required variant="outlined" value={formData.lastName} onChange={handleInputChange('lastName')} />
+          <TextField
+            fullWidth
+            label="First Name *"
+            required
+            variant="outlined"
+            value={formData.firstName}
+            onChange={handleInputChange('firstName')}
+          />
+          <TextField
+            fullWidth
+            label="Last Name *"
+            required
+            variant="outlined"
+            value={formData.lastName}
+            onChange={handleInputChange('lastName')}
+          />
         </Box>
-        <TextField fullWidth label="Email *" required variant="outlined" value={formData.email} onChange={handleInputChange('email')} sx={{ mb: 2 }} />
-        <TextField fullWidth label="Mobile Number" variant="outlined" value={formData.phone} onChange={handleInputChange('phone')} placeholder="Enter mobile number" sx={{ mb: 2 }} />
+        <TextField
+          fullWidth
+          label="Email *"
+          required
+          variant="outlined"
+          value={formData.email}
+          onChange={handleInputChange('email')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Mobile Number"
+          variant="outlined"
+          value={formData.phone}
+          onChange={handleInputChange('phone')}
+          placeholder="Enter mobile number"
+          sx={{ mb: 2 }}
+        />
       </Box>
 
       {/* Location */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Location</Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Location
+        </Typography>
 
         {/* Module */}
         <Box sx={{ mb: 2 }}>
           {modulesLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={20} /><Typography variant="body2">Loading modules...</Typography>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Loading modules...</Typography>
             </Box>
           ) : modules.length ? (
             <FormControl fullWidth variant="outlined">
               <InputLabel id="module-select-label">Module *</InputLabel>
-              <Select labelId="module-select-label" value={formData.module} onChange={handleModuleChange} label="Module *" disabled={modules.length === 1}>
-                {modules.map((m) => <MenuItem key={m._id} value={m._id}>{m.title}</MenuItem>)}
+              <Select
+                labelId="module-select-label"
+                value={formData.module}
+                onChange={handleModuleChange}
+                label="Module *"
+                disabled={modules.length === 1}
+              >
+                {modules.map((m) => (
+                  <MenuItem key={m._id} value={m._id}>
+                    {m.title}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           ) : (
@@ -663,7 +736,9 @@ function AddAuditorium() {
           )}
           {formData.module && (
             <Box sx={{ mt: 1, p: 1.5, bgcolor: '#e3f2fd', borderRadius: 1 }}>
-              <Typography variant="body2" color="primary">Selected Module: <strong>{getSelectedModuleName()}</strong></Typography>
+              <Typography variant="body2" color="primary">
+                Selected Module: <strong>{getSelectedModuleName()}</strong>
+              </Typography>
             </Box>
           )}
         </Box>
@@ -672,14 +747,21 @@ function AddAuditorium() {
         <Box sx={{ mb: 2 }}>
           {zonesLoading ? (
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <CircularProgress size={20} /><Typography variant="body2">Loading zones...</Typography>
+              <CircularProgress size={20} />
+              <Typography variant="body2">Loading zones...</Typography>
             </Box>
           ) : zones.length ? (
             <FormControl fullWidth variant="outlined">
               <InputLabel id="zone-select-label">Zone</InputLabel>
               <Select labelId="zone-select-label" value={selectedZone} onChange={handleZoneChange} label="Zone">
-                <MenuItem value=""><em>Select Zone</em></MenuItem>
-                {zones.map((z) => <MenuItem key={z._id} value={z._id}>{z.name}</MenuItem>)}
+                <MenuItem value="">
+                  <em>Select Zone</em>
+                </MenuItem>
+                {zones.map((z) => (
+                  <MenuItem key={z._id} value={z._id}>
+                    {z.name}
+                  </MenuItem>
+                ))}
               </Select>
             </FormControl>
           ) : (
@@ -689,50 +771,143 @@ function AddAuditorium() {
 
         {/* Address fields */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="Street" variant="outlined" value={formData.storeAddress.street} onChange={handleAddressChange('street')} />
+          <TextField
+            fullWidth
+            label="Street"
+            variant="outlined"
+            value={formData.storeAddress.street}
+            onChange={handleAddressChange('street')}
+          />
           <TextField fullWidth label="City" variant="outlined" value={formData.storeAddress.city} onChange={handleAddressChange('city')} />
         </Box>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="State" variant="outlined" value={formData.storeAddress.state} onChange={handleAddressChange('state')} />
-          <TextField fullWidth label="Zip Code" variant="outlined" value={formData.storeAddress.zipCode} onChange={handleAddressChange('zipCode')} />
+          <TextField
+            fullWidth
+            label="State"
+            variant="outlined"
+            value={formData.storeAddress.state}
+            onChange={handleAddressChange('state')}
+          />
+          <TextField
+            fullWidth
+            label="Zip Code"
+            variant="outlined"
+            value={formData.storeAddress.zipCode}
+            onChange={handleAddressChange('zipCode')}
+          />
         </Box>
-        <TextField fullWidth label="Full Address" variant="outlined" value={formData.storeAddress.fullAddress} onChange={handleAddressChange('fullAddress')} sx={{ mb: 2 }} />
+        <TextField
+          fullWidth
+          label="Full Address"
+          variant="outlined"
+          value={formData.storeAddress.fullAddress}
+          onChange={handleAddressChange('fullAddress')}
+          sx={{ mb: 2 }}
+        />
 
         {/* Search */}
-        <TextField fullWidth label="Search Location" inputRef={searchInputRef} variant="outlined" placeholder="Enter a location" sx={{ mb: 2, ...inputSx }} />
+        <TextField
+          fullWidth
+          label="Search Location"
+          inputRef={searchInputRef}
+          variant="outlined"
+          placeholder="Enter a location"
+          sx={{ mb: 2, ...inputSx }}
+        />
 
         {/* Map */}
         {mapsLoaded && GOOGLE_MAPS_API_KEY ? (
           <>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>Click on the map below to select a location</Typography>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Click on the map below to select a location
+            </Typography>
             <Box ref={mapRef} sx={{ height: 300, width: '100%', borderRadius: 1, border: '1px solid #ddd', mb: 2 }} />
           </>
         ) : (
-          <Box sx={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #ddd', borderRadius: 1, mb: 2 }}>
-            <Typography variant="body2" color="text.secondary">Map loading...</Typography>
+          <Box
+            sx={{
+              height: 300,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1px solid #ddd',
+              borderRadius: 1,
+              mb: 2
+            }}
+          >
+            <Typography variant="body2" color="text.secondary">
+              Map loading...
+            </Typography>
           </Box>
         )}
 
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="Latitude" type="number" inputProps={{ step: '0.0001' }} value={formData.latitude} onChange={handleInputChange('latitude')} />
-          <TextField fullWidth label="Longitude" type="number" inputProps={{ step: '0.0001' }} value={formData.longitude} onChange={handleInputChange('longitude')} />
+          <TextField
+            fullWidth
+            label="Latitude"
+            type="number"
+            inputProps={{ step: '0.0001' }}
+            value={formData.latitude}
+            onChange={handleInputChange('latitude')}
+          />
+          <TextField
+            fullWidth
+            label="Longitude"
+            type="number"
+            inputProps={{ step: '0.0001' }}
+            value={formData.longitude}
+            onChange={handleInputChange('longitude')}
+          />
         </Box>
       </Box>
 
       {/* Owner Information */}
       <Box sx={{ mb: 3 }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Owner Information</Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Owner Information
+        </Typography>
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
-          <TextField fullWidth label="Owner First Name *" required variant="outlined" value={formData.ownerFirstName} onChange={handleInputChange('ownerFirstName')} />
-          <TextField fullWidth label="Owner Last Name *" required variant="outlined" value={formData.ownerLastName} onChange={handleInputChange('ownerLastName')} />
+          <TextField
+            fullWidth
+            label="Owner First Name *"
+            required
+            variant="outlined"
+            value={formData.ownerFirstName}
+            onChange={handleInputChange('ownerFirstName')}
+          />
+          <TextField
+            fullWidth
+            label="Owner Last Name *"
+            required
+            variant="outlined"
+            value={formData.ownerLastName}
+            onChange={handleInputChange('ownerLastName')}
+          />
         </Box>
-        <TextField fullWidth label="Owner Email *" required variant="outlined" value={formData.ownerEmail} onChange={handleInputChange('ownerEmail')} sx={{ mb: 2 }} />
-        <TextField fullWidth label="Owner Phone" variant="outlined" value={formData.ownerPhone} onChange={handleInputChange('ownerPhone')} sx={{ mb: 2 }} />
+        <TextField
+          fullWidth
+          label="Owner Email *"
+          required
+          variant="outlined"
+          value={formData.ownerEmail}
+          onChange={handleInputChange('ownerEmail')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Owner Phone"
+          variant="outlined"
+          value={formData.ownerPhone}
+          onChange={handleInputChange('ownerPhone')}
+          sx={{ mb: 2 }}
+        />
       </Box>
 
       {/* Subscription Information */}
       <Box sx={{ mb: 3, mt: 4, p: 2, borderRadius: 2, border: '1px solid #ddd', background: '#fafafa' }}>
-        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>Subscription Information</Typography>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Subscription Information
+        </Typography>
 
         {/* FREE TRIAL TOGGLE */}
         <Box sx={{ mb: 2 }}>
@@ -762,12 +937,10 @@ function AddAuditorium() {
             ) : plans.length > 0 ? (
               <FormControl fullWidth>
                 <InputLabel>Subscription Plan *</InputLabel>
-                <Select 
-                  label="Subscription Plan *" 
-                  value={subscriptionPlan} 
-                  onChange={(e) => setSubscriptionPlan(e.target.value)}
-                >
-                  <MenuItem value=""><em>Select Subscription Plan</em></MenuItem>
+                <Select label="Subscription Plan *" value={subscriptionPlan} onChange={(e) => setSubscriptionPlan(e.target.value)}>
+                  <MenuItem value="">
+                    <em>Select Subscription Plan</em>
+                  </MenuItem>
                   {plans.map((p) => (
                     <MenuItem key={p._id || p.id} value={p._id || p.id}>
                       <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -793,33 +966,64 @@ function AddAuditorium() {
         )}
       </Box>
 
+      {/* BANK DETAILS */}
+      <Box
+        sx={{
+          mb: 3,
+          mt: 4,
+          p: 2,
+          borderRadius: 2,
+          border: '1px solid #ddd',
+          background: '#fafafa'
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Bank Details
+        </Typography>
+
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Please provide correct bank details. These details will be used for vendor settlements and payouts.
+        </Alert>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Account Holder Name"
+            value={bankDetails.accountHolderName}
+            onChange={handleBankChange('accountHolderName')}
+          />
+          <TextField fullWidth label="Bank Name" value={bankDetails.bankName} onChange={handleBankChange('bankName')} />
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField fullWidth label="Account Number" value={bankDetails.accountNumber} onChange={handleBankChange('accountNumber')} />
+          <TextField fullWidth label="IFSC Code" value={bankDetails.ifscCode} onChange={handleBankChange('ifscCode')} />
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField fullWidth label="Branch Name" value={bankDetails.branchName} onChange={handleBankChange('branchName')} />
+          <TextField fullWidth label="UPI ID" value={bankDetails.upiId} onChange={handleBankChange('upiId')} />
+        </Box>
+      </Box>
+
       {/* Buttons */}
       <Box sx={{ display: 'flex', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2, mt: 3 }}>
         <Button variant="outlined" onClick={handleReset} disabled={loading}>
           Reset
         </Button>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleSubmit} 
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
-          {loading ? 'Processing...' : (isFreeTrial ? 'Submit' : 'Proceed to Payment')}
+          {loading ? 'Processing...' : isFreeTrial ? 'Submit' : 'Proceed to Payment'}
         </Button>
       </Box>
 
-      <Snackbar 
-        open={open} 
-        autoHideDuration={6000} 
-        onClose={() => setOpen(false)} 
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-      >
-        <Alert 
-          onClose={() => setOpen(false)} 
-          severity={alertSeverity} 
-          sx={{ width: '100%' }}
-        >
+      <Snackbar open={open} autoHideDuration={6000} onClose={() => setOpen(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+        <Alert onClose={() => setOpen(false)} severity={alertSeverity} sx={{ width: '100%' }}>
           {alertMessage}
         </Alert>
       </Snackbar>

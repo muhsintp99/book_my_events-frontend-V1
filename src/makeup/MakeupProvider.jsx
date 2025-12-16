@@ -1085,6 +1085,22 @@ function AddAuditorium() {
 
   const activeModuleId = localStorage.getItem("moduleDbId");
 
+
+   /* ---------------- BANK DETAILS (NEW) ---------------- */
+    const [bankDetails, setBankDetails] = useState({
+      accountHolderName: '',
+      bankName: '',
+      accountNumber: '',
+      ifscCode: '',
+      branchName: '',
+      accountType: 'savings',
+      upiId: ''
+    });
+
+    const handleBankChange = (field) => (e) => {
+    setBankDetails({ ...bankDetails, [field]: e.target.value });
+  };
+
   // Subscription states
   const [plans, setPlans] = useState([]);
   const [subscriptionPlan, setSubscriptionPlan] = useState("");
@@ -1464,6 +1480,18 @@ function AddAuditorium() {
       payload.append("email", formData.email);
       payload.append("phone", formData.phone);
 
+
+      
+      // ---------------- BANK DETAILS ----------------
+payload.append('accountHolderName', bankDetails.accountHolderName);
+payload.append('bankName', bankDetails.bankName);
+payload.append('accountNumber', bankDetails.accountNumber);
+payload.append('ifscCode', bankDetails.ifscCode);
+payload.append('branchName', bankDetails.branchName);
+payload.append('upiId', bankDetails.upiId);
+payload.append('accountType', bankDetails.accountType);
+
+
       const storeName =
         formData.vendorType === "individual" ? formData.fullName.trim() : formData.storeName.trim();
       payload.append("storeName", storeName);
@@ -1472,11 +1500,16 @@ function AddAuditorium() {
       payload.append("bioSubtitle", formData.bioSubtitle);
       payload.append("bioDescription", formData.bioDescription);
 
-      payload.append("storeAddress[street]", formData.storeAddress.street);
-      payload.append("storeAddress[city]", formData.storeAddress.city);
-      payload.append("storeAddress[state]", formData.storeAddress.state);
-      payload.append("storeAddress[zipCode]", formData.storeAddress.zipCode);
-      payload.append("storeAddress[fullAddress]", formData.storeAddress.fullAddress);
+      // payload.append("storeAddress[street]", formData.storeAddress.street);
+      // payload.append("storeAddress[city]", formData.storeAddress.city);
+      // payload.append("storeAddress[state]", formData.storeAddress.state);
+      // payload.append("storeAddress[zipCode]", formData.storeAddress.zipCode);
+      // payload.append("storeAddress[fullAddress]", formData.storeAddress.fullAddress);
+
+         payload.append(
+  'storeAddress',
+  JSON.stringify(formData.storeAddress)
+);
 
       payload.append("latitude", formData.latitude);
       payload.append("longitude", formData.longitude);
@@ -1858,6 +1891,48 @@ function AddAuditorium() {
           </Alert>
         )}
       </Box>
+
+
+      {/* BANK DETAILS */}
+            <Box
+              sx={{
+                mb: 3,
+                mt: 4,
+                p: 2,
+                borderRadius: 2,
+                border: '1px solid #ddd',
+                background: '#fafafa'
+              }}
+            >
+              <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+                Bank Details
+              </Typography>
+      
+              <Alert severity="info" sx={{ mb: 2 }}>
+                Please provide correct bank details. These details will be used for vendor settlements and payouts.
+              </Alert>
+      
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField
+                  fullWidth
+                  label="Account Holder Name"
+                  value={bankDetails.accountHolderName}
+                  onChange={handleBankChange('accountHolderName')}
+                />
+                <TextField fullWidth label="Bank Name" value={bankDetails.bankName} onChange={handleBankChange('bankName')} />
+              </Box>
+      
+              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+                <TextField fullWidth label="Account Number" value={bankDetails.accountNumber} onChange={handleBankChange('accountNumber')} />
+                <TextField fullWidth label="IFSC Code" value={bankDetails.ifscCode} onChange={handleBankChange('ifscCode')} />
+              </Box>
+      
+              <Box sx={{ display: 'flex', gap: 2 }}>
+                <TextField fullWidth label="Branch Name" value={bankDetails.branchName} onChange={handleBankChange('branchName')} />
+                <TextField fullWidth label="UPI ID" value={bankDetails.upiId} onChange={handleBankChange('upiId')} />
+              </Box>
+            </Box>
+      
 
       {/* Action Buttons */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>

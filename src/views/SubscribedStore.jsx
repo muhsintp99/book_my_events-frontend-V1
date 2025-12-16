@@ -46,6 +46,30 @@ const SubscribedStore = () => {
   useEffect(() => {
     fetchSubscribedStores();
     fetchModules();
+
+    // ✅ Listen for subscription updates from other tabs/windows
+    const handleStorageChange = (e) => {
+      if (e.key === 'subscriptionUpdated' && e.newValue === 'true') {
+        console.log('🔄 Subscription updated - refreshing list');
+        fetchSubscribedStores();
+        localStorage.removeItem('subscriptionUpdated');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+
+    // ✅ Also listen for custom events in the same tab
+    const handleSubscriptionUpdate = () => {
+      console.log('🔄 Subscription updated (same tab) - refreshing list');
+      fetchSubscribedStores();
+    };
+
+    window.addEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('subscriptionUpdated', handleSubscriptionUpdate);
+    };
   }, []);
 
   // Fetch Subscribed Stores
@@ -86,7 +110,6 @@ const SubscribedStore = () => {
       const res = await fetch("https://api.bookmyevent.ae/api/modules");
       const data = await res.json();
 
-      // your backend returns array (per controller) — accept either array or { modules: [...] }
       if (Array.isArray(data)) {
         setModules(data);
       } else if (Array.isArray(data.modules)) {
@@ -155,27 +178,23 @@ const SubscribedStore = () => {
         <Chip label="All Zones" variant="outlined" />
       </Box>
 
-      {/* Stats row with updated color tones */}
+      {/* Stats row */}
       <Box sx={{ display: "flex", gap: 2, mb: 4 }}>
-        {/* Blue tone (Total) */}
         <StatCard sx={{ background: "linear-gradient(180deg, #e8f4ff 0%, #e6f3ff 100%)", borderColor: "#d0eaff" }}>
           <Typography variant="h4" fontWeight={700} color="#0b66b2">{totalSubscribed}</Typography>
           <Typography color="#0b66b2">Total Subscribed User</Typography>
         </StatCard>
 
-        {/* Green tone (Active) */}
         <StatCard sx={{ background: "linear-gradient(180deg, #eaf6ea 0%, #e8f5e9 100%)", borderColor: "#dff0df" }}>
           <Typography variant="h4" fontWeight={700} color="#2e7d32">{activeSubscriptions}</Typography>
           <Typography color="#2e7d32">Active Subscriptions</Typography>
         </StatCard>
 
-        {/* Peach/soft orange tone (Expired) */}
         <StatCard sx={{ background: "linear-gradient(180deg, #fff6ea 0%, #fff3e0 100%)", borderColor: "#ffe9cc" }}>
           <Typography variant="h4" fontWeight={700} color="#b45f08">{expiredSubscriptions}</Typography>
           <Typography color="#b45f08">Expired Subscription</Typography>
         </StatCard>
 
-        {/* Pale yellow tone (Expiring soon) */}
         <StatCard sx={{ background: "linear-gradient(180deg, #fffdf2 0%, #fff8e1 100%)", borderColor: "#fff2c9" }}>
           <Typography variant="h4" fontWeight={700} color="#a66a00">{expiringSoon}</Typography>
           <Typography color="#a66a00">Expiring Soon</Typography>
@@ -187,7 +206,6 @@ const SubscribedStore = () => {
         <Typography variant="h6">Store List {filteredStores.length}</Typography>
 
         <Box sx={{ display: "flex", gap: 2 }}>
-          {/* Module selector */}
           <FormControl size="small" sx={{ minWidth: 150 }}>
             <InputLabel>Module</InputLabel>
             <Select
@@ -204,7 +222,6 @@ const SubscribedStore = () => {
             </Select>
           </FormControl>
 
-          {/* Search */}
           <TextField
             size="small"
             placeholder="Search store / plan / module"
@@ -220,7 +237,6 @@ const SubscribedStore = () => {
             sx={{ minWidth: 260 }}
           />
 
-          {/* Export */}
           <Button variant="outlined" startIcon={<MoreVert />} onClick={(e) => setAnchorEl(e.currentTarget)}>
             Export
           </Button>
