@@ -79,6 +79,7 @@ const SecondModuleSetup = Loadable(lazy(() => import('../views/SecondmoduleSetup
 const SubscriptionList = Loadable(lazy(() => import('../views/SubscriptionList')));
 const Addpackage = Loadable(lazy(() => import('../views/Addpackage')));
 const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')));
+const SubscriptionRequests = Loadable(lazy(() => import('../views/SubscriptionRequests')));
 
 // catering///////////////
 // const cateringDashboard = Loadable(lazy(() => import('../catering/')));
@@ -162,6 +163,7 @@ const MainRoutes = {
     { path: '/settings/sub/add/:id', element: <Addpackage /> },
 
     { path: '/settings/sub/store', element: <SubscribedStore /> },
+    { path: '/settings/sub/requests', element: <SubscriptionRequests /> },
 
     // Bookingssss
 

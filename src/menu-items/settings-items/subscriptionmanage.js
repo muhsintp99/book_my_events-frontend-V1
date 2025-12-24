@@ -1,14 +1,15 @@
-// menu-items/auditorium/customers.js
 import {
   IconClipboardList,
   IconBuildingStore,
   IconPackage,
+  IconMailForward,
 } from '@tabler/icons-react';
 
 const icons = {
   IconClipboardList,   // Subscription List
   IconBuildingStore,   // Subscribed Store List
-  IconPackage          // Packages / Plans
+  IconPackage,         // Packages / Plans
+  IconMailForward,     // Subscription Requests
 };
 
 const subscriptionmanagement = {
@@ -30,6 +31,14 @@ const subscriptionmanagement = {
       type: 'item',
       url: '/settings/sub/store',
       icon: icons.IconBuildingStore,
+      breadcrumbs: false
+    },
+    {
+      id: 'subscription-requests',
+      title: 'Subscription Requests',
+      type: 'item',
+      url: '/settings/sub/requests',
+      icon: icons.IconMailForward,
       breadcrumbs: false
     },
     // {
