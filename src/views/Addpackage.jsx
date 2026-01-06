@@ -42,18 +42,19 @@ const API = 'https://api.bookmyevent.ae';
 // DEFAULT BENEFITS FOR ALL PLANS
 // --------------------------------------------------
 const DEFAULT_BENEFITS = [
-  "Included Benefits:",
-  "2× visibility compared to Free Plan",
+  "Unlimited service listings",
+  "4× visibility compared to Free Plan",
   "Dedicated profile management support",
   "Call support + priority response",
   "Guaranteed visibility on the first page",
-  "5 relationship calls per year",
   "Pin two reviews at the top of your profile",
   "Full analytics access",
   "Multi-city listing option",
   "Visible customer contact details for incoming leads",
-  "Maximum photo and video uploads"
+  "Maximum photo and video uploads",
+  "Business growth support"
 ];
+
 
 export default function AddPackage() {
   const navigate = useNavigate();

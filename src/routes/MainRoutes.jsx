@@ -114,8 +114,17 @@ const PhotographyCoupon = Loadable(lazy(() => import('../photography/PhotoCoupon
 // const PhotographyPortfolio = Loadable(lazy(() => import('../photography/PhotoPortfolio')));
 
 
+// cakes////////////////////////////////
+const Cakedashboard = Loadable(lazy(() => import('../cakes/dashboard')));
+const Cakeaddprovider = Loadable(lazy(() => import('../cakes/Cakeprovider')));
+const Cakevendorslist = Loadable(lazy(() => import('../cakes/NewProvider')));
 
-
+const Cakecategory = Loadable(lazy(() => import('../cakes/category')));
+const CakeList = Loadable(lazy(() => import('../cakes/cakelist')));
+const Cakeprovider = Loadable(
+  lazy(() => import('../cakes/NewProvider'))
+);
+const CakeCoupon = Loadable(lazy(() => import('../cakes/Cakecoupons')));
 
 const MainRoutes = {
   path: '/',
@@ -249,8 +258,17 @@ const MainRoutes = {
         // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
 
 
-   
+  //  cakes///////////////////////
+{ path: '/cake/dashboard', element: <Cakedashboard /> },
+ { path: '/cake/AddProvider', element: <Cakeaddprovider /> },
+   { path: '/cake/cakevendors', element: <Cakevendorslist /> },
 
+
+    
+   { path: '/cake/category', element: <Cakecategory /> },
+    { path: '/cake/cakelist', element: <CakeList /> },
+    { path: '/providers/cakeprovider', element: <Cakeprovider /> },
+    { path: '/cake/Coupons', element: <CakeCoupon /> },
   ]
 };
 
