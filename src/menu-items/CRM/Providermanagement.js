@@ -1,10 +1,10 @@
 // assets
 import {
-  IconUserPlus,      
-  IconUserCheck,     
-  IconUsers,         
-  IconUpload,        
-  IconDownload       
+  IconUserPlus,
+  IconUserCheck,
+  IconUsers,
+  IconUpload,
+  IconDownload
 } from '@tabler/icons-react';
 
 // constants
@@ -40,6 +40,14 @@ const Providermgt = {
       breadcrumbs: false
     },
     {
+      id: 'kyc-verification',
+      title: 'KYC Verification',
+      type: 'item',
+      url: '/settings/kyc-verification',
+      icon: icons.IconUserCheck,
+      breadcrumbs: false
+    },
+    {
       id: 'providers-list',
       title: 'Providers List',
       type: 'item',
@@ -47,6 +55,7 @@ const Providermgt = {
       icon: icons.IconUsers,
       breadcrumbs: false
     },
+
     // {
     //   id: 'bulk-import',
     //   title: 'Bulk Import',

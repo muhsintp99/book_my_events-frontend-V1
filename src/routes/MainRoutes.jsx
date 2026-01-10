@@ -25,6 +25,8 @@ const NewProvider = Loadable(lazy(() => import('../views/Newprovider')));
 const AddProvider = Loadable(lazy(() => import('../views/Addprovider')));
 const ProviderList = Loadable(lazy(() => import('../views/Providerslist')));
 const EditList = Loadable(lazy(() => import('../views/Editlist')));
+const KycVerification = Loadable(lazy(() => import('../views/KycVerification')));
+
 
 // Vehicles - Category
 const Category = Loadable(lazy(() => import('../views/Category')));
@@ -93,7 +95,7 @@ const CateringCoupon = Loadable(lazy(() => import('../catering/CateringCoupon'))
 // makeup/////////////////////
 const Makeupdashboard = Loadable(lazy(() => import('../makeup/dashboard')));
 const Makeupaddprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
-const Makeupproviders =Loadable(lazy(() => import('../makeup/New Provider')))
+const Makeupproviders = Loadable(lazy(() => import('../makeup/New Provider')))
 const Makeupcategory = Loadable(lazy(() => import('../makeup/Category')));
 const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
 const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
@@ -148,7 +150,9 @@ const MainRoutes = {
     { path: 'providers/new', element: <NewProvider /> },
     { path: 'providers/add', element: <AddProvider /> },
     { path: 'providers/list', element: <ProviderList /> },
+    { path: 'settings/kyc-verification', element: <KycVerification /> },
     // { path: 'providers/edit', element: <EditList /> },
+
 
     // Trips
 
@@ -191,8 +195,8 @@ const MainRoutes = {
     { path: 'vehicles/create', element: <Createnew /> },
     { path: 'vehicles/list', element: <Vehiclelist /> },
     { path: 'vehicles/brands', element: <Brands /> },
-        { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
-            { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist/> },
+    { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
+    { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist /> },
 
 
     // Auditorium Routes
@@ -219,7 +223,7 @@ const MainRoutes = {
 
     // cateringgggg///////////////////
     { path: 'catering/dashboard', element: <Cateringdashboard /> },
-        { path: '/catering/cateringprovider', element: <Cateringprovider /> },
+    { path: '/catering/cateringprovider', element: <Cateringprovider /> },
 
     { path: 'catering/addprovider', element: <Cateringaddprovider /> },
     { path: 'catering/Category', element: <Cateringcategory /> },
@@ -238,34 +242,34 @@ const MainRoutes = {
     { path: 'makeup/makeuplist', element: <MakeupList /> },
     { path: '/makeup/provider', element: <Makeupprovider /> },
     { path: '/makeup/Coupons', element: <MakeupCoupon /> },
-        { path: 'makeup/types', element: <Makeuptypes /> },
-                // { path: '/makeup/portfolio', element: <Makeupportfolio /> },
+    { path: 'makeup/types', element: <Makeuptypes /> },
+    // { path: '/makeup/portfolio', element: <Makeupportfolio /> },
 
 
     // photographyyyy///////////////////////
 
-{ path: '/photography/dashboard', element: <Photographydashboard /> },
- { path: '/photography/provider', element: <Photographyaddprovider /> },
- { path: '/photography/provider', element: <Photographyaddprovider /> },
-   { path: '/photography/photographyvendors', element: <Photographyvendorslist /> },
+    { path: '/photography/dashboard', element: <Photographydashboard /> },
+    { path: '/photography/provider', element: <Photographyaddprovider /> },
+    { path: '/photography/provider', element: <Photographyaddprovider /> },
+    { path: '/photography/photographyvendors', element: <Photographyvendorslist /> },
 
 
-    
-   { path: '/photography/category', element: <Photographycategory /> },
+
+    { path: '/photography/category', element: <Photographycategory /> },
     { path: '/photography/photographylist', element: <PhotographyList /> },
     { path: '/photography/AddProvider', element: <Photographyprovider /> },
     { path: '/photography/Coupons', element: <PhotographyCoupon /> },
-        // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
+    // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
 
 
-  //  cakes///////////////////////
-{ path: '/cake/dashboard', element: <Cakedashboard /> },
- { path: '/cake/AddProvider', element: <Cakeaddprovider /> },
-   { path: '/cake/cakevendors', element: <Cakevendorslist /> },
+    //  cakes///////////////////////
+    { path: '/cake/dashboard', element: <Cakedashboard /> },
+    { path: '/cake/AddProvider', element: <Cakeaddprovider /> },
+    { path: '/cake/cakevendors', element: <Cakevendorslist /> },
 
 
-    
-   { path: '/cake/category', element: <Cakecategory /> },
+
+    { path: '/cake/category', element: <Cakecategory /> },
     { path: '/cake/cakelist', element: <CakeList /> },
     { path: '/providers/cakeprovider', element: <Cakeprovider /> },
     { path: '/cake/Coupons', element: <CakeCoupon /> },

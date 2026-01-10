@@ -31,7 +31,9 @@ import modulemanagement from './settings-items/modulemanagement';// ============
 import subscriptionmanagement from './settings-items/subscriptionmanage';
 import taxmanagement from './settings-items/taxmanagement';
 import employeemanagement from './settings-items/employeemanage';
+import kycmanagement from './settings-items/kycmanagement';
 import cateringmanagement from './catering/cateringmanagement';
+
 import cateringsections from './catering/cateringsections';
 import CateringProvidermanagement from './catering/cateringprovidermanagement';
 import makeupsections from './makeup/makeupsections';
@@ -49,33 +51,34 @@ const moduleMenuItems = {
   crm: {
     items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
-  
+
   rental: {
     items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
-  
+
   events: {
     items: [tripmanagemet, Promotionmgt, vehiclemgt, Providermgt]
   },
-  
+
   auditorium: {
-    items: [dashboard,auditoriummanagement,auditoriumsections,Providermanagement] 
+    items: [dashboard, auditoriummanagement, auditoriumsections, Providermanagement]
   },
   catering: {
-    items: [dashboard,cateringmanagement,cateringsections,CateringProvidermanagement] 
+    items: [dashboard, cateringmanagement, cateringsections, CateringProvidermanagement]
   },
-   makeup: {
-    items: [dashboard,makeupmanangement,makeupsections,MakeupProvidermanagement] 
+  makeup: {
+    items: [dashboard, makeupmanangement, makeupsections, MakeupProvidermanagement]
   },
-   photography: {
-    items: [dashboard,photographymanangement,photographysections,PhotographyProvidermanagement] 
+  photography: {
+    items: [dashboard, photographymanangement, photographysections, PhotographyProvidermanagement]
   },
- cake: {
-    items: [dashboard,cakemanagement,cakesections,CakeProvidermanagement] 
+  cake: {
+    items: [dashboard, cakemanagement, cakesections, CakeProvidermanagement]
   },
-  setting:{
-    items: [zonemanagement,modulemanagement,subscriptionmanagement,taxmanagement,employeemanagement]
+  setting: {
+    items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
   }
+
 };
 
 // Function to get menu items based on active module

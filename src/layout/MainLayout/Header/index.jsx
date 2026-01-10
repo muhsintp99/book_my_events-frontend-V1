@@ -173,9 +173,9 @@
 //     setTimeout(() => window.location.reload(), 100);
 //     handleClose();
 //   };
-
 //   const settingsMenuItems = [
 //     { label: 'Zone Setup', icon: <IconMapPinFilled size={20} />, route: '/settings/zone-setup' },
+
 //     { label: 'Module Setup', icon: <IconTool size={20} />, route: '/settings/module-setup' },
 //     { label: 'Subscription Settings', icon: <IconCreditCard size={20} />, route: '/settings/sub/list' },
 //     { label: 'Employee Management', icon: <IconUsers size={20} />, route: '/settings/employee' }
@@ -390,7 +390,8 @@ import {
   IconMapPinFilled,
   IconTool,
   IconCreditCard,
-  IconUsers
+  IconUsers,
+  IconUserCheck
 } from '@tabler/icons-react';
 
 export default function Header() {
@@ -438,24 +439,24 @@ export default function Header() {
     const trimmed = title.trim();
     const titleLower = trimmed.toLowerCase();
 
-   const specialCases = {
-  mehandi: 'Mehandi',
-  mahandi: 'Mehandi',
-  photography: 'Photography',
-  catering: 'Catering',
+    const specialCases = {
+      mehandi: 'Mehandi',
+      mahandi: 'Mehandi',
+      photography: 'Photography',
+      catering: 'Catering',
 
-  // Makeup variations
-  makeup: 'Makeup',
-  'makeup artist': 'Makeup',
-  makeupartist: 'Makeup',
-  'makeup_artist': 'Makeup',
-  'makeup-artist': 'Makeup',
+      // Makeup variations
+      makeup: 'Makeup',
+      'makeup artist': 'Makeup',
+      makeupartist: 'Makeup',
+      'makeup_artist': 'Makeup',
+      'makeup-artist': 'Makeup',
 
-  dj: 'DJ',
-  music: 'Music',
-  'invitation and printing': 'Invitation & Printing',
-  'stage decoration': 'Stage Decoration'
-};
+      dj: 'DJ',
+      music: 'Music',
+      'invitation and printing': 'Invitation & Printing',
+      'stage decoration': 'Stage Decoration'
+    };
 
     if (specialCases[titleLower]) {
       return specialCases[titleLower];
@@ -651,12 +652,12 @@ export default function Header() {
       setSelectedModuleName(storedModuleName);
     }
   }, []);
-
   const settingsMenuItems = [
     { label: 'Zone Setup', icon: <IconMapPinFilled size={20} />, route: '/settings/zone-setup' },
     { label: 'Module Setup', icon: <IconTool size={20} />, route: '/settings/module-setup' },
     { label: 'Subscription Settings', icon: <IconCreditCard size={20} />, route: '/settings/sub/list' },
-    { label: 'Employee Management', icon: <IconUsers size={20} />, route: '/settings/employee' }
+    { label: 'Employee Management', icon: <IconUsers size={20} />, route: '/settings/employee' },
+    { label: 'KYC Management', icon: <IconUserCheck size={20} />, route: '/settings/kyc-verification' }
   ];
 
   const getImageUrl = (icon, isSecondary = false) => {
