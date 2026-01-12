@@ -31,7 +31,8 @@ import {
   ListItemText,
   Divider,
   CircularProgress,
-  Stack
+  Stack,
+  Grid
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -91,6 +92,28 @@ export default function CategoryManagement() {
   const navigate = useNavigate();
 
   const fileInputRef = useRef(null);
+  const editFileInputRef = useRef(null);
+
+  // Edit Dialog State
+  const [editDialog, setEditDialog] = useState({
+    open: false,
+    categoryId: null,
+    loading: false
+  });
+  const [editFormData, setEditFormData] = useState({
+    name: '',
+    description: '',
+    parentCategory: '',
+    module: '',
+    displayOrder: 0,
+    isActive: true,
+    isFeatured: false,
+    metaTitle: '',
+    metaDescription: ''
+  });
+  const [editUploadedImage, setEditUploadedImage] = useState(null);
+  const [editImagePreview, setEditImagePreview] = useState(null);
+  const [existingImageUrl, setExistingImageUrl] = useState(null);
 
   const languageTabs = [
     { key: 'default', label: 'Default' },
@@ -413,7 +436,156 @@ export default function CategoryManagement() {
   };
 
   // ------------------- EDIT / DELETE / STATUS -------------------
-  const handleEdit = (id) => navigate(`/categories/edit/${id}`);
+  // ------------------- EDIT CATEGORY LOGIC -------------------
+  const handleEditClick = async (id) => {
+    const token = getAuthToken();
+    if (!token) {
+      navigate('/login');
+      return;
+    }
+
+    setEditDialog(prev => ({ ...prev, open: true, loading: true, categoryId: id }));
+
+    try {
+      const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to fetch category details');
+
+      const result = await response.json();
+      const cat = result.data || result;
+
+      setEditFormData({
+        name: cat.title || '',
+        description: cat.description || '',
+        parentCategory: cat.parentCategory?._id || cat.parentCategory || '',
+        module: cat.module?._id || cat.module || '',
+        displayOrder: cat.displayOrder || 0,
+        isActive: cat.isActive !== undefined ? cat.isActive : true,
+        isFeatured: cat.isFeatured !== undefined ? cat.isFeatured : false,
+        metaTitle: cat.metaTitle || '',
+        metaDescription: cat.metaDescription || ''
+      });
+
+      // Handle Image Preview
+      if (cat.image) {
+        let imageUrl = '';
+        if (cat.image.startsWith('http')) {
+          imageUrl = cat.image;
+        } else {
+          const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
+          imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
+        }
+        setExistingImageUrl(imageUrl);
+        setEditImagePreview(imageUrl);
+      } else {
+        setExistingImageUrl(null);
+        setEditImagePreview(null);
+      }
+
+    } catch (err) {
+      console.error('Fetch category error:', err);
+      showNotification(`Failed to load category: ${err.message}`, 'error');
+      setEditDialog(prev => ({ ...prev, open: false }));
+    } finally {
+      setEditDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleEditDialogClose = () => {
+    setEditDialog({ open: false, categoryId: null, loading: false });
+    setEditFormData({
+      name: '',
+      description: '',
+      parentCategory: '',
+      module: '',
+      displayOrder: 0,
+      isActive: true,
+      isFeatured: false,
+      metaTitle: '',
+      metaDescription: ''
+    });
+    setEditUploadedImage(null);
+    setEditImagePreview(null);
+    setExistingImageUrl(null);
+    if (editFileInputRef.current) editFileInputRef.current.value = '';
+  };
+
+  const handleEditFormChange = (field, value) => {
+    setEditFormData(prev => {
+      const newData = { ...prev, [field]: value };
+      if (field === 'module') {
+        newData.parentCategory = '';
+      }
+      return newData;
+    });
+  };
+
+  const handleEditImageUpload = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      showNotification('Please select a valid image file', 'error');
+      return;
+    }
+    setEditUploadedImage(file);
+    const reader = new FileReader();
+    reader.onload = e => setEditImagePreview(e.target.result);
+    reader.readAsDataURL(file);
+  };
+
+  const handleEditSubmit = async () => {
+    const token = getAuthToken();
+    if (!token) return;
+
+    if (!editFormData.name.trim()) {
+      showNotification('Please enter a category title', 'error');
+      return;
+    }
+
+    setEditDialog(prev => ({ ...prev, loading: true }));
+    try {
+      const formDataToSend = new FormData();
+      formDataToSend.append('title', editFormData.name.trim());
+      formDataToSend.append('module', editFormData.module);
+      formDataToSend.append('description', editFormData.description);
+      formDataToSend.append('parentCategory', editFormData.parentCategory || '');
+      formDataToSend.append('displayOrder', editFormData.displayOrder);
+      formDataToSend.append('isActive', editFormData.isActive);
+      formDataToSend.append('isFeatured', editFormData.isFeatured);
+      formDataToSend.append('metaTitle', editFormData.metaTitle);
+      formDataToSend.append('metaDescription', editFormData.metaDescription);
+      formDataToSend.append('updatedBy', getUserId());
+
+      if (editUploadedImage) {
+        formDataToSend.append('image', editUploadedImage);
+      }
+
+      const response = await fetch(`${API_BASE_URL}/categories/${editDialog.categoryId}`, {
+        method: 'PUT',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formDataToSend
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to update category');
+      }
+
+      showNotification('Category updated successfully!', 'success');
+      handleEditDialogClose();
+      fetchCategories();
+    } catch (err) {
+      console.error('Update error:', err);
+      showNotification(err.message, 'error');
+    } finally {
+      setEditDialog(prev => ({ ...prev, loading: false }));
+    }
+  };
+
+  const handleEdit = (id) => handleEditClick(id);
 
   const handleDeleteClick = (id) => {
     const cat = categories.find(c => c.id === id);
@@ -438,7 +610,7 @@ export default function CategoryManagement() {
       if (!response.ok) {
         const txt = await response.text();
         let err = { error: txt };
-        try { err = JSON.parse(txt); } catch {}
+        try { err = JSON.parse(txt); } catch { }
         throw new Error(err.error || `HTTP ${response.status}`);
       }
 
@@ -476,7 +648,7 @@ export default function CategoryManagement() {
       if (!response.ok) {
         const txt = await response.text();
         let err = { error: txt };
-        try { err = JSON.parse(txt); } catch {}
+        try { err = JSON.parse(txt); } catch { }
         throw new Error(err.error || `HTTP ${response.status}`);
       }
 
@@ -511,8 +683,8 @@ export default function CategoryManagement() {
 
       const belongsToModule =
         cat.module?._id === selectedModuleFilter ||
-        (cat.parentCategory && 
-         categories.find(p => p.id === cat.parentCategory)?.module?._id === selectedModuleFilter);
+        (cat.parentCategory &&
+          categories.find(p => p.id === cat.parentCategory)?.module?._id === selectedModuleFilter);
 
       return matchesSearch && belongsToModule;
     })
@@ -612,9 +784,9 @@ export default function CategoryManagement() {
                 <Button color="inherit" size="small" onClick={handleDashboardRedirect}>Dashboard</Button>
               )}
               {!(error?.includes('not authenticated') || error?.includes('Access denied')) &&
-               !(modulesError?.includes('not authenticated') || modulesError?.includes('Access denied')) && (
-                <Button color="inherit" size="small" onClick={handleRetry}>Retry</Button>
-              )}
+                !(modulesError?.includes('not authenticated') || modulesError?.includes('Access denied')) && (
+                  <Button color="inherit" size="small" onClick={handleRetry}>Retry</Button>
+                )}
             </Stack>
           }>
           {error || modulesError}
@@ -625,7 +797,7 @@ export default function CategoryManagement() {
       <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 4 } }}>
-           
+
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
               Title ({languageTabs[tabValue].label}) <span style={{ color: '#f44336' }}>*</span>
             </Typography>
@@ -637,7 +809,7 @@ export default function CategoryManagement() {
               variant="outlined"
               disabled={languageTabs[tabValue].key !== 'default'}
               sx={{ mb: 4, '& .MuiOutlinedInput-root': { direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' } }}
-            /> 
+            />
 
             {/* PARENT CATEGORY */}
             <Typography variant="subtitle1" sx={{ mb: 1, fontWeight: 500 }}>
@@ -755,8 +927,10 @@ export default function CategoryManagement() {
             <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: { xs: 'center', sm: 'flex-end' }, gap: 2 }}>
               <Button variant="outlined" onClick={handleReset}
                 disabled={loading || modulesLoading}
-                sx={{ px: 4, py: 1.5, textTransform: 'none', borderColor: '#e0e0e0', color: '#666',
-                  '&:hover': { borderColor: '#bdbdbd', backgroundColor: '#f5f5f5' } }}>
+                sx={{
+                  px: 4, py: 1.5, textTransform: 'none', borderColor: '#e0e0e0', color: '#666',
+                  '&:hover': { borderColor: '#bdbdbd', backgroundColor: '#f5f5f5' }
+                }}>
                 Reset
               </Button>
               <Button variant="contained" onClick={handleAdd}
@@ -864,9 +1038,9 @@ export default function CategoryManagement() {
                     const isSubcategory = !!cat.parentCategory;
 
                     return (
-                      <TableRow 
-                        key={cat.id} 
-                        sx={{ 
+                      <TableRow
+                        key={cat.id}
+                        sx={{
                           '&:hover': { backgroundColor: '#f9f9f9' },
                           backgroundColor: isSubcategory ? '#fafafa' : 'inherit'
                         }}
@@ -908,8 +1082,8 @@ export default function CategoryManagement() {
                         </TableCell>
                         <TableCell>
                           <Typography variant="body2">
-                            {cat.module ? cat.module.title || 'N/A' : 
-                             (isSubcategory ? '—' : 'None')}
+                            {cat.module ? cat.module.title || 'N/A' :
+                              (isSubcategory ? '—' : 'None')}
                           </Typography>
                         </TableCell>
                         <TableCell>
@@ -939,7 +1113,7 @@ export default function CategoryManagement() {
                           <Typography variant="h6" color="textSecondary">
                             {loading ? 'Loading...' :
                               searchTerm ? `No results for "${searchTerm}" in ${languageTabs[tabValue].label}` :
-                              'No categories available.'}
+                                'No categories available.'}
                           </Typography>
                           {error || modulesError ? (
                             <Button variant="outlined" onClick={handleRetry}>Retry</Button>
@@ -958,6 +1132,250 @@ export default function CategoryManagement() {
           </CardContent>
         </Card>
       </Box>
+
+      {/* EDIT DIALOG */}
+      <Dialog
+        open={editDialog.open}
+        onClose={handleEditDialogClose}
+        maxWidth="md"
+        fullWidth
+        PaperProps={{
+          sx: { borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }
+        }}
+        TransitionProps={{ timeout: 400 }}
+      >
+        <DialogTitle sx={{
+          m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid #eee', bgcolor: '#fafafa'
+        }}>
+          <Typography variant="h6" fontWeight={700} color="primary">Edit Category</Typography>
+          <IconButton onClick={handleEditDialogClose} sx={{ color: '#999', '&:hover': { color: '#f44336' } }}>
+            <CloseIcon />
+          </IconButton>
+        </DialogTitle>
+
+        <DialogContent sx={{ p: 4 }}>
+          {editDialog.loading ? (
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
+              <CircularProgress size={48} thickness={4} />
+              <Typography variant="body1" color="textSecondary" fontWeight={500}>Fetching category details...</Typography>
+            </Box>
+          ) : (
+            <Stack spacing={4} sx={{ mt: 1 }}>
+              {/* SECTION: BASIC INFO */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
+                  Basic Information
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Category Title *</Typography>
+                    <TextField
+                      fullWidth
+                      value={editFormData.name}
+                      onChange={(e) => handleEditFormChange('name', e.target.value)}
+                      placeholder="e.g. Premium Venues"
+                      size="small"
+                      variant="outlined"
+                    />
+                  </Grid>
+                  <Grid item xs={12}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Description</Typography>
+                    <TextField
+                      fullWidth
+                      multiline
+                      rows={3}
+                      value={editFormData.description}
+                      onChange={(e) => handleEditFormChange('description', e.target.value)}
+                      placeholder="Provide a brief description of this category..."
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* SECTION: HIERARCHY & ASSOCIATIONS */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
+                  Associations
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Module *</Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      value={editFormData.module}
+                      onChange={(e) => handleEditFormChange('module', e.target.value)}
+                    >
+                      {modules.map(m => (
+                        <MenuItem key={m._id} value={m._id}>{m.title || m.name}</MenuItem>
+                      ))}
+                    </TextField>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Parent Category</Typography>
+                    <TextField
+                      select
+                      fullWidth
+                      size="small"
+                      value={editFormData.parentCategory}
+                      onChange={(e) => handleEditFormChange('parentCategory', e.target.value)}
+                    >
+                      <MenuItem value=""><em>None (Root Category)</em></MenuItem>
+                      {categories
+                        .filter(c => !c.parentCategory && c.module?._id === editFormData.module && c.id !== editDialog.categoryId)
+                        .map(cat => (
+                          <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
+                        ))}
+                    </TextField>
+                  </Grid>
+                </Grid>
+              </Box>
+
+              {/* SECTION: VISUALS */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
+                  Media & Visuals
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
+                  <Box
+                    sx={{
+                      width: 180, height: 120, border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden',
+                      backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
+                    }}
+                  >
+                    {editImagePreview ? (
+                      <img src={editImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <Typography variant="caption" color="textSecondary">No Image Selected</Typography>
+                    )}
+                  </Box>
+                  <Box sx={{ flex: 1 }}>
+                    <input
+                      type="file"
+                      id="edit-img-input"
+                      style={{ display: 'none' }}
+                      accept="image/*"
+                      onChange={handleEditImageUpload}
+                      ref={editFileInputRef}
+                    />
+                    <label htmlFor="edit-img-input">
+                      <Button
+                        component="span"
+                        variant="soft"
+                        size="medium"
+                        startIcon={<CloudUploadIcon />}
+                        sx={{
+                          textTransform: 'none',
+                          bgcolor: '#e3f2fd',
+                          color: '#1976d2',
+                          '&:hover': { bgcolor: '#bbdefb' }
+                        }}
+                      >
+                        {editImagePreview ? 'Replace Image' : 'Upload Image'}
+                      </Button>
+                    </label>
+                    <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1.5, lineHeight: 1.6 }}>
+                      Recommended: <strong>600x400px</strong> (3:2 ratio).<br />
+                      Max file size: 5MB. Supports JPG, PNG, WebP.
+                    </Typography>
+                  </Box>
+                </Box>
+              </Box>
+
+              <Divider sx={{ borderStyle: 'dashed' }} />
+
+              {/* SECTION: ADVANCED / SEO */}
+              <Box>
+                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
+                  Settings & SEO
+                </Typography>
+                <Grid container spacing={3}>
+                  <Grid item xs={12} sm={4}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Display Order</Typography>
+                    <TextField
+                      fullWidth
+                      type="number"
+                      size="small"
+                      value={editFormData.displayOrder}
+                      onChange={(e) => handleEditFormChange('displayOrder', e.target.value)}
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={8} sx={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', pt: 2.5 }}>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" fontWeight={500}>Active Status</Typography>
+                      <Switch
+                        checked={editFormData.isActive}
+                        onChange={(e) => handleEditFormChange('isActive', e.target.checked)}
+                        size="medium"
+                      />
+                    </Box>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography variant="body2" fontWeight={500}>Featured</Typography>
+                      <Switch
+                        checked={editFormData.isFeatured}
+                        onChange={(e) => handleEditFormChange('isFeatured', e.target.checked)}
+                        color="secondary"
+                        size="medium"
+                      />
+                    </Box>
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Meta Title (SEO)</Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={editFormData.metaTitle}
+                      onChange={(e) => handleEditFormChange('metaTitle', e.target.value)}
+                      placeholder="Title for search engines"
+                    />
+                  </Grid>
+                  <Grid item xs={12} sm={6}>
+                    <Typography variant="body2" gutterBottom fontWeight={500}>Meta Description (SEO)</Typography>
+                    <TextField
+                      fullWidth
+                      size="small"
+                      value={editFormData.metaDescription}
+                      onChange={(e) => handleEditFormChange('metaDescription', e.target.value)}
+                      placeholder="Short summary for search results"
+                    />
+                  </Grid>
+                </Grid>
+              </Box>
+            </Stack>
+          )}
+        </DialogContent>
+
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #eee', bgcolor: '#fafafa' }}>
+          <Button
+            onClick={handleEditDialogClose}
+            variant="outlined"
+            sx={{ textTransform: 'none', px: 4, borderRadius: 2, borderColor: '#ddd', color: '#666' }}
+            disabled={editDialog.loading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleEditSubmit}
+            variant="contained"
+            color="primary"
+            sx={{
+              textTransform: 'none', px: 5, borderRadius: 2,
+              boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
+              fontWeight: 600
+            }}
+            disabled={editDialog.loading || !editFormData.name.trim()}
+          >
+            {editDialog.loading ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       {/* DELETE DIALOG */}
       <Dialog open={deleteDialog.open}
