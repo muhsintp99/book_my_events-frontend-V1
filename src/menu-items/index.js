@@ -76,7 +76,9 @@ const moduleMenuItems = {
     items: [dashboard, cakemanagement, cakesections, CakeProvidermanagement]
   },
   setting: {
-    items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
+    // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
+   items: [zonemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
+
   }
 
 };

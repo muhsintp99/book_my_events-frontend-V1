@@ -30,7 +30,6 @@ const KycVerification = Loadable(lazy(() => import('../views/KycVerification')))
 
 // Vehicles - Category
 const Category = Loadable(lazy(() => import('../views/Category')));
-const EditCategory = Loadable(lazy(() => import('../views/Editcategory')));
 const AllTrips = Loadable(lazy(() => import('../views/Alltrips')));
 const Scheduled = Loadable(lazy(() => import('../views/Scheduled')));
 const Pending = Loadable(lazy(() => import('../views/Pending')));
@@ -190,13 +189,14 @@ const MainRoutes = {
     { path: 'bookings/paymentfailedbookings', element: <Paymentfailedbookings /> },
 
     // Vehicles - Category
-    { path: 'vehicles/category', element: <Category /> },
-    { path: 'vehicles/category/edit/:id', element: <EditCategory /> },
     { path: 'vehicles/create', element: <Createnew /> },
     { path: 'vehicles/list', element: <Vehiclelist /> },
     { path: 'vehicles/brands', element: <Brands /> },
     { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
     { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist /> },
+// Vehicles - Category
+{ path: 'vehicles/category', element: <Category /> },
+{ path: 'vehicles/category/edit/:id', element: <Category /> },
 
 
     // Auditorium Routes
