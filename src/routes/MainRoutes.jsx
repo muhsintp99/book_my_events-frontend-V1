@@ -127,9 +127,15 @@ const Cakeprovider = Loadable(
 );
 const CakeCoupon = Loadable(lazy(() => import('../cakes/Cakecoupons')));
 
+import ProtectedRoute from './ProtectedRoute';
+
 const MainRoutes = {
   path: '/',
-  element: <MainLayout />,
+  element: (
+    <ProtectedRoute>
+      <MainLayout />
+    </ProtectedRoute>
+  ),
   children: [
     { path: '/', element: <DashboardDefault /> },
     { path: '*', element: <PageNotFound /> },
@@ -194,9 +200,9 @@ const MainRoutes = {
     { path: 'vehicles/brands', element: <Brands /> },
     { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
     { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist /> },
-// Vehicles - Category
-{ path: 'vehicles/category', element: <Category /> },
-{ path: 'vehicles/category/edit/:id', element: <Category /> },
+    // Vehicles - Category
+    { path: 'vehicles/category', element: <Category /> },
+    { path: 'vehicles/category/edit/:id', element: <Category /> },
 
 
     // Auditorium Routes

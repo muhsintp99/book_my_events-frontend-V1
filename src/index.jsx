@@ -59,6 +59,10 @@ import { ConfigProvider } from 'contexts/ConfigContext';
 import ThemeCustomization from './themes/index'
 // style + assets
 import 'assets/scss/style.scss';
+import setupInterceptors from './utils/setupInterceptors';
+
+// Initialize global fetch interceptor
+setupInterceptors();
 
 // google fonts
 import '@fontsource/roboto/400.css';
