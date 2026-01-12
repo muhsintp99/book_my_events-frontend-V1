@@ -20,6 +20,8 @@ import VerifiedUserIcon from "@mui/icons-material/VerifiedUser";
 import BusinessIcon from "@mui/icons-material/Business";
 import AccountBalanceIcon from "@mui/icons-material/AccountBalance";
 import DescriptionIcon from "@mui/icons-material/Description";
+import ZoomInIcon from "@mui/icons-material/ZoomIn";
+import CloseIcon from "@mui/icons-material/Close";
 import * as XLSX from "xlsx";
 
 const KycVerification = () => {
@@ -33,6 +35,7 @@ const KycVerification = () => {
     const [loading, setLoading] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
     const [tabValue, setTabValue] = useState(0);
+    const [imagePreviewDialog, setImagePreviewDialog] = useState({ open: false, imageUrl: "" });
 
     const getAuthToken = () => localStorage.getItem("token") || sessionStorage.getItem("token") || "";
 
@@ -439,44 +442,114 @@ const KycVerification = () => {
                                     </Stack>
 
                                     <Typography variant="caption" fontWeight={600}>FRONT IMAGE</Typography>
-                                    <Box sx={{
-                                        width: "100%",
-                                        height: 200,
-                                        borderRadius: 3,
-                                        overflow: "hidden",
-                                        border: "1px solid #eee",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        bgcolor: "#f0f0f0"
-                                    }}>
+                                    <Box
+                                        onClick={() => detailDialog.data.kycDetails?.documentInfo?.frontImage && setImagePreviewDialog({
+                                            open: true,
+                                            imageUrl: `https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.frontImage}`
+                                        })}
+                                        sx={{
+                                            width: "100%",
+                                            height: 200,
+                                            borderRadius: 3,
+                                            overflow: "hidden",
+                                            border: "1px solid #eee",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            bgcolor: "#f0f0f0",
+                                            position: "relative",
+                                            cursor: detailDialog.data.kycDetails?.documentInfo?.frontImage ? "pointer" : "default",
+                                            "&:hover .image-overlay": {
+                                                opacity: 1
+                                            }
+                                        }}
+                                    >
                                         {detailDialog.data.kycDetails?.documentInfo?.frontImage ? (
-                                            <img
-                                                src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.frontImage}`}
-                                                alt="Front"
-                                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                                            />
+                                            <>
+                                                <img
+                                                    src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.frontImage}`}
+                                                    alt="Front"
+                                                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                                />
+                                                <Box
+                                                    className="image-overlay"
+                                                    sx={{
+                                                        position: "absolute",
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        bgcolor: "rgba(0,0,0,0.4)",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        color: "white",
+                                                        opacity: 0,
+                                                        transition: "opacity 0.2s ease-in-out",
+                                                        gap: 1
+                                                    }}
+                                                >
+                                                    <ZoomInIcon />
+                                                    <Typography variant="caption" fontWeight={600}>Click to view full image</Typography>
+                                                </Box>
+                                            </>
                                         ) : <Typography variant="caption">No Image Uploaded</Typography>}
                                     </Box>
 
                                     <Typography variant="caption" fontWeight={600}>BACK IMAGE</Typography>
-                                    <Box sx={{
-                                        width: "100%",
-                                        height: 200,
-                                        borderRadius: 3,
-                                        overflow: "hidden",
-                                        border: "1px solid #eee",
-                                        display: "flex",
-                                        alignItems: "center",
-                                        justifyContent: "center",
-                                        bgcolor: "#f0f0f0"
-                                    }}>
+                                    <Box
+                                        onClick={() => detailDialog.data.kycDetails?.documentInfo?.backImage && setImagePreviewDialog({
+                                            open: true,
+                                            imageUrl: `https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.backImage}`
+                                        })}
+                                        sx={{
+                                            width: "100%",
+                                            height: 200,
+                                            borderRadius: 3,
+                                            overflow: "hidden",
+                                            border: "1px solid #eee",
+                                            display: "flex",
+                                            alignItems: "center",
+                                            justifyContent: "center",
+                                            bgcolor: "#f0f0f0",
+                                            position: "relative",
+                                            cursor: detailDialog.data.kycDetails?.documentInfo?.backImage ? "pointer" : "default",
+                                            "&:hover .image-overlay": {
+                                                opacity: 1
+                                            }
+                                        }}
+                                    >
                                         {detailDialog.data.kycDetails?.documentInfo?.backImage ? (
-                                            <img
-                                                src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.backImage}`}
-                                                alt="Back"
-                                                style={{ width: "100%", height: "100%", objectFit: "contain" }}
-                                            />
+                                            <>
+                                                <img
+                                                    src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.backImage}`}
+                                                    alt="Back"
+                                                    style={{ width: "100%", height: "100%", objectFit: "contain" }}
+                                                />
+                                                <Box
+                                                    className="image-overlay"
+                                                    sx={{
+                                                        position: "absolute",
+                                                        top: 0,
+                                                        left: 0,
+                                                        width: "100%",
+                                                        height: "100%",
+                                                        bgcolor: "rgba(0,0,0,0.4)",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        alignItems: "center",
+                                                        justifyContent: "center",
+                                                        color: "white",
+                                                        opacity: 0,
+                                                        transition: "opacity 0.2s ease-in-out",
+                                                        gap: 1
+                                                    }}
+                                                >
+                                                    <ZoomInIcon />
+                                                    <Typography variant="caption" fontWeight={600}>Click to view full image</Typography>
+                                                </Box>
+                                            </>
                                         ) : <Typography variant="caption">No Image Uploaded</Typography>}
                                     </Box>
                                 </Stack>
@@ -544,6 +617,48 @@ const KycVerification = () => {
                         {actionLoading ? <CircularProgress size={24} /> : "Confirm Rejection"}
                     </Button>
                 </DialogActions>
+            </Dialog>
+
+            {/* Image Preview Dialog */}
+            <Dialog
+                open={imagePreviewDialog.open}
+                onClose={() => setImagePreviewDialog({ open: false, imageUrl: "" })}
+                maxWidth="lg"
+                PaperProps={{
+                    sx: {
+                        bgcolor: "transparent",
+                        boxShadow: "none",
+                        overflow: "hidden",
+                        position: "relative"
+                    }
+                }}
+            >
+                <IconButton
+                    onClick={() => setImagePreviewDialog({ open: false, imageUrl: "" })}
+                    sx={{
+                        position: "absolute",
+                        right: 16,
+                        top: 16,
+                        color: "white",
+                        bgcolor: "rgba(0,0,0,0.5)",
+                        "&:hover": { bgcolor: "rgba(0,0,0,0.7)" },
+                        zIndex: 1
+                    }}
+                >
+                    <CloseIcon />
+                </IconButton>
+                <Box
+                    component="img"
+                    src={imagePreviewDialog.imageUrl}
+                    alt="Full View"
+                    sx={{
+                        maxWidth: "100%",
+                        maxHeight: "90vh",
+                        objectFit: "contain",
+                        borderRadius: 2,
+                        bgcolor: "white"
+                    }}
+                />
             </Dialog>
         </Box>
     );
