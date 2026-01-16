@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Tabs,
@@ -25,107 +25,109 @@ import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 
-function CakeProvider({ isVerified }) {
+const API_BASE = 'https://api.bookmyevent.ae/api/profile';
+
+function CakeProvider() {
   const navigate = useNavigate();
 
   const [tabValue, setTabValue] = useState(0);
-  const [users, setUsers] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
-    severity: 'error'
+    severity: 'success'
   });
 
-  const handleTabChange = (_, newValue) => {
-    setTabValue(newValue);
-  };
-
-  const getFetchOptions = () => ({
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json'
-    },
-    mode: 'cors'
-  });
-
-  const makeAPICall = async (url, options) => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000);
-
+  /* ================= FETCH VENDORS ================= */
+  const fetchVendors = async () => {
     try {
-      const response = await fetch(url, {
-        ...options,
-        signal: controller.signal
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/vendors/all`);
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.message);
+
+      // 🔥 IMPORTANT FIX: vendorId = user._id
+      const mappedVendors = data.data
+        .filter(v => v.user && v.user._id)
+        .map((v, index) => ({
+          id: index + 1,
+          vendorId: v.user._id,
+          name: `${v.user.firstName || ''} ${v.user.lastName || ''}`.trim() || 'N/A',
+          email: v.user.email || 'N/A',
+          phone: v.user.phone || 'N/A',
+          isVerified: v.isVerified || false,
+          status: v.isVerified ? 'Verified' : 'Pending'
+        }));
+
+      setVendors(mappedVendors);
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
       });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`);
-      }
-
-      return await response.json();
     } finally {
-      clearTimeout(timeoutId);
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-
-        const data = await makeAPICall(
-          'https://api.bookmyevent.ae/api/users',
-          getFetchOptions()
-        );
-
-        if (Array.isArray(data.users)) {
-          const mappedUsers = data.users.map((user, index) => ({
-            id: index + 1,
-            _id: user._id,
-            name: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-            email: user.email || 'N/A',
-            role: user.role || 'N/A',
-            phone: user.phone || user.mobile || 'N/A',
-            isVerified: user.isVerified || false,
-            status: user.isVerified ? 'Verified' : 'Pending'
-          }));
-
-          setUsers(mappedUsers);
-        }
-      } catch (error) {
-        setNotification({
-          open: true,
-          message: error.message,
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    fetchVendors();
   }, []);
 
-  if (isVerified) {
-    return (
-      <Box p={3} display="flex" justifyContent="center">
-        <Typography variant="h6">Provider is verified</Typography>
-      </Box>
-    );
-  }
+  /* ================= DELETE VENDOR ONLY ================= */
+  const handleDeleteVendor = async (vendorId, name) => {
+    if (!vendorId) {
+      setNotification({
+        open: true,
+        message: 'Vendor ID missing. Cannot delete.',
+        severity: 'error'
+      });
+      return;
+    }
 
-  const filteredUsers = users.filter((user) => {
-    const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTab && matchesSearch;
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/vendor/${vendorId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      setVendors(prev =>
+        prev.filter(v => v.vendorId !== vendorId)
+      );
+
+      setNotification({
+        open: true,
+        message: 'Vendor deleted successfully',
+        severity: 'success'
+      });
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
+      });
+    }
+  };
+
+  /* ================= FILTER ================= */
+  const filteredVendors = vendors.filter(v => {
+    const tabMatch = tabValue === 0 ? !v.isVerified : v.isVerified;
+    const searchMatch =
+      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return tabMatch && searchMatch;
   });
 
+  /* ================= UI ================= */
   return (
     <Box p={3} bgcolor="#f4f6f8" minHeight="100vh">
       {/* Header */}
@@ -134,15 +136,15 @@ function CakeProvider({ isVerified }) {
           Providers List
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage providers with edit & delete options
+          Manage catering vendors
         </Typography>
       </Paper>
 
-      {/* Table Card */}
+      {/* Table */}
       <Paper sx={{ borderRadius: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label="Pending Stores" />
-          <Tab label="Verified Stores" />
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+          <Tab label="Pending Vendors" />
+          <Tab label="Verified Vendors" />
         </Tabs>
 
         <Box p={3}>
@@ -154,12 +156,12 @@ function CakeProvider({ isVerified }) {
             gap={2}
           >
             <Typography variant="h6">
-              Stores ({filteredUsers.length})
+              Vendors ({filteredVendors.length})
             </Typography>
 
             <TextField
               size="small"
-              placeholder="Search user or email"
+              placeholder="Search vendor or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -173,16 +175,15 @@ function CakeProvider({ isVerified }) {
           </Box>
 
           {loading ? (
-            <Box display="flex" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
               <CircularProgress size={22} />
-              <Typography>Loading users...</Typography>
+              <Typography>Loading vendors...</Typography>
             </Box>
           ) : (
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell>Role</TableCell>
+                  <TableCell>Vendor</TableCell>
                   <TableCell>Email</TableCell>
                   <TableCell>Phone</TableCell>
                   <TableCell>Status</TableCell>
@@ -191,24 +192,25 @@ function CakeProvider({ isVerified }) {
               </TableHead>
 
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user._id} hover>
+                {filteredVendors.map(vendor => (
+                  <TableRow key={vendor.vendorId} hover>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar>{user.name.charAt(0)}</Avatar>
-                        <Typography>{user.name}</Typography>
+                        <Avatar>
+                          {vendor.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Typography>{vendor.name}</Typography>
                       </Box>
                     </TableCell>
 
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>{vendor.email}</TableCell>
+                    <TableCell>{vendor.phone}</TableCell>
 
                     <TableCell>
                       <Chip
-                        label={user.status}
+                        label={vendor.status}
                         size="small"
-                        color={user.isVerified ? 'success' : 'warning'}
+                        color={vendor.isVerified ? 'success' : 'warning'}
                       />
                     </TableCell>
 
@@ -216,7 +218,7 @@ function CakeProvider({ isVerified }) {
                       <IconButton
                         color="primary"
                         onClick={() =>
-                          navigate(`/makeup/AddProvider/${user._id}`)
+                          navigate(`/makeup/AddProvider/${vendor.vendorId}`)
                         }
                       >
                         <EditIcon />
@@ -225,7 +227,7 @@ function CakeProvider({ isVerified }) {
                       <IconButton
                         color="error"
                         onClick={() =>
-                          alert(`Delete provider: ${user.name}`)
+                          handleDeleteVendor(vendor.vendorId, vendor.name)
                         }
                       >
                         <DeleteIcon />
@@ -234,10 +236,10 @@ function CakeProvider({ isVerified }) {
                   </TableRow>
                 ))}
 
-                {filteredUsers.length === 0 && (
+                {filteredVendors.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} align="center">
-                      No Data Found
+                    <TableCell colSpan={5} align="center">
+                      No Vendors Found
                     </TableCell>
                   </TableRow>
                 )}
@@ -247,11 +249,12 @@ function CakeProvider({ isVerified }) {
         </Box>
       </Paper>
 
+      {/* Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
         onClose={() =>
-          setNotification((p) => ({ ...p, open: false }))
+          setNotification(p => ({ ...p, open: false }))
         }
       >
         <Alert severity={notification.severity} variant="filled">

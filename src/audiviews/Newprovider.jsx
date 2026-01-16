@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Tabs,
@@ -19,148 +19,149 @@ import {
   InputAdornment,
   Paper
 } from '@mui/material';
+
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 
-function NewProvider({ isVerified }) {
+const API_BASE = 'https://api.bookmyevent.ae/api/profile';
+
+function NewProvider() {
   const navigate = useNavigate();
 
   const [tabValue, setTabValue] = useState(0);
-  const [users, setUsers] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
-    severity: 'error'
+    severity: 'success'
   });
 
-  const handleTabChange = (_, newValue) => {
-    setTabValue(newValue);
-  };
+  /* ================= FETCH VENDORS ================= */
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
 
-  const getFetchOptions = (method = 'GET', body = null) => {
-    const options = {
-      method,
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json'
-      },
-      mode: 'cors'
-    };
-    if (body) options.body = JSON.stringify(body);
-    return options;
-  };
+      const res = await fetch(`${API_BASE}/vendors/all`);
+      const data = await res.json();
 
-  const makeAPICall = async (url, options, retries = 2) => {
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000);
+      if (!data.success) throw new Error(data.message);
 
-        const response = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timeoutId);
+      // 🔥 IMPORTANT FIX: vendorId = user._id
+      const mappedVendors = data.data
+        .filter(v => v.user && v.user._id)
+        .map((v, index) => ({
+          id: index + 1,
+          vendorId: v.user._id,
+          name: `${v.user.firstName || ''} ${v.user.lastName || ''}`.trim() || 'N/A',
+          email: v.user.email || 'N/A',
+          phone: v.user.phone || 'N/A',
+          isVerified: v.isVerified || false,
+          status: v.isVerified ? 'Verified' : 'Pending'
+        }));
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`HTTP ${response.status}: ${errorText}`);
-        }
-
-        return await response.json();
-      } catch (error) {
-        if (attempt < retries) {
-          await new Promise((r) => setTimeout(r, 1000));
-          continue;
-        }
-        throw error;
-      }
+      setVendors(mappedVendors);
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
     }
   };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-        const data = await makeAPICall(
-          'https://api.bookmyevent.ae/api/users',
-          getFetchOptions()
-        );
-
-        if (Array.isArray(data.users)) {
-          setUsers(
-            data.users.map((user, index) => ({
-              id: index + 1,
-              _id: user._id,
-              userInfo: `${user.firstName || ''} ${user.lastName || ''}`.trim(),
-              email: user.email || 'N/A',
-              role: user.role || 'N/A',
-              isVerified: user.isVerified || false,
-              status: user.isVerified ? 'Verified' : 'Pending'
-            }))
-          );
-        } else {
-          throw new Error('Unexpected data format');
-        }
-      } catch (error) {
-        setNotification({
-          open: true,
-          message: error.message,
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    fetchVendors();
   }, []);
 
-  const filteredUsers = useMemo(() => {
-    return users.filter((user) => {
-      const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
-      const matchesSearch =
-        user.userInfo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesTab && matchesSearch;
-    });
-  }, [users, tabValue, searchTerm]);
+  /* ================= DELETE VENDOR ONLY ================= */
+  const handleDeleteVendor = async (vendorId, name) => {
+    if (!vendorId) {
+      setNotification({
+        open: true,
+        message: 'Vendor ID missing. Cannot delete.',
+        severity: 'error'
+      });
+      return;
+    }
 
-  if (isVerified) {
-    return (
-      <Box p={3} display="flex" justifyContent="center">
-        <Typography variant="h6">Provider is verified</Typography>
-      </Box>
-    );
-  }
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
 
+    try {
+      const res = await fetch(`${API_BASE}/vendor/${vendorId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      setVendors(prev =>
+        prev.filter(v => v.vendorId !== vendorId)
+      );
+
+      setNotification({
+        open: true,
+        message: 'Vendor deleted successfully',
+        severity: 'success'
+      });
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
+      });
+    }
+  };
+
+  /* ================= FILTER ================= */
+  const filteredVendors = vendors.filter(v => {
+    const tabMatch = tabValue === 0 ? !v.isVerified : v.isVerified;
+    const searchMatch =
+      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return tabMatch && searchMatch;
+  });
+
+  /* ================= UI ================= */
   return (
     <Box p={3} bgcolor="#f4f6f8" minHeight="100vh">
+      {/* Header */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Typography variant="h5" fontWeight={600}>
           Providers List
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage providers with edit & delete actions
+          Manage catering vendors
         </Typography>
       </Paper>
 
+      {/* Table */}
       <Paper sx={{ borderRadius: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
-          <Tab label="Pending Stores" />
-          <Tab label="Verified Stores" />
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+          <Tab label="Pending Vendors" />
+          <Tab label="Verified Vendors" />
         </Tabs>
 
         <Box p={3}>
-          <Box display="flex" justifyContent="space-between" mb={2} gap={2}>
+          <Box
+            display="flex"
+            justifyContent="space-between"
+            alignItems="center"
+            mb={2}
+            gap={2}
+          >
             <Typography variant="h6">
-              Stores ({filteredUsers.length})
+              Vendors ({filteredVendors.length})
             </Typography>
 
             <TextField
               size="small"
-              placeholder="Search user or email"
+              placeholder="Search vendor or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -174,54 +175,60 @@ function NewProvider({ isVerified }) {
           </Box>
 
           {loading ? (
-            <Box display="flex" gap={2}>
+            <Box display="flex" alignItems="center" gap={2}>
               <CircularProgress size={22} />
-              <Typography>Loading users...</Typography>
+              <Typography>Loading vendors...</Typography>
             </Box>
           ) : (
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>User</TableCell>
-                  <TableCell>Role</TableCell>
+                  <TableCell>Vendor</TableCell>
                   <TableCell>Email</TableCell>
+                  <TableCell>Phone</TableCell>
                   <TableCell>Status</TableCell>
                   <TableCell align="center">Actions</TableCell>
                 </TableRow>
               </TableHead>
 
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user._id} hover>
+                {filteredVendors.map(vendor => (
+                  <TableRow key={vendor.vendorId} hover>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar>{user.userInfo.charAt(0)}</Avatar>
-                        <Typography>{user.userInfo}</Typography>
+                        <Avatar>
+                          {vendor.name.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Typography>{vendor.name}</Typography>
                       </Box>
                     </TableCell>
 
-                    <TableCell>{user.role}</TableCell>
-                    <TableCell>{user.email}</TableCell>
+                    <TableCell>{vendor.email}</TableCell>
+                    <TableCell>{vendor.phone}</TableCell>
 
                     <TableCell>
                       <Chip
-                        label={user.status}
+                        label={vendor.status}
                         size="small"
-                        color={user.isVerified ? 'success' : 'warning'}
+                        color={vendor.isVerified ? 'success' : 'warning'}
                       />
                     </TableCell>
 
                     <TableCell align="center">
                       <IconButton
                         color="primary"
-                        onClick={() => navigate(`/makeup/AddProvider/${user._id}`)}
+                        onClick={() =>
+                          navigate(`/makeup/AddProvider/${vendor.vendorId}`)
+                        }
                       >
                         <EditIcon />
                       </IconButton>
 
                       <IconButton
                         color="error"
-                        onClick={() => alert(`Delete ${user.userInfo}`)}
+                        onClick={() =>
+                          handleDeleteVendor(vendor.vendorId, vendor.name)
+                        }
                       >
                         <DeleteIcon />
                       </IconButton>
@@ -229,10 +236,10 @@ function NewProvider({ isVerified }) {
                   </TableRow>
                 ))}
 
-                {filteredUsers.length === 0 && (
+                {filteredVendors.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center">
-                      No Data Found
+                      No Vendors Found
                     </TableCell>
                   </TableRow>
                 )}
@@ -242,10 +249,13 @@ function NewProvider({ isVerified }) {
         </Box>
       </Paper>
 
+      {/* Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
-        onClose={() => setNotification((p) => ({ ...p, open: false }))}
+        onClose={() =>
+          setNotification(p => ({ ...p, open: false }))
+        }
       >
         <Alert severity={notification.severity} variant="filled">
           {notification.message}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   Box,
   Tabs,
@@ -16,100 +16,133 @@ import {
   Avatar,
   IconButton,
   Chip,
-  Paper,
-  InputAdornment
+  InputAdornment,
+  Paper
 } from '@mui/material';
+
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
 import { useNavigate } from 'react-router-dom';
 
-function CateringProvider({ isVerified }) {
+const API_BASE = 'https://api.bookmyevent.ae/api/profile';
+
+function CateringProvider() {
   const navigate = useNavigate();
 
   const [tabValue, setTabValue] = useState(0);
-  const [users, setUsers] = useState([]);
+  const [vendors, setVendors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [notification, setNotification] = useState({
     open: false,
     message: '',
-    severity: 'error'
+    severity: 'success'
   });
 
-  const handleTabChange = (_, newValue) => {
-    setTabValue(newValue);
+  /* ================= FETCH VENDORS ================= */
+  const fetchVendors = async () => {
+    try {
+      setLoading(true);
+
+      const res = await fetch(`${API_BASE}/vendors/all`);
+      const data = await res.json();
+
+      if (!data.success) throw new Error(data.message);
+
+      // 🔥 IMPORTANT FIX: vendorId = user._id
+      const mappedVendors = data.data
+        .filter(v => v.user && v.user._id)
+        .map((v, index) => ({
+          id: index + 1,
+          vendorId: v.user._id,
+          name: `${v.user.firstName || ''} ${v.user.lastName || ''}`.trim() || 'N/A',
+          email: v.user.email || 'N/A',
+          phone: v.user.phone || 'N/A',
+          isVerified: v.isVerified || false,
+          status: v.isVerified ? 'Verified' : 'Pending'
+        }));
+
+      setVendors(mappedVendors);
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
-    const fetchUsers = async () => {
-      try {
-        setLoading(true);
-
-        const res = await fetch('https://api.bookmyevent.ae/api/users');
-        const data = await res.json();
-
-        if (!Array.isArray(data.users)) {
-          throw new Error('Unexpected data format');
-        }
-
-        // ✅ ONLY VENDORS
-        const vendors = data.users
-          .filter((u) => u.role === 'vendor')
-          .map((user, index) => ({
-            id: index + 1,
-            _id: user._id,
-            name: `${user.firstName || ''} ${user.lastName || ''}`,
-            email: user.email || 'N/A',
-            phone: user.phone || user.mobile || 'N/A',
-            isVerified: user.isVerified || false,
-            status: user.isVerified ? 'Verified' : 'Pending'
-          }));
-
-        setUsers(vendors);
-      } catch (err) {
-        setNotification({
-          open: true,
-          message: err.message,
-          severity: 'error'
-        });
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
+    fetchVendors();
   }, []);
 
-  const filteredUsers = users.filter((user) => {
-    const matchesTab = tabValue === 0 ? !user.isVerified : user.isVerified;
-    const matchesSearch =
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return matchesTab && matchesSearch;
+  /* ================= DELETE VENDOR ONLY ================= */
+  const handleDeleteVendor = async (vendorId, name) => {
+    if (!vendorId) {
+      setNotification({
+        open: true,
+        message: 'Vendor ID missing. Cannot delete.',
+        severity: 'error'
+      });
+      return;
+    }
+
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/vendor/${vendorId}`, {
+        method: 'DELETE'
+      });
+
+      const data = await res.json();
+      if (!data.success) throw new Error(data.message);
+
+      setVendors(prev =>
+        prev.filter(v => v.vendorId !== vendorId)
+      );
+
+      setNotification({
+        open: true,
+        message: 'Vendor deleted successfully',
+        severity: 'success'
+      });
+    } catch (err) {
+      setNotification({
+        open: true,
+        message: err.message,
+        severity: 'error'
+      });
+    }
+  };
+
+  /* ================= FILTER ================= */
+  const filteredVendors = vendors.filter(v => {
+    const tabMatch = tabValue === 0 ? !v.isVerified : v.isVerified;
+    const searchMatch =
+      v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.email.toLowerCase().includes(searchTerm.toLowerCase());
+    return tabMatch && searchMatch;
   });
 
-  if (isVerified) {
-    return (
-      <Box p={3} display="flex" justifyContent="center">
-        <Typography variant="h6">Provider is verified</Typography>
-      </Box>
-    );
-  }
-
+  /* ================= UI ================= */
   return (
     <Box p={3} bgcolor="#f4f6f8" minHeight="100vh">
+      {/* Header */}
       <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
         <Typography variant="h5" fontWeight={600}>
-          Vendor List
+          Providers List
         </Typography>
         <Typography variant="body2" color="text.secondary">
-          Manage vendors with edit & delete options
+          Manage catering vendors
         </Typography>
       </Paper>
 
+      {/* Table */}
       <Paper sx={{ borderRadius: 2 }}>
-        <Tabs value={tabValue} onChange={handleTabChange}>
+        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
           <Tab label="Pending Vendors" />
           <Tab label="Verified Vendors" />
         </Tabs>
@@ -123,12 +156,12 @@ function CateringProvider({ isVerified }) {
             gap={2}
           >
             <Typography variant="h6">
-              Total: {filteredUsers.length}
+              Vendors ({filteredVendors.length})
             </Typography>
 
             <TextField
               size="small"
-              placeholder="Search vendor..."
+              placeholder="Search vendor or email"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               InputProps={{
@@ -159,25 +192,25 @@ function CateringProvider({ isVerified }) {
               </TableHead>
 
               <TableBody>
-                {filteredUsers.map((user) => (
-                  <TableRow key={user._id} hover>
+                {filteredVendors.map(vendor => (
+                  <TableRow key={vendor.vendorId} hover>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={2}>
                         <Avatar>
-                          {user.name.charAt(0)}
+                          {vendor.name.charAt(0).toUpperCase()}
                         </Avatar>
-                        <Typography>{user.name}</Typography>
+                        <Typography>{vendor.name}</Typography>
                       </Box>
                     </TableCell>
 
-                    <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.phone}</TableCell>
+                    <TableCell>{vendor.email}</TableCell>
+                    <TableCell>{vendor.phone}</TableCell>
 
                     <TableCell>
                       <Chip
-                        label={user.status}
-                        color={user.isVerified ? 'success' : 'warning'}
+                        label={vendor.status}
                         size="small"
+                        color={vendor.isVerified ? 'success' : 'warning'}
                       />
                     </TableCell>
 
@@ -185,7 +218,7 @@ function CateringProvider({ isVerified }) {
                       <IconButton
                         color="primary"
                         onClick={() =>
-                          navigate(`/makeup/AddProvider/${user._id}`)
+                          navigate(`/makeup/AddProvider/${vendor.vendorId}`)
                         }
                       >
                         <EditIcon />
@@ -194,7 +227,7 @@ function CateringProvider({ isVerified }) {
                       <IconButton
                         color="error"
                         onClick={() =>
-                          alert(`Delete vendor ${user.name}`)
+                          handleDeleteVendor(vendor.vendorId, vendor.name)
                         }
                       >
                         <DeleteIcon />
@@ -203,10 +236,10 @@ function CateringProvider({ isVerified }) {
                   </TableRow>
                 ))}
 
-                {filteredUsers.length === 0 && (
+                {filteredVendors.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} align="center">
-                      No vendors found
+                      No Vendors Found
                     </TableCell>
                   </TableRow>
                 )}
@@ -216,11 +249,12 @@ function CateringProvider({ isVerified }) {
         </Box>
       </Paper>
 
+      {/* Snackbar */}
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
         onClose={() =>
-          setNotification({ ...notification, open: false })
+          setNotification(p => ({ ...p, open: false }))
         }
       >
         <Alert severity={notification.severity} variant="filled">

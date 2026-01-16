@@ -32,7 +32,14 @@ import {
   Divider,
   CircularProgress,
   Stack,
-  Grid
+  Grid,
+  Avatar,
+  Tooltip,
+  Collapse,
+  CardHeader,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -43,7 +50,17 @@ import {
   TableView as ExcelIcon,
   Description as CsvIcon,
   CloudUpload as CloudUploadIcon,
-  Close as CloseIcon
+  Close as CloseIcon,
+  Folder as FolderIcon,
+  SubdirectoryArrowRight as SubIcon,
+  Image as ImageIcon,
+  Visibility as ViewIcon,
+  MoreVert as MoreVertIcon,
+  KeyboardArrowDown as ArrowDownIcon,
+  KeyboardArrowUp as ArrowUpIcon,
+  Category as CategoryIcon,
+  Settings as SettingsIcon,
+  Tag as TagIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 
@@ -62,6 +79,7 @@ export default function CategoryManagement() {
   const [modulesLoading, setModulesLoading] = useState(true);
   const [modulesError, setModulesError] = useState(null);
   const [selectedModuleFilter, setSelectedModuleFilter] = useState('all');
+  const [expandedCategories, setExpandedCategories] = useState({});
 
   const [formData, setFormData] = useState({
     name: '',
@@ -256,31 +274,45 @@ export default function CategoryManagement() {
       else if (data.data && Array.isArray(data.data)) categoriesList = data.data;
 
       const formattedCategories = categoriesList.map(cat => {
-        let imageUrl = '';
-        if (cat.image) {
-          if (cat.image.startsWith('http://') || cat.image.startsWith('https://')) {
-            imageUrl = cat.image;
-          } else if (cat.image.startsWith('/uploads') || cat.image.startsWith('uploads')) {
-            const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
-            imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
-          } else {
-            imageUrl = `https://api.bookmyevent.ae/${cat.image}`;
-          }
-        }
+  let imageUrl = '';
 
-        return {
-          id: cat._id,
-          names: {
-            default: cat.title || cat.name || '',
-            english: cat.title || cat.name || '',
-            arabic: cat.title || cat.name || ''
-          },
-          status: cat.isActive !== undefined ? cat.isActive : true,
-          image: imageUrl,
-          module: cat.module || null,
-          parentCategory: cat.parentCategory || null,
-          raw: cat
-        };
+  if (cat.image) {
+    const cleanPath = cat.image.startsWith('/')
+      ? cat.image
+      : `/${cat.image}`;
+    imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
+  }
+
+  return {
+    id: cat._id,
+    names: {
+      default: cat.title || '',
+      english: cat.title || '',
+      arabic: cat.title || ''
+    },
+    status: cat.isActive !== undefined ? cat.isActive : true,
+    image: imageUrl,
+    module: cat.module || null,
+
+    // ✅ FIX HERE
+    parentCategory: cat.parentCategory?._id || cat.parentCategory || null,
+
+    raw: cat,
+    description: cat.description || '',
+    displayOrder: cat.displayOrder || 0,
+    isFeatured: cat.isFeatured || false,
+    subcategories: []
+  };
+});
+
+
+      // Organize categories hierarchically
+      const rootCategories = formattedCategories.filter(cat => !cat.parentCategory);
+      const subcategories = formattedCategories.filter(cat => cat.parentCategory);
+      
+      // Add subcategories to their parents
+      rootCategories.forEach(parent => {
+        parent.subcategories = subcategories.filter(sub => sub.parentCategory === parent.id);
       });
 
       setCategories(formattedCategories);
@@ -419,7 +451,7 @@ export default function CategoryManagement() {
         throw new Error(errorMessage);
       }
 
-      const data = await await response.json();
+      const data = await response.json();
       const added = data.data?.category || data.category || data;
       showNotification(`Category "${added.title || added.name}" added successfully!`, 'success');
       handleReset();
@@ -436,7 +468,6 @@ export default function CategoryManagement() {
   };
 
   // ------------------- EDIT / DELETE / STATUS -------------------
-  // ------------------- EDIT CATEGORY LOGIC -------------------
   const handleEditClick = async (id) => {
     const token = getAuthToken();
     if (!token) {
@@ -468,7 +499,6 @@ export default function CategoryManagement() {
         metaDescription: cat.metaDescription || ''
       });
 
-      // Handle Image Preview
       if (cat.image) {
         let imageUrl = '';
         if (cat.image.startsWith('http')) {
@@ -673,28 +703,44 @@ export default function CategoryManagement() {
 
   const getCurrentLanguageKey = () => languageTabs[tabValue].key;
 
-  // ------------------- FILTERED CATEGORIES WITH HIERARCHY -------------------
-  const filteredCategories = categories
-    .filter(cat => {
-      const lang = getCurrentLanguageKey();
-      const matchesSearch = cat.names[lang].toLowerCase().includes(searchTerm.toLowerCase());
 
-      if (selectedModuleFilter === 'all') return matchesSearch;
+  const getSelectedModuleName = () => {
+  if (selectedModuleFilter === 'all') return 'All';
+  const module = modules.find(m => m._id === selectedModuleFilter);
+  return module?.title || module?.name || 'Categories';
+};
 
-      const belongsToModule =
-        cat.module?._id === selectedModuleFilter ||
-        (cat.parentCategory &&
-          categories.find(p => p.id === cat.parentCategory)?.module?._id === selectedModuleFilter);
+  // ------------------- CATEGORY HIERARCHY FUNCTIONS -------------------
+  const toggleCategoryExpand = (categoryId) => {
+    setExpandedCategories(prev => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
 
-      return matchesSearch && belongsToModule;
-    })
-    .sort((a, b) => {
-      if (!a.parentCategory && b.parentCategory) return -1;
-      if (a.parentCategory && !b.parentCategory) return 1;
-      return 0;
-    });
+  const getRootCategories = () => {
+    return categories.filter(cat => !cat.parentCategory);
+  };
 
-  // ------------------- EXPORT (includes parent for clarity) -------------------
+  const getSubcategories = (parentId) => {
+    return categories.filter(cat => cat.parentCategory === parentId);
+  };
+
+  const filteredCategories = categories.filter(cat => {
+    const lang = getCurrentLanguageKey();
+    const matchesSearch = cat.names[lang].toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (selectedModuleFilter === 'all') return matchesSearch;
+
+    const belongsToModule =
+      cat.module?._id === selectedModuleFilter ||
+      (cat.parentCategory &&
+        categories.find(p => p.id === cat.parentCategory)?.module?._id === selectedModuleFilter);
+
+    return matchesSearch && belongsToModule;
+  });
+
+  // ------------------- EXPORT -------------------
   const handleExportMenuOpen = (e) => setExportMenuAnchor(e.currentTarget);
   const handleExportMenuClose = () => setExportMenuAnchor(null);
 
@@ -947,35 +993,35 @@ export default function CategoryManagement() {
         </Card>
       </Box>
 
-      {/* LIST TABLE */}
+      {/* CATEGORY LIST */}
       <Box sx={{ display: 'flex', justifyContent: 'center' }}>
         <Card sx={{ width: '100%', maxWidth: '1400px', boxShadow: 3, borderRadius: 3 }}>
           <CardContent sx={{ p: { xs: 2, sm: 3 } }}>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: 2, mb: 3 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Typography variant="h6" fontWeight={600}>Category List</Typography>
-                <Chip label={filteredCategories.length} size="small"
-                  sx={{ backgroundColor: '#e3f2fd', color: '#2196f3', fontWeight: 600 }} />
-                <Chip label={`Language: ${languageTabs[tabValue].label}`} size="small"
-                  sx={{ backgroundColor: '#e8f5e8', color: '#2e7d32', fontWeight: 500 }} />
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                <CategoryIcon sx={{ color: '#1976d2', fontSize: 28 }} />
+                <Box>
+<Typography variant="h5" fontWeight={700} color="#2c3e50">
+  {getSelectedModuleName()} Categories
+</Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    Parent categories and their subcategories
+                  </Typography>
+                </Box>
               </Box>
 
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 2, alignItems: 'center' }}>
-                <TextField select size="small" value={selectedModuleFilter}
-                  onChange={e => setSelectedModuleFilter(e.target.value)}
-                  sx={{ minWidth: { xs: '100%', sm: 200 } }} disabled={loading || modulesLoading}>
-                  <MenuItem value="all">All Modules</MenuItem>
-                  {modules.map(m => (
-                    <MenuItem key={m._id} value={m._id}>{m.title || m.name || 'Unnamed'}</MenuItem>
-                  ))}
-                </TextField>
-
-                <TextField size="small"
+                <TextField
+                  size="small"
                   placeholder={`Search in ${languageTabs[tabValue].label}`}
-                  value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
                   sx={{
                     minWidth: { xs: '100%', sm: 250, md: 300 },
-                    '& .MuiOutlinedInput-root': { direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' }
+                    '& .MuiOutlinedInput-root': { 
+                      direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr',
+                      borderRadius: 2
+                    }
                   }}
                   InputProps={{
                     startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: '#bdbdbd' }} /></InputAdornment>
@@ -983,13 +1029,33 @@ export default function CategoryManagement() {
                   disabled={loading}
                 />
 
-                <Button variant="outlined" startIcon={<ExportIcon />} endIcon={<ExpandMoreIcon />}
+                <TextField 
+                  select 
+                  size="small" 
+                  value={selectedModuleFilter}
+                  onChange={e => setSelectedModuleFilter(e.target.value)}
+                  sx={{ minWidth: { xs: '100%', sm: 200 }, borderRadius: 2 }}
+                  disabled={loading || modulesLoading}
+                >
+                  <MenuItem value="all">All Modules</MenuItem>
+                  {modules.map(m => (
+                    <MenuItem key={m._id} value={m._id}>{m.title || m.name || 'Unnamed'}</MenuItem>
+                  ))}
+                </TextField>
+
+                <Button 
+                  variant="contained" 
+                  startIcon={<ExportIcon />}
                   onClick={handleExportMenuOpen}
                   sx={{
-                    textTransform: 'none', borderColor: '#e0e0e0', color: '#2196f3',
-                    '&:hover': { borderColor: '#2196f3', backgroundColor: '#e3f2fd' }
+                    textTransform: 'none', 
+                    borderRadius: 2,
+                    px: 3,
+                    backgroundColor: '#1976d2',
+                    '&:hover': { backgroundColor: '#1565c0' }
                   }}
-                  disabled={loading || filteredCategories.length === 0}>
+                  disabled={loading || filteredCategories.length === 0}
+                >
                   Export
                 </Button>
 
@@ -1010,125 +1076,207 @@ export default function CategoryManagement() {
               </Box>
             </Box>
 
-            {loading && categories.length > 0 && (
+                       {loading && categories.length > 0 && (
               <Box display="flex" justifyContent="center" p={2}><CircularProgress size={24} /></Box>
             )}
 
-            <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
-              <Table size="small">
-                <TableHead sx={{ backgroundColor: '#fafafa' }}>
-                  <TableRow>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>SI</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Image</TableCell>
-                    <TableCell sx={{
-                      fontWeight: 600, color: '#666',
-                      direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr'
-                    }}>
-                      Name ({languageTabs[tabValue].label})
-                    </TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Module</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Status</TableCell>
-                    <TableCell sx={{ fontWeight: 600, color: '#666' }}>Action</TableCell>
-                  </TableRow>
-                </TableHead>
-
-                <TableBody>
-                  {filteredCategories.length > 0 ? filteredCategories.map((cat, idx) => {
-                    const lang = getCurrentLanguageKey();
-                    const isSubcategory = !!cat.parentCategory;
+            {/* CATEGORY LIST */}
+            <Box sx={{ mt: 3 }}>
+              {filteredCategories.length > 0 ? (
+                getRootCategories()
+                  .filter(root => {
+                    if (selectedModuleFilter === 'all') return true;
+                    return root.module?._id === selectedModuleFilter;
+                  })
+                  .map((rootCat, rootIndex) => {
+                    const subcategories = getSubcategories(rootCat.id);
+                    const isExpanded = expandedCategories[rootCat.id] || false;
 
                     return (
-                      <TableRow
-                        key={cat.id}
-                        sx={{
-                          '&:hover': { backgroundColor: '#f9f9f9' },
-                          backgroundColor: isSubcategory ? '#fafafa' : 'inherit'
-                        }}
-                      >
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>
-                          {cat.image ? (
-                            <Box sx={{
-                              width: 50, height: 35, borderRadius: 1, overflow: 'hidden',
-                              border: '1px solid #e0e0e0'
-                            }}>
-                              <img src={cat.image} alt={cat.names[lang]}
-                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                onError={e => {
-                                  e.target.style.display = 'none';
-                                  e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
-                                }} />
+                      <Card key={rootCat.id} sx={{ mb: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
+                        <CardHeader
+                          sx={{
+                            bgcolor: '#f8f9fa',
+                            borderBottom: '1px solid #e0e0e0',
+                            '& .MuiCardHeader-action': { m: 0 }
+                          }}
+                          avatar={
+                            <Avatar
+                              src={rootCat.image}
+                              sx={{ 
+                                width: 56, 
+                                height: 56, 
+                                bgcolor: rootCat.image ? 'transparent' : '#e3f2fd',
+                                border: '2px solid #fff',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                            >
+                              {!rootCat.image && <CategoryIcon sx={{ color: '#1976d2' }} />}
+                            </Avatar>
+                          }
+                          title={
+                            <Box>
+                              <Typography variant="h6" fontWeight={600} color="#2c3e50">
+                                {rootCat.names[getCurrentLanguageKey()]}
+                              </Typography>
+                              <Typography variant="body2" color="text.secondary">
+                                {rootCat.module?.title || 'No Module'} • Display Order: {rootCat.displayOrder}
+                              </Typography>
                             </Box>
-                          ) : (
-                            <Box sx={{
-                              width: 50, height: 35, borderRadius: 1, backgroundColor: '#f5f5f5',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              border: '1px solid #e0e0e0'
-                            }}>
-                              <Typography variant="caption" color="text.secondary">No Image</Typography>
+                          }
+                          subheader={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
+                              <Chip 
+                                label={rootCat.status ? "Active" : "Inactive"} 
+                                size="small"
+                                color={rootCat.status ? "success" : "error"}
+                                variant="outlined"
+                              />
+                              <Chip 
+                                icon={<TagIcon />}
+                                label={`${subcategories.length} subcategories`}
+                                size="small"
+                                variant="outlined"
+                              />
+                              {rootCat.isFeatured && (
+                                <Chip 
+                                  label="Featured" 
+                                  size="small"
+                                  color="warning"
+                                  variant="outlined"
+                                />
+                              )}
                             </Box>
-                          )}
-                        </TableCell>
-                        <TableCell sx={{
-                          fontWeight: 500,
-                          direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr',
-                          pl: isSubcategory ? 4 : 2
-                        }}>
-                          <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                            {/* CHANGED: Subcategory label from "--" to "—" (en-dash) */}
-                            {isSubcategory && <span style={{ opacity: 0.6, marginRight: 4 }}>—</span>}
-                            {cat.names[lang]}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Typography variant="body2">
-                            {cat.module ? cat.module.title || 'N/A' :
-                              (isSubcategory ? '—' : 'None')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell>
-                          <Switch checked={cat.status} onChange={() => handleStatusToggle(cat.id)}
-                            sx={{
-                              '& .MuiSwitch-switchBase.Mui-checked': { color: '#2196f3' },
-                              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#2196f3' }
-                            }}
-                            disabled={loading} />
-                        </TableCell>
-                        <TableCell>
-                          <Box sx={{ display: 'flex', gap: 1 }}>
-                            <IconButton size="small" onClick={() => handleEdit(cat.id)} sx={{ color: '#2196f3' }} disabled={loading}>
-                              <EditIcon fontSize="small" />
-                            </IconButton>
-                            <IconButton size="small" onClick={() => handleDeleteClick(cat.id)} sx={{ color: '#f44336' }} disabled={loading}>
-                              <DeleteIcon fontSize="small" />
-                            </IconButton>
+                          }
+                          action={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                              <Tooltip title={isExpanded ? "Collapse" : "Expand"}>
+                                <IconButton onClick={() => toggleCategoryExpand(rootCat.id)}>
+                                  {isExpanded ? <ArrowUpIcon /> : <ArrowDownIcon />}
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Edit">
+                                <IconButton onClick={() => handleEdit(rootCat.id)} sx={{ color: '#1976d2' }}>
+                                  <EditIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Delete">
+                                <IconButton onClick={() => handleDeleteClick(rootCat.id)} sx={{ color: '#d32f2f' }}>
+                                  <DeleteIcon />
+                                </IconButton>
+                              </Tooltip>
+                              <Tooltip title="Toggle Status">
+                                <Switch
+                                  checked={rootCat.status}
+                                  onChange={() => handleStatusToggle(rootCat.id)}
+                                  size="small"
+                                />
+                              </Tooltip>
+                            </Box>
+                          }
+                        />
+                        
+                        {/* SUBCATEGORIES */}
+                        <Collapse in={isExpanded}>
+                          <Box sx={{ p: 2, bgcolor: '#fafafa' }}>
+                            {subcategories.length > 0 ? (
+                              <Grid container spacing={2}>
+                                {subcategories.map((subCat, subIndex) => (
+                                  <Grid item xs={12} sm={6} md={4} key={subCat.id}>
+                                    <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                                      <CardContent sx={{ p: 2 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+                                          <Avatar
+                                            src={subCat.image}
+                                            variant="rounded"
+                                            sx={{ 
+                                              width: 60, 
+                                              height: 60,
+                                              bgcolor: subCat.image ? 'transparent' : '#e8f5e9'
+                                            }}
+                                          >
+                                            {!subCat.image && <TagIcon />}
+                                          </Avatar>
+                                          <Box sx={{ flex: 1 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                                              <Typography variant="subtitle1" fontWeight={500}>
+                                                {subCat.names[getCurrentLanguageKey()]}
+                                              </Typography>
+                                              <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                <Tooltip title="Edit">
+                                                  <IconButton 
+                                                    size="small" 
+                                                    onClick={() => handleEdit(subCat.id)}
+                                                    sx={{ color: '#1976d2' }}
+                                                  >
+                                                    <EditIcon fontSize="small" />
+                                                  </IconButton>
+                                                </Tooltip>
+                                                <Tooltip title="Delete">
+                                                  <IconButton 
+                                                    size="small" 
+                                                    onClick={() => handleDeleteClick(subCat.id)}
+                                                    sx={{ color: '#d32f2f' }}
+                                                  >
+                                                    <DeleteIcon fontSize="small" />
+                                                  </IconButton>
+                                                </Tooltip>
+                                              </Box>
+                                            </Box>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                              {subCat.description || 'No description'}
+                                            </Typography>
+                                            <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                              <Switch
+                                                checked={subCat.status}
+                                                onChange={() => handleStatusToggle(subCat.id)}
+                                                size="small"
+                                              />
+                                              <Typography variant="caption">
+                                                {subCat.status ? "Active" : "Inactive"}
+                                              </Typography>
+                                              {subCat.isFeatured && (
+                                                <Chip 
+                                                  label="Featured" 
+                                                  size="small"
+                                                  color="warning"
+                                                  sx={{ height: 20 }}
+                                                />
+                                              )}
+                                            </Box>
+                                          </Box>
+                                        </Box>
+                                      </CardContent>
+                                    </Card>
+                                  </Grid>
+                                ))}
+                              </Grid>
+                            ) : (
+                              <Box sx={{ textAlign: 'center', py: 4 }}>
+                                <Typography variant="body2" color="text.secondary">
+                                  No subcategories available. Add subcategories to this parent category.
+                                </Typography>
+                              </Box>
+                            )}
                           </Box>
-                        </TableCell>
-                      </TableRow>
+                        </Collapse>
+                      </Card>
                     );
-                  }) : (
-                    <TableRow>
-                      <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: '#999' }}>
-                        <Stack spacing={2} alignItems="center">
-                          <Typography variant="h6" color="textSecondary">
-                            {loading ? 'Loading...' :
-                              searchTerm ? `No results for "${searchTerm}" in ${languageTabs[tabValue].label}` :
-                                'No categories available.'}
-                          </Typography>
-                          {error || modulesError ? (
-                            <Button variant="outlined" onClick={handleRetry}>Retry</Button>
-                          ) : !loading && !searchTerm && (
-                            <Typography variant="body2" color="textSecondary">
-                              Create your first category using the form above
-                            </Typography>
-                          )}
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  )}
-                </TableBody>
-              </Table>
-            </TableContainer>
+                  })
+              ) : (
+                <Box sx={{ textAlign: 'center', py: 6 }}>
+                  <CategoryIcon sx={{ fontSize: 60, color: '#e0e0e0', mb: 2 }} />
+                  <Typography variant="h6" color="textSecondary" gutterBottom>
+                    {loading ? 'Loading categories...' :
+                      searchTerm ? `No results for "${searchTerm}"` :
+                        'No categories available'}
+                  </Typography>
+                  <Typography variant="body2" color="textSecondary">
+                    {!loading && !searchTerm && 'Create your first category using the form above'}
+                  </Typography>
+                </Box>
+              )}
+            </Box>
           </CardContent>
         </Card>
       </Box>
@@ -1140,16 +1288,27 @@ export default function CategoryManagement() {
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { borderRadius: 3, boxShadow: '0 8px 32px rgba(0,0,0,0.1)' }
+          sx: { 
+            borderRadius: 3, 
+            boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
+            background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)'
+          }
         }}
-        TransitionProps={{ timeout: 400 }}
       >
         <DialogTitle sx={{
-          m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-          borderBottom: '1px solid #eee', bgcolor: '#fafafa'
+          m: 0, p: 3, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          borderBottom: '1px solid #e0e0e0', bgcolor: 'white'
         }}>
-          <Typography variant="h6" fontWeight={700} color="primary">Edit Category</Typography>
-          <IconButton onClick={handleEditDialogClose} sx={{ color: '#999', '&:hover': { color: '#f44336' } }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: '#1976d2', width: 40, height: 40 }}>
+              <EditIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h5" fontWeight={700} color="#2c3e50">Edit Category</Typography>
+              <Typography variant="body2" color="text.secondary">Update category details and settings</Typography>
+            </Box>
+          </Box>
+          <IconButton onClick={handleEditDialogClose} sx={{ color: '#666', '&:hover': { bgcolor: '#f5f5f5' } }}>
             <CloseIcon />
           </IconButton>
         </DialogTitle>
@@ -1161,202 +1320,274 @@ export default function CategoryManagement() {
               <Typography variant="body1" color="textSecondary" fontWeight={500}>Fetching category details...</Typography>
             </Box>
           ) : (
-            <Stack spacing={4} sx={{ mt: 1 }}>
-              {/* SECTION: BASIC INFO */}
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
-                  Basic Information
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Category Title *</Typography>
-                    <TextField
-                      fullWidth
-                      value={editFormData.name}
-                      onChange={(e) => handleEditFormChange('name', e.target.value)}
-                      placeholder="e.g. Premium Venues"
-                      size="small"
-                      variant="outlined"
-                    />
-                  </Grid>
-                  <Grid item xs={12}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Description</Typography>
-                    <TextField
-                      fullWidth
-                      multiline
-                      rows={3}
-                      value={editFormData.description}
-                      onChange={(e) => handleEditFormChange('description', e.target.value)}
-                      placeholder="Provide a brief description of this category..."
-                    />
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* SECTION: HIERARCHY & ASSOCIATIONS */}
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
-                  Associations
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Module *</Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      value={editFormData.module}
-                      onChange={(e) => handleEditFormChange('module', e.target.value)}
-                    >
-                      {modules.map(m => (
-                        <MenuItem key={m._id} value={m._id}>{m.title || m.name}</MenuItem>
-                      ))}
-                    </TextField>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Parent Category</Typography>
-                    <TextField
-                      select
-                      fullWidth
-                      size="small"
-                      value={editFormData.parentCategory}
-                      onChange={(e) => handleEditFormChange('parentCategory', e.target.value)}
-                    >
-                      <MenuItem value=""><em>None (Root Category)</em></MenuItem>
-                      {categories
-                        .filter(c => !c.parentCategory && c.module?._id === editFormData.module && c.id !== editDialog.categoryId)
-                        .map(cat => (
-                          <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
-                        ))}
-                    </TextField>
-                  </Grid>
-                </Grid>
-              </Box>
-
-              {/* SECTION: VISUALS */}
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
-                  Media & Visuals
-                </Typography>
-                <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
-                  <Box
-                    sx={{
-                      width: 180, height: 120, border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden',
-                      backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
-                    }}
-                  >
-                    {editImagePreview ? (
-                      <img src={editImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <Typography variant="caption" color="textSecondary">No Image Selected</Typography>
-                    )}
-                  </Box>
-                  <Box sx={{ flex: 1 }}>
-                    <input
-                      type="file"
-                      id="edit-img-input"
-                      style={{ display: 'none' }}
-                      accept="image/*"
-                      onChange={handleEditImageUpload}
-                      ref={editFileInputRef}
-                    />
-                    <label htmlFor="edit-img-input">
-                      <Button
-                        component="span"
-                        variant="soft"
+            <Box sx={{ mt: 2 }}>
+              {/* TWO COLUMN LAYOUT */}
+              <Grid container spacing={4}>
+                {/* LEFT COLUMN */}
+                <Grid item xs={12} md={6}>
+                  {/* BASIC INFO */}
+                  <Card variant="outlined" sx={{ mb: 3, borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom fontWeight={600} color="#2c3e50">
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                          <SettingsIcon fontSize="small" />
+                          Basic Information
+                        </Box>
+                      </Typography>
+                      
+                      <TextField
+                        fullWidth
+                        label="Category Title"
+                        value={editFormData.name}
+                        onChange={(e) => handleEditFormChange('name', e.target.value)}
+                        placeholder="e.g. Premium Venues"
                         size="medium"
-                        startIcon={<CloudUploadIcon />}
-                        sx={{
-                          textTransform: 'none',
-                          bgcolor: '#e3f2fd',
-                          color: '#1976d2',
-                          '&:hover': { bgcolor: '#bbdefb' }
+                        variant="outlined"
+                        sx={{ mb: 3 }}
+                        InputProps={{
+                          startAdornment: (
+                            <InputAdornment position="start">
+                              <CategoryIcon color="action" />
+                            </InputAdornment>
+                          ),
                         }}
-                      >
-                        {editImagePreview ? 'Replace Image' : 'Upload Image'}
-                      </Button>
-                    </label>
-                    <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1.5, lineHeight: 1.6 }}>
-                      Recommended: <strong>600x400px</strong> (3:2 ratio).<br />
-                      Max file size: 5MB. Supports JPG, PNG, WebP.
-                    </Typography>
-                  </Box>
-                </Box>
-              </Box>
-
-              <Divider sx={{ borderStyle: 'dashed' }} />
-
-              {/* SECTION: ADVANCED / SEO */}
-              <Box>
-                <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
-                  Settings & SEO
-                </Typography>
-                <Grid container spacing={3}>
-                  <Grid item xs={12} sm={4}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Display Order</Typography>
-                    <TextField
-                      fullWidth
-                      type="number"
-                      size="small"
-                      value={editFormData.displayOrder}
-                      onChange={(e) => handleEditFormChange('displayOrder', e.target.value)}
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={8} sx={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', pt: 2.5 }}>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" fontWeight={500}>Active Status</Typography>
-                      <Switch
-                        checked={editFormData.isActive}
-                        onChange={(e) => handleEditFormChange('isActive', e.target.checked)}
+                      />
+                      
+                      <TextField
+                        fullWidth
+                        label="Description"
+                        multiline
+                        rows={3}
+                        value={editFormData.description}
+                        onChange={(e) => handleEditFormChange('description', e.target.value)}
+                        placeholder="Provide a brief description of this category..."
                         size="medium"
                       />
-                    </Box>
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                      <Typography variant="body2" fontWeight={500}>Featured</Typography>
-                      <Switch
-                        checked={editFormData.isFeatured}
-                        onChange={(e) => handleEditFormChange('isFeatured', e.target.checked)}
-                        color="secondary"
-                        size="medium"
-                      />
-                    </Box>
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Meta Title (SEO)</Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={editFormData.metaTitle}
-                      onChange={(e) => handleEditFormChange('metaTitle', e.target.value)}
-                      placeholder="Title for search engines"
-                    />
-                  </Grid>
-                  <Grid item xs={12} sm={6}>
-                    <Typography variant="body2" gutterBottom fontWeight={500}>Meta Description (SEO)</Typography>
-                    <TextField
-                      fullWidth
-                      size="small"
-                      value={editFormData.metaDescription}
-                      onChange={(e) => handleEditFormChange('metaDescription', e.target.value)}
-                      placeholder="Short summary for search results"
-                    />
-                  </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* IMAGE UPLOAD */}
+                  <Card variant="outlined" sx={{ borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom fontWeight={600} color="#2c3e50">
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                          <ImageIcon fontSize="small" />
+                          Category Image
+                        </Box>
+                      </Typography>
+                      
+                      <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
+                        <Box
+                          sx={{
+                            width: '100%',
+                            height: 200,
+                            border: '2px dashed #e0e0e0',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            backgroundColor: '#fafafa',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            position: 'relative',
+                            '&:hover': { borderColor: '#1976d2', bgcolor: '#f0f7ff' }
+                          }}
+                        >
+                          {editImagePreview ? (
+                            <img 
+                              src={editImagePreview} 
+                              alt="Preview" 
+                              style={{ 
+                                width: '100%', 
+                                height: '100%', 
+                                objectFit: 'cover' 
+                              }} 
+                            />
+                          ) : (
+                            <Box sx={{ textAlign: 'center', p: 3 }}>
+                              <CloudUploadIcon sx={{ fontSize: 48, color: '#bdbdbd', mb: 1 }} />
+                              <Typography variant="body2" color="text.secondary">
+                                Click to upload or drag and drop
+                              </Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                SVG, PNG, JPG or GIF (max. 5MB)
+                              </Typography>
+                            </Box>
+                          )}
+                          <input
+                            type="file"
+                            id="edit-img-input"
+                            style={{ 
+                              position: 'absolute',
+                              width: '100%',
+                              height: '100%',
+                              opacity: 0,
+                              cursor: 'pointer'
+                            }}
+                            accept="image/*"
+                            onChange={handleEditImageUpload}
+                            ref={editFileInputRef}
+                          />
+                        </Box>
+                        
+                        <Button
+                          component="label"
+                          variant="outlined"
+                          startIcon={<CloudUploadIcon />}
+                          sx={{ textTransform: 'none', borderRadius: 2 }}
+                        >
+                          {editImagePreview ? 'Replace Image' : 'Choose Image'}
+                          <input
+                            type="file"
+                            hidden
+                            accept="image/*"
+                            onChange={handleEditImageUpload}
+                          />
+                        </Button>
+                        
+                        <Typography variant="caption" color="text.secondary" align="center">
+                          Recommended: 600×400px (3:2 ratio) • Max 5MB
+                        </Typography>
+                      </Box>
+                    </CardContent>
+                  </Card>
                 </Grid>
-              </Box>
-            </Stack>
+
+                {/* RIGHT COLUMN */}
+                <Grid item xs={12} md={6}>
+                  {/* ASSOCIATIONS */}
+                  <Card variant="outlined" sx={{ mb: 3, borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom fontWeight={600} color="#2c3e50">
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                          <FolderIcon fontSize="small" />
+                          Associations
+                        </Box>
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Module"
+                            size="medium"
+                            value={editFormData.module}
+                            onChange={(e) => handleEditFormChange('module', e.target.value)}
+                            sx={{ mb: 2 }}
+                          >
+                            {modules.map(m => (
+                              <MenuItem key={m._id} value={m._id}>
+                                {m.title || m.name}
+                              </MenuItem>
+                            ))}
+                          </TextField>
+                        </Grid>
+                        <Grid item xs={12}>
+                          <TextField
+                            select
+                            fullWidth
+                            label="Parent Category"
+                            size="medium"
+                            value={editFormData.parentCategory}
+                            onChange={(e) => handleEditFormChange('parentCategory', e.target.value)}
+                          >
+                            <MenuItem value=""><em>None (Root Category)</em></MenuItem>
+                            {categories
+                              .filter(c => !c.parentCategory && c.module?._id === editFormData.module && c.id !== editDialog.categoryId)
+                              .map(cat => (
+                                <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
+                              ))}
+                          </TextField>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+
+                  {/* SETTINGS */}
+                  <Card variant="outlined" sx={{ mb: 3, borderRadius: 2 }}>
+                    <CardContent>
+                      <Typography variant="h6" gutterBottom fontWeight={600} color="#2c3e50">
+                        <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', gap: 1 }}>
+                          <SettingsIcon fontSize="small" />
+                          Settings
+                        </Box>
+                      </Typography>
+                      
+                      <Grid container spacing={2}>
+                        <Grid item xs={12}>
+                          <TextField
+                            fullWidth
+                            label="Display Order"
+                            type="number"
+                            size="medium"
+                            value={editFormData.displayOrder}
+                            onChange={(e) => handleEditFormChange('displayOrder', parseInt(e.target.value) || 0)}
+                            InputProps={{
+                              startAdornment: (
+                                <InputAdornment position="start">
+                                  <Typography color="text.secondary">#</Typography>
+                                </InputAdornment>
+                              ),
+                            }}
+                          />
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
+                            <Box>
+                              <Typography variant="body1" fontWeight={500}>Active Status</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Show/Hide category from listings
+                              </Typography>
+                            </Box>
+                            <Switch
+                              checked={editFormData.isActive}
+                              onChange={(e) => handleEditFormChange('isActive', e.target.checked)}
+                              color="primary"
+                              size="medium"
+                            />
+                          </Box>
+                        </Grid>
+                        
+                        <Grid item xs={12}>
+                          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
+                            <Box>
+                              <Typography variant="body1" fontWeight={500}>Featured</Typography>
+                              <Typography variant="caption" color="text.secondary">
+                                Highlight as featured category
+                              </Typography>
+                            </Box>
+                            <Switch
+                              checked={editFormData.isFeatured}
+                              onChange={(e) => handleEditFormChange('isFeatured', e.target.checked)}
+                              color="warning"
+                              size="medium"
+                            />
+                          </Box>
+                        </Grid>
+                      </Grid>
+                    </CardContent>
+                  </Card>
+
+                 
+                </Grid>
+              </Grid>
+            </Box>
           )}
         </DialogContent>
 
-        <DialogActions sx={{ p: 3, borderTop: '1px solid #eee', bgcolor: '#fafafa' }}>
+        <DialogActions sx={{ p: 3, borderTop: '1px solid #e0e0e0', bgcolor: 'white' }}>
           <Button
             onClick={handleEditDialogClose}
             variant="outlined"
-            sx={{ textTransform: 'none', px: 4, borderRadius: 2, borderColor: '#ddd', color: '#666' }}
+            sx={{ 
+              textTransform: 'none', 
+              px: 4, 
+              borderRadius: 2, 
+              borderColor: '#ddd', 
+              color: '#666',
+              '&:hover': { borderColor: '#999', bgcolor: '#f5f5f5' }
+            }}
             disabled={editDialog.loading}
           >
             Cancel
@@ -1366,41 +1597,101 @@ export default function CategoryManagement() {
             variant="contained"
             color="primary"
             sx={{
-              textTransform: 'none', px: 5, borderRadius: 2,
-              boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
-              fontWeight: 600
+              textTransform: 'none', 
+              px: 5, 
+              borderRadius: 2,
+              bgcolor: '#1976d2',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
+              '&:hover': { 
+                bgcolor: '#1565c0',
+                boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)'
+              }
             }}
             disabled={editDialog.loading || !editFormData.name.trim()}
+            startIcon={editDialog.loading ? <CircularProgress size={20} color="inherit" /> : null}
           >
-            {editDialog.loading ? <CircularProgress size={20} color="inherit" /> : 'Save Changes'}
+            {editDialog.loading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* DELETE DIALOG */}
-      <Dialog open={deleteDialog.open}
+      <Dialog 
+        open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
-        maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ fontWeight: 600 }}>Confirm Delete</DialogTitle>
-        <DialogContent>
-          <Typography>Are you sure you want to delete "{deleteDialog.categoryName}"? This cannot be undone.</Typography>
+        maxWidth="sm" 
+        fullWidth
+        PaperProps={{ sx: { borderRadius: 3 } }}
+      >
+        <DialogTitle sx={{ fontWeight: 600, borderBottom: '1px solid #e0e0e0', pb: 2 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+            <Avatar sx={{ bgcolor: '#ffebee', color: '#d32f2f', width: 40, height: 40 }}>
+              <DeleteIcon />
+            </Avatar>
+            <Box>
+              <Typography variant="h6" color="#d32f2f">Confirm Delete</Typography>
+              <Typography variant="body2" color="text.secondary">This action cannot be undone</Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ p: 3 }}>
+          <Alert severity="warning" sx={{ mb: 2, borderRadius: 2 }}>
+            Warning: Deleting a category will also remove all associated subcategories and references.
+          </Alert>
+          <Typography>
+            Are you sure you want to delete <strong>"{deleteDialog.categoryName}"</strong>?
+          </Typography>
         </DialogContent>
-        <DialogActions sx={{ p: 3, gap: 1 }}>
-          <Button onClick={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
-            variant="outlined" sx={{ textTransform: 'none' }} disabled={loading}>
+        <DialogActions sx={{ p: 3, gap: 2 }}>
+          <Button 
+            onClick={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
+            variant="outlined" 
+            sx={{ 
+              textTransform: 'none', 
+              px: 4,
+              borderRadius: 2
+            }} 
+            disabled={loading}
+          >
             Cancel
           </Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error"
-            sx={{ textTransform: 'none' }} disabled={loading}>
-            {loading ? <CircularProgress size={20} color="inherit" /> : 'Delete'}
+          <Button 
+            onClick={handleDeleteConfirm} 
+            variant="contained" 
+            color="error"
+            sx={{ 
+              textTransform: 'none', 
+              px: 4,
+              borderRadius: 2,
+              bgcolor: '#d32f2f',
+              '&:hover': { bgcolor: '#c62828' }
+            }} 
+            disabled={loading}
+            startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
+          >
+            {loading ? 'Deleting...' : 'Delete Category'}
           </Button>
         </DialogActions>
       </Dialog>
 
       {/* SUCCESS / INFO SNACKBAR */}
-      <Snackbar open={notification.open} autoHideDuration={4000} onClose={handleNotificationClose}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert onClose={handleNotificationClose} severity={notification.severity} variant="filled" sx={{ width: '100%' }}>
+      <Snackbar 
+        open={notification.open} 
+        autoHideDuration={4000} 
+        onClose={handleNotificationClose}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert 
+          onClose={handleNotificationClose} 
+          severity={notification.severity} 
+          variant="filled" 
+          sx={{ 
+            width: '100%',
+            borderRadius: 2,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+          }}
+        >
           {notification.message}
         </Alert>
       </Snackbar>
