@@ -23,7 +23,7 @@ const PushNotification = Loadable(lazy(() => import('../views/Pushnotifications'
 // Providers
 const NewProvider = Loadable(lazy(() => import('../views/Newprovider')));
 const AddProvider = Loadable(lazy(() => import('../views/Addprovider')));
-const ProviderList = Loadable(lazy(() => import('../views/Providerslist')));
+const ProviderList = Loadable(lazy(() => import('../views/ProviderList')));
 const EditList = Loadable(lazy(() => import('../views/Editlist')));
 const KycVerification = Loadable(lazy(() => import('../views/KycVerification')));
 
@@ -64,7 +64,7 @@ const Auditoriumcoupons = Loadable(lazy(() => import('../audiviews/Coupons')));
 const Auditoriumbanner = Loadable(lazy(() => import('../audiviews/Banner')));
 const AuditoriumPushnotifications = Loadable(lazy(() => import('../audiviews/Pushnotifications')));
 const Auditoriumcategory = Loadable(lazy(() => import('../audiviews/Audicategory')));
-const Auditoriumnewprovidersrequest = Loadable(lazy(() => import('../audiviews/Newprovider')));
+const Auditoriumnewprovidersrequest = ProviderList;
 const Auditoriumaddprovider = Loadable(lazy(() => import('../audiviews/Addprovider')));
 const Auditoriumlist = Loadable(lazy(() => import('../audiviews/Auditoriumlist')));
 const Createauditorium = Loadable(lazy(() => import('../audiviews/Createauditorium')));
@@ -87,17 +87,17 @@ const SubscriptionRequests = Loadable(lazy(() => import('../views/SubscriptionRe
 const Cateringaddprovider = Loadable(lazy(() => import('../catering/AddProvider')));
 const Cateringcategory = Loadable(lazy(() => import('../catering/Category')));
 // const CateringList = Loadable(lazy(() => import('../catering/Cateringlist')));
-const Cateringprovider = Loadable(lazy(() => import('../catering/NewProvider')));
+const Cateringprovider = ProviderList;
 const Cateringdashboard = Loadable(lazy(() => import('../catering/dashboard')));
 const CateringCoupon = Loadable(lazy(() => import('../catering/CateringCoupon')));
 
 // makeup/////////////////////
 const Makeupdashboard = Loadable(lazy(() => import('../makeup/dashboard')));
 const Makeupaddprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
-const Makeupproviders = Loadable(lazy(() => import('../makeup/New Provider')))
+const Makeupproviders = ProviderList;
 const Makeupcategory = Loadable(lazy(() => import('../makeup/Category')));
 const MakeupList = Loadable(lazy(() => import('../makeup/MakeupList')));
-const Makeupprovider = Loadable(lazy(() => import('../makeup/MakeupProvider')));
+const Makeupprovider = ProviderList;
 const MakeupCoupon = Loadable(lazy(() => import('../makeup/MakeupCoupon')));
 const Makeuptypes = Loadable(lazy(() => import('../makeup/Makeuptypes')));
 // const Makeupportfolio = Loadable(lazy(() => import('../makeup/Portfolio')));
@@ -106,11 +106,11 @@ const Makeuptypes = Loadable(lazy(() => import('../makeup/Makeuptypes')));
 
 const Photographydashboard = Loadable(lazy(() => import('../photography/dashboard')));
 const Photographyaddprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
-const Photographyvendorslist = Loadable(lazy(() => import('../photography/NewProvider')));
+const Photographyvendorslist = ProviderList;
 
 const Photographycategory = Loadable(lazy(() => import('../photography/Photocategory')));
 const PhotographyList = Loadable(lazy(() => import('../photography/PhotoList')));
-const Photographyprovider = Loadable(lazy(() => import('../photography/PhotoProvider')));
+const Photographyprovider = ProviderList;
 const PhotographyCoupon = Loadable(lazy(() => import('../photography/PhotoCoupon')));
 // const PhotographyPortfolio = Loadable(lazy(() => import('../photography/PhotoPortfolio')));
 
@@ -118,22 +118,20 @@ const PhotographyCoupon = Loadable(lazy(() => import('../photography/PhotoCoupon
 // cakes////////////////////////////////
 const Cakedashboard = Loadable(lazy(() => import('../cakes/dashboard')));
 const Cakeaddprovider = Loadable(lazy(() => import('../cakes/Cakeprovider')));
-const Cakevendorslist = Loadable(lazy(() => import('../cakes/NewProvider')));
+const Cakevendorslist = ProviderList;
 
 const Cakecategory = Loadable(lazy(() => import('../cakes/category')));
 const CakeList = Loadable(lazy(() => import('../cakes/cakelist')));
-const Cakeprovider = Loadable(
-  lazy(() => import('../cakes/NewProvider'))
-);
+const Cakeprovider = ProviderList;
 const CakeCoupon = Loadable(lazy(() => import('../cakes/Cakecoupons')));
 
 // ornaments////////////////////////////////
 const Ornamentsdashboard = Loadable(lazy(() => import('../ornaments/dashboard')));
 const Ornamentsaddprovider = Loadable(lazy(() => import('../ornaments/AddProvider')));
-const Ornamentsvendorslist = Loadable(lazy(() => import('../ornaments/NewProvider')));
+const Ornamentsvendorslist = ProviderList;
 const Ornamentscategory = Loadable(lazy(() => import('../ornaments/Category')));
 const OrnamentsList = Loadable(lazy(() => import('../ornaments/OrnamentsList')));
-const Ornamentsprovider = Loadable(lazy(() => import('../ornaments/NewProvider')));
+const Ornamentsprovider = ProviderList;
 const OrnamentsCoupon = Loadable(lazy(() => import('../ornaments/OrnamentsCoupon')));
 
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));

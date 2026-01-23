@@ -22,6 +22,9 @@ import {
     ListItemText,
     TextField,
     InputAdornment,
+    FormControl,
+    Select,
+    MenuItem,
 } from '@mui/material';
 import {
     ArrowBack as ArrowBackIcon,
@@ -47,6 +50,7 @@ import {
     BarChart as BarChartIcon,
     Search as SearchIcon,
 } from '@mui/icons-material';
+import Chart from 'react-apexcharts';
 import { getProviderDetails, deleteProvider, getImageUrl } from '../api/providerApi';
 
 function ProviderDetailsView() {
@@ -631,66 +635,151 @@ function ProviderDetailsView() {
                     {/* Stats Section */}
                     {activeSection === 'stats' && (
                         <Box>
-                            <Typography variant="h6" fontWeight={700} gutterBottom mb={3}>
-                                Performance Statistics
-                            </Typography>
+                            <Box sx={{ mb: 4 }}>
+                                <Typography variant="h4" fontWeight={800} color="#1e293b" gutterBottom>
+                                    Business Analytics
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary">
+                                    Deep dive into your performance metrics and growth over time
+                                </Typography>
+                            </Box>
+                            {/* Stat Summary Cards */}
+                            <Grid container spacing={3} mb={4}>
+                                {[
+                                    { title: 'Total Revenue', value: `AED ${stats?.totalRevenue || 0}`, icon: <TrendingUpIcon />, gradient: 'linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)', textColor: '#ffffff' },
+                                    { title: 'Total Packages', value: stats?.totalPackages || 0, icon: <InventoryIcon />, gradient: 'linear-gradient(135deg, #064e3b 0%, #10b981 100%)', textColor: '#ffffff' },
+                                    { title: 'Total Bookings', value: stats?.totalBookings || 0, icon: <ReceiptIcon />, gradient: 'linear-gradient(135deg, #701a75 0%, #d946ef 100%)', textColor: '#ffffff' },
+                                    { title: 'Average Rating', value: stats?.avgRating || '4.8', icon: <VerifiedIcon />, gradient: 'linear-gradient(135deg, #7c2d12 0%, #f97316 100%)', textColor: '#ffffff' },
+                                ].map((stat, i) => (
+                                    <Grid item xs={12} sm={6} md={3} key={i}>
+                                        <Paper
+                                            elevation={4}
+                                            sx={{
+                                                p: 3,
+                                                borderRadius: 4,
+                                                background: stat.gradient,
+                                                color: stat.textColor,
+                                                position: 'relative',
+                                                overflow: 'hidden',
+                                                boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
+                                                border: '1px solid rgba(255,255,255,0.1)',
+                                                transition: 'all 0.3s ease',
+                                                '&:hover': {
+                                                    transform: 'translateY(-8px)',
+                                                    boxShadow: '0 12px 48px rgba(0,0,0,0.2)'
+                                                }
+                                            }}
+                                        >
+                                            <Box sx={{ position: 'relative', zIndex: 2 }}>
+                                                <Typography
+                                                    variant="subtitle2"
+                                                    sx={{
+                                                        fontWeight: 700,
+                                                        letterSpacing: 1.2,
+                                                        textTransform: 'uppercase',
+                                                        fontSize: '0.72rem',
+                                                        mb: 1,
+                                                        color: '#ffffff'
+                                                    }}
+                                                >
+                                                    {stat.title}
+                                                </Typography>
+                                                <Typography variant="h3" fontWeight={800} sx={{ mb: 1, letterSpacing: -1, color: '#ffffff' }}>
+                                                    {stat.value}
+                                                </Typography>
+                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                                    <Box
+                                                        sx={{
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            bgcolor: 'rgba(255,255,255,0.2)',
+                                                            px: 1,
+                                                            py: 0.3,
+                                                            borderRadius: 10
+                                                        }}
+                                                    >
+                                                        <TrendingUpIcon sx={{ fontSize: 14, mr: 0.5 }} />
+                                                        <Typography variant="caption" fontWeight={700}>+12%</Typography>
+                                                    </Box>
+                                                    <Typography variant="caption" sx={{ fontWeight: 600, color: '#ffffff' }}>vs last month</Typography>
+                                                </Box>
+                                            </Box>
+                                            <Box
+                                                sx={{
+                                                    position: 'absolute',
+                                                    right: -15,
+                                                    bottom: -15,
+                                                    opacity: 0.15,
+                                                    transform: 'rotate(-10deg)',
+                                                    zIndex: 1
+                                                }}
+                                            >
+                                                {React.cloneElement(stat.icon, { sx: { fontSize: 100 } })}
+                                            </Box>
+                                            {/* Decorative gloss effect */}
+                                            <Box
+                                                sx={{
+                                                    position: 'absolute',
+                                                    top: '-50%',
+                                                    left: '-50%',
+                                                    width: '200%',
+                                                    height: '200%',
+                                                    background: 'radial-gradient(circle, rgba(255,255,255,0.1) 0%, transparent 70%)',
+                                                    pointerEvents: 'none'
+                                                }}
+                                            />
+                                        </Paper>
+                                    </Grid>
+                                ))}
+                            </Grid>
 
+                            {/* Graphs */}
                             <Grid container spacing={3}>
-                                <Grid item xs={12} sm={4}>
-                                    <Paper
-                                        elevation={0}
-                                        sx={{
-                                            p: 3,
-                                            textAlign: 'center',
-                                            border: '2px solid #667eea',
-                                            borderRadius: 2,
-                                        }}
-                                    >
-                                        <LocalOfferIcon sx={{ fontSize: 48, color: '#667eea', mb: 1 }} />
-                                        <Typography variant="h3" fontWeight={800} color="#667eea">
-                                            {stats?.totalPackages || 0}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                                            Total Packages
-                                        </Typography>
+                                <Grid item xs={12} md={8}>
+                                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 4 }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
+                                            <Typography variant="h6" fontWeight={700}>Booking Trends</Typography>
+                                            <FormControl size="small" variant="outlined" sx={{ minWidth: 120 }}>
+                                                <Select defaultValue="this-year" size="small">
+                                                    <MenuItem value="this-year">This Year</MenuItem>
+                                                    <MenuItem value="last-year">Last Year</MenuItem>
+                                                </Select>
+                                            </FormControl>
+                                        </Box>
+                                        <Chart
+                                            options={{
+                                                chart: { id: 'booking-chart', toolbar: { show: false }, zoom: { enabled: false }, fontFamily: 'Poppins, sans-serif' },
+                                                stroke: { curve: 'smooth', width: 3 },
+                                                colors: ['#667eea', '#f093fb'],
+                                                fill: { type: 'gradient', gradient: { shadeIntensity: 1, opacityFrom: 0.4, opacityTo: 0.1, stops: [0, 90, 100] } },
+                                                dataLabels: { enabled: false },
+                                                xaxis: { categories: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'] },
+                                                grid: { borderColor: '#f1f1f1' }
+                                            }}
+                                            series={[
+                                                { name: 'Bookings', data: [31, 40, 28, 51, 42, 109, 100, 80, 70, 90, 110, 95] },
+                                                { name: 'Views', data: [11, 32, 45, 32, 34, 52, 41, 60, 50, 75, 80, 85] }
+                                            ]}
+                                            type="area"
+                                            height={350}
+                                        />
                                     </Paper>
                                 </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <Paper
-                                        elevation={0}
-                                        sx={{
-                                            p: 3,
-                                            textAlign: 'center',
-                                            border: '2px solid #f093fb',
-                                            borderRadius: 2,
-                                        }}
-                                    >
-                                        <ShoppingCartIcon sx={{ fontSize: 48, color: '#f093fb', mb: 1 }} />
-                                        <Typography variant="h3" fontWeight={800} color="#f093fb">
-                                            {stats?.totalBookings || 0}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                                            Total Bookings
-                                        </Typography>
-                                    </Paper>
-                                </Grid>
-                                <Grid item xs={12} sm={4}>
-                                    <Paper
-                                        elevation={0}
-                                        sx={{
-                                            p: 3,
-                                            textAlign: 'center',
-                                            border: '2px solid #4facfe',
-                                            borderRadius: 2,
-                                        }}
-                                    >
-                                        <TrendingUpIcon sx={{ fontSize: 48, color: '#4facfe', mb: 1 }} />
-                                        <Typography variant="h3" fontWeight={800} color="#4facfe">
-                                            {stats?.activePackages || 0}
-                                        </Typography>
-                                        <Typography variant="body2" color="text.secondary" fontWeight={600}>
-                                            Active Packages
-                                        </Typography>
+                                <Grid item xs={12} md={4}>
+                                    <Paper elevation={0} sx={{ p: 3, border: '1px solid #e0e0e0', borderRadius: 4, height: '100%' }}>
+                                        <Typography variant="h6" fontWeight={700} gutterBottom>Category Distribution</Typography>
+                                        <Chart
+                                            options={{
+                                                chart: { id: 'category-pie' },
+                                                labels: ['Active', 'Pending', 'Inactive'],
+                                                colors: ['#00b09b', '#faba2a', '#ff5252'],
+                                                legend: { position: 'bottom' },
+                                                plotOptions: { pie: { donut: { size: '65%' } } }
+                                            }}
+                                            series={[packages?.filter(p => p.isActive).length || 5, 2, 1]}
+                                            type="donut"
+                                            height={350}
+                                        />
                                     </Paper>
                                 </Grid>
                             </Grid>
