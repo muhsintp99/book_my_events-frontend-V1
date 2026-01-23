@@ -25,6 +25,7 @@ import {
     FormControl,
     Select,
     MenuItem,
+    InputLabel,
 } from '@mui/material';
 import {
     ArrowBack as ArrowBackIcon,
@@ -62,6 +63,7 @@ function ProviderDetailsView() {
     const [activeSection, setActiveSection] = useState('overview');
     const [providerData, setProviderData] = useState(null);
     const [searchTerm, setSearchTerm] = useState('');
+    const [bookingSort, setBookingSort] = useState('latest');
 
     useEffect(() => {
         fetchProviderDetails();
@@ -138,10 +140,14 @@ function ProviderDetailsView() {
         return name.toLowerCase().includes(searchTerm.toLowerCase());
     }) || [];
 
-    const filteredBookings = bookings?.filter(booking => {
+    const filteredBookings = (bookings?.filter(booking => {
         const customerName = `${booking.userId?.firstName || ''} ${booking.userId?.lastName || ''}`;
         return customerName.toLowerCase().includes(searchTerm.toLowerCase());
-    }) || [];
+    }) || []).sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return bookingSort === 'latest' ? dateB - dateA : dateA - dateB;
+    });
 
     return (
         <Box sx={{ display: 'flex', height: '100vh', bgcolor: '#f8f9fa', overflow: 'hidden' }}>
@@ -547,20 +553,34 @@ function ProviderDetailsView() {
                                 <Typography variant="h6" fontWeight={700}>
                                     Bookings ({filteredBookings.length})
                                 </Typography>
-                                <TextField
-                                    size="small"
-                                    placeholder="Search bookings..."
-                                    value={searchTerm}
-                                    onChange={(e) => setSearchTerm(e.target.value)}
-                                    sx={{ width: 250 }}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <SearchIcon fontSize="small" />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                />
+                                <Stack direction="row" spacing={2} alignItems="center">
+                                    <FormControl size="small" sx={{ minWidth: 120 }}>
+                                        <InputLabel>Date</InputLabel>
+                                        <Select
+                                            value={bookingSort}
+                                            label="Date"
+                                            onChange={(e) => setBookingSort(e.target.value)}
+                                        >
+                                            <MenuItem value="latest">Latest First</MenuItem>
+                                            <MenuItem value="oldest">Oldest First</MenuItem>
+                                        </Select>
+                                    </FormControl>
+
+                                    <TextField
+                                        size="small"
+                                        placeholder="Search bookings..."
+                                        value={searchTerm}
+                                        onChange={(e) => setSearchTerm(e.target.value)}
+                                        sx={{ width: 250 }}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <SearchIcon fontSize="small" />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+                                </Stack>
                             </Box>
 
                             {filteredBookings.length > 0 ? (
