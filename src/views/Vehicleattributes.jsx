@@ -228,7 +228,7 @@ export default function Vehicleattributes() {
   // -------------------------------------------------------------------------
   useEffect(() => {
     const role = getUserRole();
-    if (!['admin', 'manager', 'superadmin'].includes(role || '')) {
+    if (!['admin', 'manager', 'superadmin', 'user'].includes(role || '')) {
       setError('Access denied');
       navigate('/dashboard');
       return;

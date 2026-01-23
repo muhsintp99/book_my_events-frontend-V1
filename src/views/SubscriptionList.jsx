@@ -12,6 +12,7 @@ import { MoreVert } from '@mui/icons-material';
 
 import { useNavigate } from 'react-router-dom';
 import * as XLSX from 'xlsx';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 const SubscriptionList = () => {
   const navigate = useNavigate();
@@ -29,7 +30,7 @@ const SubscriptionList = () => {
 
   const fetchPackages = async () => {
     try {
-      const res = await fetch("https://api.bookmyevent.ae/api/subscription/plan");
+      const res = await fetch(`${API_BASE_URL}/subscription/plan`);
       const data = await res.json();
 
       if (data.success) {
@@ -67,7 +68,7 @@ const SubscriptionList = () => {
     if (!window.confirm("Are you sure you want to delete this plan?")) return;
 
     try {
-      const res = await fetch(`https://api.bookmyevent.ae/api/subscription/plan/${id}`, {
+      const res = await fetch(`${API_BASE_URL}/subscription/plan/${id}`, {
         method: "DELETE",
       });
       const data = await res.json();

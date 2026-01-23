@@ -63,8 +63,9 @@ import {
   Tag as TagIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
+// API Base URL is now imported from apiImageUtils
 
 // ---- STATIC TRANSPORT MODULE (fallback) ----
 const TRANSPORT_ID = 'static_transport_123456789012345678901234';
@@ -274,42 +275,39 @@ export default function CategoryManagement() {
       else if (data.data && Array.isArray(data.data)) categoriesList = data.data;
 
       const formattedCategories = categoriesList.map(cat => {
-  let imageUrl = '';
+        let imageUrl = '';
 
-  if (cat.image) {
-    const cleanPath = cat.image.startsWith('/')
-      ? cat.image
-      : `/${cat.image}`;
-    imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
-  }
+        if (cat.image) {
+          imageUrl = getApiImageUrl(cat.image);
+        }
 
-  return {
-    id: cat._id,
-    names: {
-      default: cat.title || '',
-      english: cat.title || '',
-      arabic: cat.title || ''
-    },
-    status: cat.isActive !== undefined ? cat.isActive : true,
-    image: imageUrl,
-    module: cat.module || null,
+        return {
+          id: cat._id,
+          names: {
+            default: cat.title || '',
+            english: cat.title || '',
+            arabic: cat.title || ''
+          },
+          status: cat.isActive !== undefined ? cat.isActive : true,
+          image: imageUrl,
+          module: cat.module || null,
 
-    // ✅ FIX HERE
-    parentCategory: cat.parentCategory?._id || cat.parentCategory || null,
+          // ✅ FIX HERE
+          parentCategory: cat.parentCategory?._id || cat.parentCategory || null,
 
-    raw: cat,
-    description: cat.description || '',
-    displayOrder: cat.displayOrder || 0,
-    isFeatured: cat.isFeatured || false,
-    subcategories: []
-  };
-});
+          raw: cat,
+          description: cat.description || '',
+          displayOrder: cat.displayOrder || 0,
+          isFeatured: cat.isFeatured || false,
+          subcategories: []
+        };
+      });
 
 
       // Organize categories hierarchically
       const rootCategories = formattedCategories.filter(cat => !cat.parentCategory);
       const subcategories = formattedCategories.filter(cat => cat.parentCategory);
-      
+
       // Add subcategories to their parents
       rootCategories.forEach(parent => {
         parent.subcategories = subcategories.filter(sub => sub.parentCategory === parent.id);
@@ -336,7 +334,7 @@ export default function CategoryManagement() {
       return;
     }
 
-    if (!['admin', 'manager', 'superadmin'].includes(role)) {
+    if (!['admin', 'manager', 'superadmin', 'user'].includes(role)) {
       setError('Access denied. Admin, Manager, or Superadmin role required.');
       setLoading(false);
       navigate('/dashboard');
@@ -500,13 +498,7 @@ export default function CategoryManagement() {
       });
 
       if (cat.image) {
-        let imageUrl = '';
-        if (cat.image.startsWith('http')) {
-          imageUrl = cat.image;
-        } else {
-          const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
-          imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
-        }
+        const imageUrl = getApiImageUrl(cat.image);
         setExistingImageUrl(imageUrl);
         setEditImagePreview(imageUrl);
       } else {
@@ -705,10 +697,10 @@ export default function CategoryManagement() {
 
 
   const getSelectedModuleName = () => {
-  if (selectedModuleFilter === 'all') return 'All';
-  const module = modules.find(m => m._id === selectedModuleFilter);
-  return module?.title || module?.name || 'Categories';
-};
+    if (selectedModuleFilter === 'all') return 'All';
+    const module = modules.find(m => m._id === selectedModuleFilter);
+    return module?.title || module?.name || 'Categories';
+  };
 
   // ------------------- CATEGORY HIERARCHY FUNCTIONS -------------------
   const toggleCategoryExpand = (categoryId) => {
@@ -1001,9 +993,9 @@ export default function CategoryManagement() {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                 <CategoryIcon sx={{ color: '#1976d2', fontSize: 28 }} />
                 <Box>
-<Typography variant="h5" fontWeight={700} color="#2c3e50">
-  {getSelectedModuleName()} Categories
-</Typography>
+                  <Typography variant="h5" fontWeight={700} color="#2c3e50">
+                    {getSelectedModuleName()} Categories
+                  </Typography>
                   <Typography variant="body2" color="text.secondary">
                     Parent categories and their subcategories
                   </Typography>
@@ -1018,7 +1010,7 @@ export default function CategoryManagement() {
                   onChange={e => setSearchTerm(e.target.value)}
                   sx={{
                     minWidth: { xs: '100%', sm: 250, md: 300 },
-                    '& .MuiOutlinedInput-root': { 
+                    '& .MuiOutlinedInput-root': {
                       direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr',
                       borderRadius: 2
                     }
@@ -1029,9 +1021,9 @@ export default function CategoryManagement() {
                   disabled={loading}
                 />
 
-                <TextField 
-                  select 
-                  size="small" 
+                <TextField
+                  select
+                  size="small"
                   value={selectedModuleFilter}
                   onChange={e => setSelectedModuleFilter(e.target.value)}
                   sx={{ minWidth: { xs: '100%', sm: 200 }, borderRadius: 2 }}
@@ -1043,12 +1035,12 @@ export default function CategoryManagement() {
                   ))}
                 </TextField>
 
-                <Button 
-                  variant="contained" 
+                <Button
+                  variant="contained"
                   startIcon={<ExportIcon />}
                   onClick={handleExportMenuOpen}
                   sx={{
-                    textTransform: 'none', 
+                    textTransform: 'none',
                     borderRadius: 2,
                     px: 3,
                     backgroundColor: '#1976d2',
@@ -1076,7 +1068,7 @@ export default function CategoryManagement() {
               </Box>
             </Box>
 
-                       {loading && categories.length > 0 && (
+            {loading && categories.length > 0 && (
               <Box display="flex" justifyContent="center" p={2}><CircularProgress size={24} /></Box>
             )}
 
@@ -1103,9 +1095,9 @@ export default function CategoryManagement() {
                           avatar={
                             <Avatar
                               src={rootCat.image}
-                              sx={{ 
-                                width: 56, 
-                                height: 56, 
+                              sx={{
+                                width: 56,
+                                height: 56,
                                 bgcolor: rootCat.image ? 'transparent' : '#e3f2fd',
                                 border: '2px solid #fff',
                                 boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
@@ -1126,21 +1118,21 @@ export default function CategoryManagement() {
                           }
                           subheader={
                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mt: 0.5 }}>
-                              <Chip 
-                                label={rootCat.status ? "Active" : "Inactive"} 
+                              <Chip
+                                label={rootCat.status ? "Active" : "Inactive"}
                                 size="small"
                                 color={rootCat.status ? "success" : "error"}
                                 variant="outlined"
                               />
-                              <Chip 
+                              <Chip
                                 icon={<TagIcon />}
                                 label={`${subcategories.length} subcategories`}
                                 size="small"
                                 variant="outlined"
                               />
                               {rootCat.isFeatured && (
-                                <Chip 
-                                  label="Featured" 
+                                <Chip
+                                  label="Featured"
                                   size="small"
                                   color="warning"
                                   variant="outlined"
@@ -1175,7 +1167,7 @@ export default function CategoryManagement() {
                             </Box>
                           }
                         />
-                        
+
                         {/* SUBCATEGORIES */}
                         <Collapse in={isExpanded}>
                           <Box sx={{ p: 2, bgcolor: '#fafafa' }}>
@@ -1189,8 +1181,8 @@ export default function CategoryManagement() {
                                           <Avatar
                                             src={subCat.image}
                                             variant="rounded"
-                                            sx={{ 
-                                              width: 60, 
+                                            sx={{
+                                              width: 60,
                                               height: 60,
                                               bgcolor: subCat.image ? 'transparent' : '#e8f5e9'
                                             }}
@@ -1204,8 +1196,8 @@ export default function CategoryManagement() {
                                               </Typography>
                                               <Box sx={{ display: 'flex', gap: 0.5 }}>
                                                 <Tooltip title="Edit">
-                                                  <IconButton 
-                                                    size="small" 
+                                                  <IconButton
+                                                    size="small"
                                                     onClick={() => handleEdit(subCat.id)}
                                                     sx={{ color: '#1976d2' }}
                                                   >
@@ -1213,8 +1205,8 @@ export default function CategoryManagement() {
                                                   </IconButton>
                                                 </Tooltip>
                                                 <Tooltip title="Delete">
-                                                  <IconButton 
-                                                    size="small" 
+                                                  <IconButton
+                                                    size="small"
                                                     onClick={() => handleDeleteClick(subCat.id)}
                                                     sx={{ color: '#d32f2f' }}
                                                   >
@@ -1236,8 +1228,8 @@ export default function CategoryManagement() {
                                                 {subCat.status ? "Active" : "Inactive"}
                                               </Typography>
                                               {subCat.isFeatured && (
-                                                <Chip 
-                                                  label="Featured" 
+                                                <Chip
+                                                  label="Featured"
                                                   size="small"
                                                   color="warning"
                                                   sx={{ height: 20 }}
@@ -1288,8 +1280,8 @@ export default function CategoryManagement() {
         maxWidth="md"
         fullWidth
         PaperProps={{
-          sx: { 
-            borderRadius: 3, 
+          sx: {
+            borderRadius: 3,
             boxShadow: '0 8px 40px rgba(0,0,0,0.12)',
             background: 'linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%)'
           }
@@ -1334,7 +1326,7 @@ export default function CategoryManagement() {
                           Basic Information
                         </Box>
                       </Typography>
-                      
+
                       <TextField
                         fullWidth
                         label="Category Title"
@@ -1352,7 +1344,7 @@ export default function CategoryManagement() {
                           ),
                         }}
                       />
-                      
+
                       <TextField
                         fullWidth
                         label="Description"
@@ -1375,7 +1367,7 @@ export default function CategoryManagement() {
                           Category Image
                         </Box>
                       </Typography>
-                      
+
                       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 2 }}>
                         <Box
                           sx={{
@@ -1393,14 +1385,14 @@ export default function CategoryManagement() {
                           }}
                         >
                           {editImagePreview ? (
-                            <img 
-                              src={editImagePreview} 
-                              alt="Preview" 
-                              style={{ 
-                                width: '100%', 
-                                height: '100%', 
-                                objectFit: 'cover' 
-                              }} 
+                            <img
+                              src={editImagePreview}
+                              alt="Preview"
+                              style={{
+                                width: '100%',
+                                height: '100%',
+                                objectFit: 'cover'
+                              }}
                             />
                           ) : (
                             <Box sx={{ textAlign: 'center', p: 3 }}>
@@ -1416,7 +1408,7 @@ export default function CategoryManagement() {
                           <input
                             type="file"
                             id="edit-img-input"
-                            style={{ 
+                            style={{
                               position: 'absolute',
                               width: '100%',
                               height: '100%',
@@ -1428,7 +1420,7 @@ export default function CategoryManagement() {
                             ref={editFileInputRef}
                           />
                         </Box>
-                        
+
                         <Button
                           component="label"
                           variant="outlined"
@@ -1443,7 +1435,7 @@ export default function CategoryManagement() {
                             onChange={handleEditImageUpload}
                           />
                         </Button>
-                        
+
                         <Typography variant="caption" color="text.secondary" align="center">
                           Recommended: 600×400px (3:2 ratio) • Max 5MB
                         </Typography>
@@ -1463,7 +1455,7 @@ export default function CategoryManagement() {
                           Associations
                         </Box>
                       </Typography>
-                      
+
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
                           <TextField
@@ -1512,7 +1504,7 @@ export default function CategoryManagement() {
                           Settings
                         </Box>
                       </Typography>
-                      
+
                       <Grid container spacing={2}>
                         <Grid item xs={12}>
                           <TextField
@@ -1531,7 +1523,7 @@ export default function CategoryManagement() {
                             }}
                           />
                         </Grid>
-                        
+
                         <Grid item xs={12}>
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
                             <Box>
@@ -1548,7 +1540,7 @@ export default function CategoryManagement() {
                             />
                           </Box>
                         </Grid>
-                        
+
                         <Grid item xs={12}>
                           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', p: 1 }}>
                             <Box>
@@ -1569,7 +1561,7 @@ export default function CategoryManagement() {
                     </CardContent>
                   </Card>
 
-                 
+
                 </Grid>
               </Grid>
             </Box>
@@ -1580,11 +1572,11 @@ export default function CategoryManagement() {
           <Button
             onClick={handleEditDialogClose}
             variant="outlined"
-            sx={{ 
-              textTransform: 'none', 
-              px: 4, 
-              borderRadius: 2, 
-              borderColor: '#ddd', 
+            sx={{
+              textTransform: 'none',
+              px: 4,
+              borderRadius: 2,
+              borderColor: '#ddd',
               color: '#666',
               '&:hover': { borderColor: '#999', bgcolor: '#f5f5f5' }
             }}
@@ -1597,13 +1589,13 @@ export default function CategoryManagement() {
             variant="contained"
             color="primary"
             sx={{
-              textTransform: 'none', 
-              px: 5, 
+              textTransform: 'none',
+              px: 5,
               borderRadius: 2,
               bgcolor: '#1976d2',
               fontWeight: 600,
               boxShadow: '0 4px 12px rgba(25, 118, 210, 0.3)',
-              '&:hover': { 
+              '&:hover': {
                 bgcolor: '#1565c0',
                 boxShadow: '0 6px 16px rgba(25, 118, 210, 0.4)'
               }
@@ -1617,10 +1609,10 @@ export default function CategoryManagement() {
       </Dialog>
 
       {/* DELETE DIALOG */}
-      <Dialog 
+      <Dialog
         open={deleteDialog.open}
         onClose={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
-        maxWidth="sm" 
+        maxWidth="sm"
         fullWidth
         PaperProps={{ sx: { borderRadius: 3 } }}
       >
@@ -1644,29 +1636,29 @@ export default function CategoryManagement() {
           </Typography>
         </DialogContent>
         <DialogActions sx={{ p: 3, gap: 2 }}>
-          <Button 
+          <Button
             onClick={() => setDeleteDialog({ open: false, categoryId: null, categoryName: '' })}
-            variant="outlined" 
-            sx={{ 
-              textTransform: 'none', 
+            variant="outlined"
+            sx={{
+              textTransform: 'none',
               px: 4,
               borderRadius: 2
-            }} 
+            }}
             disabled={loading}
           >
             Cancel
           </Button>
-          <Button 
-            onClick={handleDeleteConfirm} 
-            variant="contained" 
+          <Button
+            onClick={handleDeleteConfirm}
+            variant="contained"
             color="error"
-            sx={{ 
-              textTransform: 'none', 
+            sx={{
+              textTransform: 'none',
               px: 4,
               borderRadius: 2,
               bgcolor: '#d32f2f',
               '&:hover': { bgcolor: '#c62828' }
-            }} 
+            }}
             disabled={loading}
             startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
           >
@@ -1676,17 +1668,17 @@ export default function CategoryManagement() {
       </Dialog>
 
       {/* SUCCESS / INFO SNACKBAR */}
-      <Snackbar 
-        open={notification.open} 
-        autoHideDuration={4000} 
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
         onClose={handleNotificationClose}
         anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
-        <Alert 
-          onClose={handleNotificationClose} 
-          severity={notification.severity} 
-          variant="filled" 
-          sx={{ 
+        <Alert
+          onClose={handleNotificationClose}
+          severity={notification.severity}
+          variant="filled"
+          sx={{
             width: '100%',
             borderRadius: 2,
             boxShadow: '0 4px 12px rgba(0,0,0,0.15)'

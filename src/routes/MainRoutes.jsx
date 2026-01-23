@@ -127,6 +127,17 @@ const Cakeprovider = Loadable(
 );
 const CakeCoupon = Loadable(lazy(() => import('../cakes/Cakecoupons')));
 
+// ornaments////////////////////////////////
+const Ornamentsdashboard = Loadable(lazy(() => import('../ornaments/dashboard')));
+const Ornamentsaddprovider = Loadable(lazy(() => import('../ornaments/AddProvider')));
+const Ornamentsvendorslist = Loadable(lazy(() => import('../ornaments/NewProvider')));
+const Ornamentscategory = Loadable(lazy(() => import('../ornaments/Category')));
+const OrnamentsList = Loadable(lazy(() => import('../ornaments/OrnamentsList')));
+const Ornamentsprovider = Loadable(lazy(() => import('../ornaments/NewProvider')));
+const OrnamentsCoupon = Loadable(lazy(() => import('../ornaments/OrnamentsCoupon')));
+
+const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
+
 import ProtectedRoute from './ProtectedRoute';
 
 const MainRoutes = {
@@ -145,6 +156,9 @@ const MainRoutes = {
     { path: 'color', element: <UtilsColor /> },
     { path: 'shadow', element: <UtilsShadow /> },
     { path: 'sample-page', element: <SamplePage /> },
+
+    // Provider Details
+    { path: 'provider/:providerId/details', element: <ProviderDetailsView /> },
 
     // Promotions
     { path: 'promotions/RentalBanners', element: <Banners /> },
@@ -279,6 +293,15 @@ const MainRoutes = {
     { path: '/cake/cakelist', element: <CakeList /> },
     { path: '/providers/cakeprovider', element: <Cakeprovider /> },
     { path: '/cake/Coupons', element: <CakeCoupon /> },
+
+    // ornaments///////////////////////
+    { path: '/ornaments/dashboard', element: <Ornamentsdashboard /> },
+    { path: '/ornaments/AddProvider', element: <Ornamentsaddprovider /> },
+    { path: '/ornaments/ornamentsvendors', element: <Ornamentsvendorslist /> },
+    { path: '/ornaments/category', element: <Ornamentscategory /> },
+    { path: '/ornaments/ornamentslist', element: <OrnamentsList /> },
+    { path: '/ornaments/ornamentsprovider', element: <Ornamentsprovider /> },
+    { path: '/ornaments/coupons', element: <OrnamentsCoupon /> },
   ]
 };
 

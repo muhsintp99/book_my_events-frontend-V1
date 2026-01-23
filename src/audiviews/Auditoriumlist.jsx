@@ -36,6 +36,7 @@ import {
   Tab,
   Autocomplete
 } from '@mui/material';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 import {
   Delete, Download, Edit, Visibility, LocationOn, Phone, Email,
   People, Chair, DirectionsCar, Restaurant, Liquor, AccessTime,
@@ -63,7 +64,7 @@ const VenuesList = () => {
   const [saveLoading, setSaveLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
 
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
+  // API_BASE_URL is now imported from apiImageUtils
   const API_URL = `${API_BASE_URL}/venues`;
 
   /* ────────────────────────────────────── HELPERS ────────────────────────────────────── */
@@ -126,7 +127,7 @@ const VenuesList = () => {
     // Extract zone ID - handle both populated and unpopulated cases
     let zoneId = '';
     let zoneName = '';
-    
+
     if (typeof v.zone === 'object' && v.zone !== null) {
       // Zone is populated
       zoneId = String(v.zone._id || '');
@@ -204,108 +205,108 @@ const VenuesList = () => {
     }
   };
 
-const handleZoneChange = (e) => {
-  const val = e.target.value;
-  setSelectedZone(val);
+  const handleZoneChange = (e) => {
+    const val = e.target.value;
+    setSelectedZone(val);
 
-  if (val === "All Zones") {
-    setVenues(allVenues);
-    return;
-  }
+    if (val === "All Zones") {
+      setVenues(allVenues);
+      return;
+    }
 
-  const selectedZoneObj = zones.find((z) => z.name === val);
-  if (!selectedZoneObj) {
-    setVenues([]);
-    return;
-  }
+    const selectedZoneObj = zones.find((z) => z.name === val);
+    if (!selectedZoneObj) {
+      setVenues([]);
+      return;
+    }
 
-  const targetZoneId = String(selectedZoneObj._id);
+    const targetZoneId = String(selectedZoneObj._id);
 
-  const filtered = allVenues.filter((v) => {
-    const venueZoneId = v.zoneId ? String(v.zoneId) : '';
-    return venueZoneId === targetZoneId;
-  });
+    const filtered = allVenues.filter((v) => {
+      const venueZoneId = v.zoneId ? String(v.zoneId) : '';
+      return venueZoneId === targetZoneId;
+    });
 
-  setVenues(filtered);
-};
+    setVenues(filtered);
+  };
 
 
   /* ────────────────────────────────────── TOGGLES ────────────────────────────────────── */
-const handleTopPickToggle = useCallback(async (id) => {
-  const key = `${id}-topPick`;
-  if (toggleLoading[key]) return;
+  const handleTopPickToggle = useCallback(async (id) => {
+    const key = `${id}-topPick`;
+    if (toggleLoading[key]) return;
 
-  const v = venues.find((x) => x._id === id);
-  if (!v) return;
+    const v = venues.find((x) => x._id === id);
+    if (!v) return;
 
-  const newVal = !v.isTopPick;
+    const newVal = !v.isTopPick;
 
-  setToggleLoading((p) => ({ ...p, [key]: true }));
-  setVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: newVal } : x)));
-  setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: newVal } : x)));
+    setToggleLoading((p) => ({ ...p, [key]: true }));
+    setVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: newVal } : x)));
+    setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: newVal } : x)));
 
-  try {
-    const data = await makeAPICall(
-      `${API_URL}/${id}/toggle-top-pick`,
-      getFetchOptions("PATCH", { isTopPick: newVal })
-    );
+    try {
+      const data = await makeAPICall(
+        `${API_URL}/${id}/toggle-top-pick`,
+        getFetchOptions("PATCH", { isTopPick: newVal })
+      );
 
-    setNotification({
-      open: true,
-      message: newVal ? "Top Pick activated" : "Top Pick deactivated", // ✅ updated message
-      severity: "success",
-    });
-  } catch (e) {
-    setVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: !newVal } : x)));
-    setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: !newVal } : x)));
-    setNotification({ open: true, message: e.message, severity: "error" });
-  } finally {
-    setToggleLoading((p) => {
-      const n = { ...p };
-      delete n[key];
-      return n;
-    });
-  }
-}, [venues, toggleLoading]);
+      setNotification({
+        open: true,
+        message: newVal ? "Top Pick activated" : "Top Pick deactivated", // ✅ updated message
+        severity: "success",
+      });
+    } catch (e) {
+      setVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: !newVal } : x)));
+      setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, isTopPick: !newVal } : x)));
+      setNotification({ open: true, message: e.message, severity: "error" });
+    } finally {
+      setToggleLoading((p) => {
+        const n = { ...p };
+        delete n[key];
+        return n;
+      });
+    }
+  }, [venues, toggleLoading]);
 
 
 
   const handleStatusToggle = useCallback(async (id) => {
-  const key = `${id}-status`;
-  if (toggleLoading[key]) return;
+    const key = `${id}-status`;
+    if (toggleLoading[key]) return;
 
-  const v = venues.find((x) => x._id === id);
-  if (!v) return;
+    const v = venues.find((x) => x._id === id);
+    if (!v) return;
 
-  const newVal = !v.status;
+    const newVal = !v.status;
 
-  setToggleLoading((p) => ({ ...p, [key]: true }));
-  setVenues((p) => p.map((x) => (x._id === id ? { ...x, status: newVal } : x)));
-  setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, status: newVal } : x)));
+    setToggleLoading((p) => ({ ...p, [key]: true }));
+    setVenues((p) => p.map((x) => (x._id === id ? { ...x, status: newVal } : x)));
+    setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, status: newVal } : x)));
 
-  try {
-    const data = await makeAPICall(
-      `${API_URL}/${id}/toggle-active`,
-      getFetchOptions("PATCH")
-    );
+    try {
+      const data = await makeAPICall(
+        `${API_URL}/${id}/toggle-active`,
+        getFetchOptions("PATCH")
+      );
 
-    setNotification({
-      open: true,
-      message: newVal ? "Venue activated" : "Venue deactivated", // ✅ updated message
-      severity: "success",
-    });
-  } catch (e) {
-    setVenues((p) => p.map((x) => (x._id === id ? { ...x, status: !newVal } : x)));
-    setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, status: !newVal } : x)));
-    setNotification({ open: true, message: e.message, severity: "error" });
-  } finally {
-    setToggleLoading((p) => {
-      const n = { ...p };
-      delete n[key];
-      return n;
-    });
-  }
-}, [venues, toggleLoading]);
+      setNotification({
+        open: true,
+        message: newVal ? "Venue activated" : "Venue deactivated", // ✅ updated message
+        severity: "success",
+      });
+    } catch (e) {
+      setVenues((p) => p.map((x) => (x._id === id ? { ...x, status: !newVal } : x)));
+      setAllVenues((p) => p.map((x) => (x._id === id ? { ...x, status: !newVal } : x)));
+      setNotification({ open: true, message: e.message, severity: "error" });
+    } finally {
+      setToggleLoading((p) => {
+        const n = { ...p };
+        delete n[key];
+        return n;
+      });
+    }
+  }, [venues, toggleLoading]);
 
   /* ────────────────────────────────────── DELETE ────────────────────────────────────── */
   const handleDeleteClick = v => { setVenueToDelete(v); setOpenDeleteDialog(true); };
@@ -398,9 +399,9 @@ const handleTopPickToggle = useCallback(async (id) => {
       advanceDeposit: r.advanceDeposit || 0,
       cancellationPolicy: r.cancellationPolicy || '',
       extraCharges: r.extraCharges || '',
-discount: typeof r.discount === 'object' && r.discount !== null
-  ? { ...r.discount }
-  : { packageDiscount: 0, nonAc: 0 },      seatingArrangement: r.seatingArrangement || '',
+      discount: typeof r.discount === 'object' && r.discount !== null
+        ? { ...r.discount }
+        : { packageDiscount: 0, nonAc: 0 }, seatingArrangement: r.seatingArrangement || '',
       nearbyTransport: r.nearbyTransport || '',
       accessibilityInfo: r.accessibilityInfo || '',
       searchTags: r.searchTags || [],
@@ -411,71 +412,71 @@ discount: typeof r.discount === 'object' && r.discount !== null
     setOpenEditDialog(true);
   };
 
- const handleSaveEdit = async () => {
-  try {
-    setSaveLoading(true);
+  const handleSaveEdit = async () => {
+    try {
+      setSaveLoading(true);
 
-    // Clone and clean payload
-    const payload = { ...editFormData };
+      // Clone and clean payload
+      const payload = { ...editFormData };
 
-    // FIX 1: Ensure discount is a valid object
-    if (payload.discount && typeof payload.discount === 'number') {
-      payload.discount = { packageDiscount: payload.discount, nonAc: 0 };
-    }
-    if (!payload.discount || typeof payload.discount !== 'object') {
-      payload.discount = { packageDiscount: 0, nonAc: 0 };
-    }
+      // FIX 1: Ensure discount is a valid object
+      if (payload.discount && typeof payload.discount === 'number') {
+        payload.discount = { packageDiscount: payload.discount, nonAc: 0 };
+      }
+      if (!payload.discount || typeof payload.discount !== 'object') {
+        payload.discount = { packageDiscount: 0, nonAc: 0 };
+      }
 
-    // FIX 2: Clean pricingSchedule (remove empty sessions)
-    if (payload.pricingSchedule) {
-      const clean = {};
-      Object.entries(payload.pricingSchedule).forEach(([day, sessions]) => {
-        const morning = sessions.morning && Object.keys(sessions.morning).some(k => sessions.morning[k]) ? sessions.morning : undefined;
-        const evening = sessions.evening && Object.keys(sessions.evening).some(k => sessions.evening[k]) ? sessions.evening : undefined;
-        if (morning || evening) {
-          clean[day] = {};
-          if (morning) clean[day].morning = morning;
-          if (evening) clean[day].evening = evening;
-        }
+      // FIX 2: Clean pricingSchedule (remove empty sessions)
+      if (payload.pricingSchedule) {
+        const clean = {};
+        Object.entries(payload.pricingSchedule).forEach(([day, sessions]) => {
+          const morning = sessions.morning && Object.keys(sessions.morning).some(k => sessions.morning[k]) ? sessions.morning : undefined;
+          const evening = sessions.evening && Object.keys(sessions.evening).some(k => sessions.evening[k]) ? sessions.evening : undefined;
+          if (morning || evening) {
+            clean[day] = {};
+            if (morning) clean[day].morning = morning;
+            if (evening) clean[day].evening = evening;
+          }
+        });
+        payload.pricingSchedule = clean;
+      }
+
+      // Send only known fields (optional but safe)
+      const allowed = [
+        'venueName', 'shortDescription', 'venueAddress', 'venueState', 'venuePostalCode',
+        'venueCountry', 'latitude', 'longitude', 'zone', 'contactWebsite',
+        'ownerManagerName', 'ownerManagerPhone', 'ownerManagerEmail',
+        'openingHours', 'closingHours', 'maxGuestsSeated', 'maxGuestsStanding',
+        'parkingCapacity', 'parkingAvailability', 'wheelchairAccessibility',
+        'securityArrangements', 'foodCateringAvailability', 'wifiAvailability',
+        'stageLightingAudio', 'acAvailable', 'nonAcAvailable', 'acType',
+        'washroomsInfo', 'dressingRooms', 'dynamicPricing', 'advanceDeposit',
+        'cancellationPolicy', 'extraCharges', 'seatingArrangement',
+        'nearbyTransport', 'accessibilityInfo', 'searchTags', 'pricingSchedule',
+        'discount' // Now safe
+      ];
+
+      const safePayload = {};
+      allowed.forEach(field => {
+        if (payload[field] !== undefined) safePayload[field] = payload[field];
       });
-      payload.pricingSchedule = clean;
+
+      const data = await makeAPICall(`${API_URL}/${editingVenue._id}`, getFetchOptions('PUT', safePayload));
+
+      if (data.success) {
+        const updated = mapVenue(data.data, editingVenue.id - 1);
+        setVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
+        setAllVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
+        setNotification({ open: true, message: 'Venue updated successfully', severity: 'success' });
+        setOpenEditDialog(false);
+      }
+    } catch (e) {
+      setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
+    } finally {
+      setSaveLoading(false);
     }
-
-    // Send only known fields (optional but safe)
-    const allowed = [
-      'venueName', 'shortDescription', 'venueAddress', 'venueState', 'venuePostalCode',
-      'venueCountry', 'latitude', 'longitude', 'zone', 'contactWebsite',
-      'ownerManagerName', 'ownerManagerPhone', 'ownerManagerEmail',
-      'openingHours', 'closingHours', 'maxGuestsSeated', 'maxGuestsStanding',
-      'parkingCapacity', 'parkingAvailability', 'wheelchairAccessibility',
-      'securityArrangements', 'foodCateringAvailability', 'wifiAvailability',
-      'stageLightingAudio', 'acAvailable', 'nonAcAvailable', 'acType',
-      'washroomsInfo', 'dressingRooms', 'dynamicPricing', 'advanceDeposit',
-      'cancellationPolicy', 'extraCharges', 'seatingArrangement',
-      'nearbyTransport', 'accessibilityInfo', 'searchTags', 'pricingSchedule',
-      'discount' // Now safe
-    ];
-
-    const safePayload = {};
-    allowed.forEach(field => {
-      if (payload[field] !== undefined) safePayload[field] = payload[field];
-    });
-
-    const data = await makeAPICall(`${API_URL}/${editingVenue._id}`, getFetchOptions('PUT', safePayload));
-
-    if (data.success) {
-      const updated = mapVenue(data.data, editingVenue.id - 1);
-      setVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
-      setAllVenues(p => p.map(x => x._id === editingVenue._id ? updated : x));
-      setNotification({ open: true, message: 'Venue updated successfully', severity: 'success' });
-      setOpenEditDialog(false);
-    }
-  } catch (e) {
-    setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
-  } finally {
-    setSaveLoading(false);
-  }
-};
+  };
   const handlePricingChange = (day, sess, field, val) => {
     setEditFormData(p => ({
       ...p,
@@ -636,12 +637,12 @@ discount: typeof r.discount === 'object' && r.discount !== null
                   {selectedVenue.wheelchairAccessibility && <Chip icon={<Accessible />} label="Wheelchair" size="small" />}
                   {selectedVenue.securityArrangements && <Chip icon={<Security />} label="Security" size="small" />}
                   <Chip icon={<AccessTime />} label={`Open: ${selectedVenue.openingHours} - ${selectedVenue.closingHours}`} size="small" />
-<Chip 
-  icon={<AttachMoney />} 
-  label={`From: ₹${selectedVenue.pricingSchedule?.monday?.morning?.perDay || 'N/A'}`} 
-  color="primary" 
-  size="small" 
-/>
+                  <Chip
+                    icon={<AttachMoney />}
+                    label={`From: ₹${selectedVenue.pricingSchedule?.monday?.morning?.perDay || 'N/A'}`}
+                    color="primary"
+                    size="small"
+                  />
                 </Box>
               </Grid>
 
@@ -813,22 +814,22 @@ discount: typeof r.discount === 'object' && r.discount !== null
       </Dialog>
 
       {/* ── SNACKBAR ── */}
-     {/* ── SNACKBAR ── */}
-<Snackbar
-  open={notification.open}
-  autoHideDuration={4000}
-  onClose={() => setNotification((p) => ({ ...p, open: false }))}
-  anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // ✅ position fixed here
->
-  <Alert
-    onClose={() => setNotification((p) => ({ ...p, open: false }))}
-    severity={notification.severity}
-    variant="filled"
-    sx={{ width: '100%' }}
-  >
-    {notification.message}
-  </Alert>
-</Snackbar>
+      {/* ── SNACKBAR ── */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={() => setNotification((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }} // ✅ position fixed here
+      >
+        <Alert
+          onClose={() => setNotification((p) => ({ ...p, open: false }))}
+          severity={notification.severity}
+          variant="filled"
+          sx={{ width: '100%' }}
+        >
+          {notification.message}
+        </Alert>
+      </Snackbar>
 
     </TableContainer>
   );

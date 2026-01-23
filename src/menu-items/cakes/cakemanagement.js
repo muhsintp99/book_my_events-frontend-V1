@@ -12,7 +12,7 @@ const icons = {
 };
 
 const cakemanagement = {
-  id: 'cake-customers',
+  id: 'cake-management-group',
   title: 'cakeManagement',
   type: 'group',
   children: [

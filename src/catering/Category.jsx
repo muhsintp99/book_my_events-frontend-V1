@@ -46,9 +46,10 @@ import {
   Close as CloseIcon
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 // Use environment variable or fallback to localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
+// API_BASE_URL is now imported from apiImageUtils
 
 export default function CategoryManagement() {
   const [tabValue, setTabValue] = useState(0);
@@ -293,37 +294,17 @@ export default function CategoryManagement() {
         categoriesList = data.data;
       }
 
-      // Process categories for display with proper image URL handling
-      const formattedCategories = categoriesList.map((cat) => {
-        let imageUrl = '';
-        if (cat.image) {
-          if (cat.image.startsWith('http://') || cat.image.startsWith('https://')) {
-            imageUrl = cat.image;
-          } else if (cat.image.startsWith('/uploads') || cat.image.startsWith('uploads')) {
-            const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
-            imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
-          } else {
-            imageUrl = `https://api.bookmyevent.ae/${cat.image}`;
-          }
-        }
-
-        console.log('Category image processing:', {
-          original: cat.image,
-          final: imageUrl
-        });
-
-        return {
-          id: cat._id,
-          names: {
-            default: cat.title || cat.name || '',
-            english: cat.title || cat.name || '',
-            arabic: cat.title || cat.name || ''
-          },
-          status: cat.isActive !== undefined ? cat.isActive : true,
-          image: imageUrl,
-          module: cat.module || null
-        };
-      });
+      const formattedCategories = categoriesList.map((cat) => ({
+        id: cat._id,
+        names: {
+          default: cat.title || cat.name || '',
+          english: cat.title || cat.name || '',
+          arabic: cat.title || cat.name || ''
+        },
+        status: cat.isActive !== undefined ? cat.isActive : true,
+        image: cat.image ? getApiImageUrl(cat.image) : '',
+        module: cat.module || null
+      }));
 
       setCategories(formattedCategories);
 
@@ -362,7 +343,7 @@ export default function CategoryManagement() {
       return;
     }
 
-    if (!['admin', 'manager', 'superadmin'].includes(role)) {
+    if (!['admin', 'manager', 'superadmin', 'user'].includes(role)) {
       console.log('Insufficient permissions - showing error but staying on page');
       setError('Access denied. Admin, Manager, or Superadmin role required.');
       setLoading(false);
@@ -578,13 +559,7 @@ export default function CategoryManagement() {
 
       // Handle Image Preview
       if (cat.image) {
-        let imageUrl = '';
-        if (cat.image.startsWith('http')) {
-          imageUrl = cat.image;
-        } else {
-          const cleanPath = cat.image.startsWith('/') ? cat.image : `/${cat.image}`;
-          imageUrl = `https://api.bookmyevent.ae${cleanPath}`;
-        }
+        const imageUrl = getApiImageUrl(cat.image);
         setExistingImageUrl(imageUrl);
         setEditImagePreview(imageUrl);
       } else {

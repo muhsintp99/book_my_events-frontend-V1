@@ -51,6 +51,7 @@ import {
   Category,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 const CateringList = () => {
   const navigate = useNavigate();
@@ -80,7 +81,7 @@ const CateringList = () => {
   const [currentTab, setCurrentTab] = useState(0);
 
   /* ---------- API ---------- */
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
+  // API_BASE_URL is now imported from apiImageUtils
   const API_URL = `${API_BASE_URL}/catering`;
 
   const getToken = () => {
@@ -160,18 +161,18 @@ const CateringList = () => {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
       const data = await makeAPICall(url, getFetchOptions());
-     if (data?.data && Array.isArray(data.data)) {
+      if (data?.data && Array.isArray(data.data)) {
 
-  // ✅ FILTER ONLY CAKE MODULE PACKAGES
-  const cakeOnly = data.data.filter(c =>
-    c.module?.title?.toLowerCase().includes("cake")
-  );
+        // ✅ FILTER ONLY CAKE MODULE PACKAGES
+        const cakeOnly = data.data.filter(c =>
+          c.module?.title?.toLowerCase().includes("cake")
+        );
 
-  const mapped = cakeOnly.map((c, i) => mapCatering(c, i));
+        const mapped = cakeOnly.map((c, i) => mapCatering(c, i));
 
-  setAllCaterings(mapped);
-  setCaterings(mapped);
-}
+        setAllCaterings(mapped);
+        setCaterings(mapped);
+      }
 
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
@@ -248,7 +249,7 @@ const CateringList = () => {
   );
 
   const exportCSV = () => {
-    const headers = ['Sl','Package','Subtitle','Type','Price (INR)','Provider','Provider Email','Includes','Top-Pick','Status'];
+    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
     const rows = filtered.map(c => [
       c.id, `"${c.title}"`, `"${c.subtitle}"`, c.cateringType, toINR(c.price),
       `"${c.providerName}"`, `"${c.providerEmail}"`, `"${c.includes}"`,
@@ -264,11 +265,11 @@ const CateringList = () => {
   };
 
   const exportExcel = () => {
-    const headers = ['Sl','Package','Subtitle','Type','Price (INR)','Provider','Provider Email','Includes','Top-Pick','Status'];
-    const html = `<table border="1"><thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c=>`<tr>
+    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
+    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
       <td>${c.id}</td><td>${c.title}</td><td>${c.subtitle}</td><td>${c.cateringType}</td><td>${toINR(c.price)}</td>
       <td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.includes}</td>
-      <td>${c.isTopPick?'Yes':'No'}</td><td>${c.isActive?'Active':'Inactive'}</td>
+      <td>${c.isTopPick ? 'Yes' : 'No'}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
     </tr>`).join('')}</tbody></table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
@@ -331,7 +332,7 @@ const CateringList = () => {
       includes: p.includes.map((inc, i) => i === idx ? { ...inc, [field]: val } : inc)
     }));
   };
-  const addInclude = () => setEditFormData(p => ({ ...p, includes: [...(p.includes||[]), { title: '', items: [] }] }));
+  const addInclude = () => setEditFormData(p => ({ ...p, includes: [...(p.includes || []), { title: '', items: [] }] }));
   const removeInclude = idx => setEditFormData(p => ({ ...p, includes: p.includes.filter((_, i) => i !== idx) }));
 
   /* ---------- Stats ---------- */
@@ -579,7 +580,7 @@ const CateringList = () => {
                         <TextField fullWidth label="Title" size="small" value={inc.title || ''} onChange={e => handleIncludeChange(idx, 'title', e.target.value)} />
                       </Grid>
                       <Grid item xs={12} md={6}>
-                        <TextField fullWidth label="Items (comma-separated)" size="small" value={inc.items?.join(', ') || ''} onChange={e => handleIncludeChange(idx, 'items', e.target.value.split(',').map(i=>i.trim()).filter(Boolean))} />
+                        <TextField fullWidth label="Items (comma-separated)" size="small" value={inc.items?.join(', ') || ''} onChange={e => handleIncludeChange(idx, 'items', e.target.value.split(',').map(i => i.trim()).filter(Boolean))} />
                       </Grid>
                       <Grid item xs={12} md={2}>
                         <IconButton color="error" onClick={() => removeInclude(idx)} size="small"><Delete /></IconButton>
@@ -596,7 +597,7 @@ const CateringList = () => {
                 <Grid item xs={12}>
                   <Autocomplete multiple freeSolo options={[]} value={editFormData.searchTags || []}
                     onChange={(e, v) => setEditFormData(p => ({ ...p, searchTags: v }))}
-                    renderTags={(v, p) => v.map((o,i)=><Chip key={i} label={o} {...p(i)} />)}
+                    renderTags={(v, p) => v.map((o, i) => <Chip key={i} label={o} {...p(i)} />)}
                     renderInput={p => <TextField {...p} label="Search Tags" />} />
                 </Grid>
               </Grid>
@@ -605,7 +606,7 @@ const CateringList = () => {
         </DialogContent>
         <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
           <Button onClick={() => setOpenEditDialog(false)} variant="outlined" disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" startIcon={saveLoading ? <CircularProgress size={16}/> : <Save />} disabled={saveLoading}>
+          <Button onClick={handleSaveEdit} variant="contained" startIcon={saveLoading ? <CircularProgress size={16} /> : <Save />} disabled={saveLoading}>
             {saveLoading ? 'Saving...' : 'Save Changes'}
           </Button>
         </DialogActions>

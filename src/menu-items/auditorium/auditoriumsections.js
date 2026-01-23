@@ -30,7 +30,7 @@ const icons = {
 };
 
 const auditoriumsections = {
-  id: 'auditorium-customers',
+  id: 'auditorium-sections-group',
   title: 'Auditoriumsections',
   type: 'group',
   children: [

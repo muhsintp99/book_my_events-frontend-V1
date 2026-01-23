@@ -17,23 +17,35 @@ import {
   IconButton,
   Chip,
   InputAdornment,
-  Paper
+  Paper,
+  MenuItem,
+  Select,
+  FormControl,
+  InputLabel,
+  Tooltip,
+  Stack
 } from '@mui/material';
 
 import EditIcon from '@mui/icons-material/Edit';
 import DeleteIcon from '@mui/icons-material/Delete';
 import SearchIcon from '@mui/icons-material/Search';
+import VisibilityIcon from '@mui/icons-material/Visibility';
+import SortIcon from '@mui/icons-material/Sort';
 import { useNavigate } from 'react-router-dom';
+import { getAllVendors, deleteProvider, formatVendorsForList, getImageUrl } from '../api/providerApi';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
-const API_BASE = 'https://api.bookmyevent.ae/api/profile';
-
-function CakeProvider() {
+function CakeProviderList() {
   const navigate = useNavigate();
 
   const [tabValue, setTabValue] = useState(0);
   const [vendors, setVendors] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
+  const [sortBy, setSortBy] = useState('');
+  const [sortOrder, setSortOrder] = useState('desc');
+  const [modules, setModules] = useState([]);
+  const [selectedModule, setSelectedModule] = useState('all');
   const [notification, setNotification] = useState({
     open: false,
     message: '',
@@ -45,23 +57,8 @@ function CakeProvider() {
     try {
       setLoading(true);
 
-      const res = await fetch(`${API_BASE}/vendors/all`);
-      const data = await res.json();
-
-      if (!data.success) throw new Error(data.message);
-
-      // 🔥 IMPORTANT FIX: vendorId = user._id
-      const mappedVendors = data.data
-        .filter(v => v.user && v.user._id)
-        .map((v, index) => ({
-          id: index + 1,
-          vendorId: v.user._id,
-          name: `${v.user.firstName || ''} ${v.user.lastName || ''}`.trim() || 'N/A',
-          email: v.user.email || 'N/A',
-          phone: v.user.phone || 'N/A',
-          isVerified: v.isVerified || false,
-          status: v.isVerified ? 'Verified' : 'Pending'
-        }));
+      const data = await getAllVendors(sortBy, sortOrder);
+      const mappedVendors = formatVendorsForList(data.data);
 
       setVendors(mappedVendors);
     } catch (err) {
@@ -77,9 +74,24 @@ function CakeProvider() {
 
   useEffect(() => {
     fetchVendors();
-  }, []);
+    fetchModules();
+  }, [sortBy, sortOrder]);
 
-  /* ================= DELETE VENDOR ONLY ================= */
+  const fetchModules = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/modules`);
+      const data = await response.json();
+      if (Array.isArray(data)) {
+        setModules(data);
+      } else if (data.data && Array.isArray(data.data)) {
+        setModules(data.data);
+      }
+    } catch (err) {
+      console.error('Error fetching modules:', err);
+    }
+  };
+
+  /* ================= DELETE VENDOR ================= */
   const handleDeleteVendor = async (vendorId, name) => {
     if (!vendorId) {
       setNotification({
@@ -93,16 +105,9 @@ function CakeProvider() {
     if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
 
     try {
-      const res = await fetch(`${API_BASE}/vendor/${vendorId}`, {
-        method: 'DELETE'
-      });
+      await deleteProvider(vendorId);
 
-      const data = await res.json();
-      if (!data.success) throw new Error(data.message);
-
-      setVendors(prev =>
-        prev.filter(v => v.vendorId !== vendorId)
-      );
+      setVendors(prev => prev.filter(v => v.vendorId !== vendorId));
 
       setNotification({
         open: true,
@@ -124,127 +129,242 @@ function CakeProvider() {
     const searchMatch =
       v.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       v.email.toLowerCase().includes(searchTerm.toLowerCase());
-    return tabMatch && searchMatch;
+    const moduleMatch = selectedModule === 'all' || v.moduleId === selectedModule;
+    return tabMatch && searchMatch && moduleMatch;
   });
+
+  /* ================= SORT OPTIONS ================= */
+  const handleSortChange = (event) => {
+    const value = event.target.value;
+    if (value === '') {
+      setSortBy('');
+    } else {
+      setSortBy(value);
+    }
+  };
 
   /* ================= UI ================= */
   return (
     <Box p={3} bgcolor="#f4f6f8" minHeight="100vh">
       {/* Header */}
-      <Paper sx={{ p: 3, mb: 3, borderRadius: 2 }}>
-        <Typography variant="h5" fontWeight={600}>
-          Providers List
+      <Paper sx={{ p: 3, mb: 3, borderRadius: 2, background: 'linear-gradient(135deg, #FF9A8B 0%, #FF6A88 55%, #FF99AC 100%)' }}>
+        <Typography variant="h5" fontWeight={600} color="white">
+          Cake Providers
         </Typography>
-        <Typography variant="body2" color="text.secondary">
-          Manage catering vendors
+        <Typography variant="body2" color="rgba(255,255,255,0.9)">
+          Manage cake vendors and view detailed profiles
         </Typography>
       </Paper>
 
       {/* Table */}
-      <Paper sx={{ borderRadius: 2 }}>
-        <Tabs value={tabValue} onChange={(_, v) => setTabValue(v)}>
+      <Paper sx={{ borderRadius: 2, overflow: 'hidden' }}>
+        <Tabs
+          value={tabValue}
+          onChange={(_, v) => setTabValue(v)}
+          sx={{
+            bgcolor: '#f8f9fa',
+            '& .MuiTab-root': { fontWeight: 600 }
+          }}
+        >
           <Tab label="Pending Vendors" />
           <Tab label="Verified Vendors" />
         </Tabs>
 
         <Box p={3}>
-          <Box
-            display="flex"
+          {/* Controls */}
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={2}
             justifyContent="space-between"
-            alignItems="center"
-            mb={2}
-            gap={2}
+            alignItems={{ xs: 'stretch', sm: 'center' }}
+            mb={3}
           >
-            <Typography variant="h6">
+            <Typography variant="h6" fontWeight={600}>
               Vendors ({filteredVendors.length})
             </Typography>
 
-            <TextField
-              size="small"
-              placeholder="Search vendor or email"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <SearchIcon />
-                  </InputAdornment>
-                )
-              }}
-            />
-          </Box>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flex: 1, maxWidth: { sm: 600 } }}>
+              <FormControl size="small" sx={{ minWidth: 200 }}>
+                <InputLabel>Sort By</InputLabel>
+                <Select
+                  value={sortBy}
+                  label="Sort By"
+                  onChange={handleSortChange}
+                  startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
+                >
+                  <MenuItem value="">Default</MenuItem>
+                  <MenuItem value="packageCount">Most Packages</MenuItem>
+                  <MenuItem value="bookingCount">Most Bookings</MenuItem>
+                </Select>
+              </FormControl>
+
+              <FormControl size="small" sx={{ minWidth: 150 }}>
+                <InputLabel>Module</InputLabel>
+                <Select
+                  value={selectedModule}
+                  label="Module"
+                  onChange={(e) => setSelectedModule(e.target.value)}
+                >
+                  <MenuItem value="all">All Modules</MenuItem>
+                  {modules.map((m) => (
+                    <MenuItem key={m._id} value={m._id}>
+                      {m.title}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+
+              <TextField
+                size="small"
+                placeholder="Search vendor or email"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                sx={{ flex: 1 }}
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <SearchIcon />
+                    </InputAdornment>
+                  )
+                }}
+              />
+            </Stack>
+          </Stack>
 
           {loading ? (
-            <Box display="flex" alignItems="center" gap={2}>
+            <Box display="flex" alignItems="center" gap={2} py={4}>
               <CircularProgress size={22} />
               <Typography>Loading vendors...</Typography>
             </Box>
           ) : (
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>Vendor</TableCell>
-                  <TableCell>Email</TableCell>
-                  <TableCell>Phone</TableCell>
-                  <TableCell>Status</TableCell>
-                  <TableCell align="center">Actions</TableCell>
-                </TableRow>
-              </TableHead>
-
-              <TableBody>
-                {filteredVendors.map(vendor => (
-                  <TableRow key={vendor.vendorId} hover>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" gap={2}>
-                        <Avatar>
-                          {vendor.name.charAt(0).toUpperCase()}
-                        </Avatar>
-                        <Typography>{vendor.name}</Typography>
-                      </Box>
-                    </TableCell>
-
-                    <TableCell>{vendor.email}</TableCell>
-                    <TableCell>{vendor.phone}</TableCell>
-
-                    <TableCell>
-                      <Chip
-                        label={vendor.status}
-                        size="small"
-                        color={vendor.isVerified ? 'success' : 'warning'}
-                      />
-                    </TableCell>
-
-                    <TableCell align="center">
-                      <IconButton
-                        color="primary"
-                        onClick={() =>
-                          navigate(`/makeup/AddProvider/${vendor.vendorId}`)
-                        }
-                      >
-                        <EditIcon />
-                      </IconButton>
-
-                      <IconButton
-                        color="error"
-                        onClick={() =>
-                          handleDeleteVendor(vendor.vendorId, vendor.name)
-                        }
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </TableCell>
+            <Box sx={{ overflowX: 'auto' }}>
+              <Table>
+                <TableHead>
+                  <TableRow sx={{ bgcolor: '#f8f9fa' }}>
+                    <TableCell sx={{ fontWeight: 600 }}>Vendor</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Packages</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Bookings</TableCell>
+                    <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                    <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                   </TableRow>
-                ))}
+                </TableHead>
 
-                {filteredVendors.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={5} align="center">
-                      No Vendors Found
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                <TableBody>
+                  {filteredVendors.map(vendor => (
+                    <TableRow
+                      key={vendor.vendorId}
+                      hover
+                      sx={{
+                        '&:hover': { bgcolor: '#f8f9fa' },
+                        transition: 'background-color 0.2s'
+                      }}
+                    >
+                      <TableCell>
+                        <Box display="flex" alignItems="center" gap={2}>
+                          <Avatar
+                            src={getImageUrl(vendor.profilePhoto)}
+                            sx={{
+                              bgcolor: '#FF6A88',
+                              width: 40,
+                              height: 40
+                            }}
+                          >
+                            {vendor.name.charAt(0).toUpperCase()}
+                          </Avatar>
+                          <Typography fontWeight={500}>{vendor.name}</Typography>
+                        </Box>
+                      </TableCell>
+
+                      <TableCell>{vendor.email}</TableCell>
+                      <TableCell>{vendor.phone}</TableCell>
+                      <TableCell>
+                        <Chip
+                          label={vendor.module}
+                          size="small"
+                          sx={{ bgcolor: 'rgba(255, 175, 189, 0.1)', color: '#d4418e', fontWeight: 500 }}
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={vendor.packageCount}
+                          size="small"
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={vendor.bookingCount}
+                          size="small"
+                          color="secondary"
+                          variant="outlined"
+                        />
+                      </TableCell>
+
+                      <TableCell>
+                        <Chip
+                          label={vendor.status}
+                          size="small"
+                          color={vendor.isVerified ? 'success' : 'warning'}
+                        />
+                      </TableCell>
+
+                      <TableCell align="center">
+                        <Stack direction="row" spacing={0.5} justifyContent="center">
+                          <Tooltip title="View Details">
+                            <IconButton
+                              size="small"
+                              sx={{
+                                color: '#FF6A88',
+                                '&:hover': { bgcolor: 'rgba(255, 106, 136, 0.1)' }
+                              }}
+                              onClick={() => navigate(`/provider/${vendor.vendorId}/details`)}
+                            >
+                              <VisibilityIcon />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Edit">
+                            <IconButton
+                              size="small"
+                              color="primary"
+                              onClick={() => navigate(`/cake/AddProvider/${vendor.vendorId}`)}
+                            >
+                              <EditIcon />
+                            </IconButton>
+                          </Tooltip>
+
+                          <Tooltip title="Delete">
+                            <IconButton
+                              size="small"
+                              color="error"
+                              onClick={() => handleDeleteVendor(vendor.vendorId, vendor.name)}
+                            >
+                              <DeleteIcon />
+                            </IconButton>
+                          </Tooltip>
+                        </Stack>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+
+                  {filteredVendors.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
+                        <Typography color="text.secondary">
+                          No Vendors Found
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </Box>
           )}
         </Box>
       </Paper>
@@ -253,9 +373,7 @@ function CakeProvider() {
       <Snackbar
         open={notification.open}
         autoHideDuration={4000}
-        onClose={() =>
-          setNotification(p => ({ ...p, open: false }))
-        }
+        onClose={() => setNotification(p => ({ ...p, open: false }))}
       >
         <Alert severity={notification.severity} variant="filled">
           {notification.message}
@@ -265,4 +383,4 @@ function CakeProvider() {
   );
 }
 
-export default CakeProvider;
+export default CakeProviderList;

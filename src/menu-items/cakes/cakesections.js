@@ -30,7 +30,7 @@ const icons = {
 };
 
 const cakesections = {
-  id: 'cake-customers',
+  id: 'cake-sections-group',
   title: 'cakesections',
   type: 'group',
   children: [

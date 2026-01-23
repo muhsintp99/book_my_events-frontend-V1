@@ -12,7 +12,7 @@ const icons = {
 };
 
 const auditoriummanagement = {
-  id: 'auditorium-customers',
+  id: 'auditorium-management-group',
   title: 'AuditoriumManagement',
   type: 'group',
   children: [

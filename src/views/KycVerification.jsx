@@ -23,6 +23,7 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import ZoomInIcon from "@mui/icons-material/ZoomIn";
 import CloseIcon from "@mui/icons-material/Close";
 import * as XLSX from "xlsx";
+import { API_BASE_URL, getApiImageUrl } from "../utils/apiImageUtils";
 
 const KycVerification = () => {
     const theme = useTheme();
@@ -46,7 +47,7 @@ const KycVerification = () => {
     const fetchKycRequests = async () => {
         setLoading(true);
         try {
-            const res = await fetch("https://api.bookmyevent.ae/api/admin/kyc", {
+            const res = await fetch(`${API_BASE_URL}/admin/kyc`, {
                 headers: { Authorization: `Bearer ${getAuthToken()}` }
             });
             const data = await res.json();
@@ -65,7 +66,7 @@ const KycVerification = () => {
     const handleUpdateStatus = async (userId, status) => {
         setActionLoading(true);
         try {
-            const res = await fetch("https://api.bookmyevent.ae/api/admin/kyc/status", {
+            const res = await fetch(`${API_BASE_URL}/admin/kyc/status`, {
                 method: "PUT",
                 headers: {
                     Authorization: `Bearer ${getAuthToken()}`,
@@ -445,7 +446,7 @@ const KycVerification = () => {
                                     <Box
                                         onClick={() => detailDialog.data.kycDetails?.documentInfo?.frontImage && setImagePreviewDialog({
                                             open: true,
-                                            imageUrl: `https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.frontImage}`
+                                            imageUrl: getApiImageUrl(detailDialog.data.kycDetails.documentInfo.frontImage)
                                         })}
                                         sx={{
                                             width: "100%",
@@ -467,7 +468,7 @@ const KycVerification = () => {
                                         {detailDialog.data.kycDetails?.documentInfo?.frontImage ? (
                                             <>
                                                 <img
-                                                    src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.frontImage}`}
+                                                    src={getApiImageUrl(detailDialog.data.kycDetails.documentInfo.frontImage)}
                                                     alt="Front"
                                                     style={{ width: "100%", height: "100%", objectFit: "contain" }}
                                                 />
@@ -501,7 +502,7 @@ const KycVerification = () => {
                                     <Box
                                         onClick={() => detailDialog.data.kycDetails?.documentInfo?.backImage && setImagePreviewDialog({
                                             open: true,
-                                            imageUrl: `https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.backImage}`
+                                            imageUrl: getApiImageUrl(detailDialog.data.kycDetails.documentInfo.backImage)
                                         })}
                                         sx={{
                                             width: "100%",
@@ -523,7 +524,7 @@ const KycVerification = () => {
                                         {detailDialog.data.kycDetails?.documentInfo?.backImage ? (
                                             <>
                                                 <img
-                                                    src={`https://api.bookmyevent.ae${detailDialog.data.kycDetails.documentInfo.backImage}`}
+                                                    src={getApiImageUrl(detailDialog.data.kycDetails.documentInfo.backImage)}
                                                     alt="Back"
                                                     style={{ width: "100%", height: "100%", objectFit: "contain" }}
                                                 />

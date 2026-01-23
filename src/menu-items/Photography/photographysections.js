@@ -30,7 +30,7 @@ const icons = {
 };
 
 const photographysections = {
-  id: 'photography-customers',
+  id: 'photography-sections-group',
   title: 'PhotographySections',
   type: 'group',
   children: [

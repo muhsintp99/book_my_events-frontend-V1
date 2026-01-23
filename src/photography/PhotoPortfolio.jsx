@@ -40,8 +40,9 @@ import {
 
 import axios from 'axios';
 
-const API_BASE_URL = 'https://api.bookmyevent.ae';
-const api = axios.create({ baseURL: API_BASE_URL });
+import { API_BASE_URL, getApiImageUrl, API_ORIGIN } from '../utils/apiImageUtils';
+
+const api = axios.create({ baseURL: API_ORIGIN });
 
 // ALWAYS DEFAULT PHOTOGRAPHY
 const PHOTOGRAPHY_MODULE_ID = '68e5fb0fa4b2718b6cbf64e9';
@@ -218,9 +219,9 @@ export default function PhotoPortfolio({ providerId: propProviderId }) {
 
   const openFullscreen = (mediaArray, index = 0, isVideo = false) => {
     const urls = mediaArray.map(item => {
-      if (typeof item === 'string') return `${API_BASE_URL}/${item}`;
+      if (typeof item === 'string') return getApiImageUrl(item);
       if (item.type === 'videoLink') return formatVideoUrl(item.url);
-      return `${API_BASE_URL}/${item.url}`;
+      return getApiImageUrl(item.url);
     });
 
     setCurrentMediaUrls(urls);
@@ -450,7 +451,7 @@ export default function PhotoPortfolio({ providerId: propProviderId }) {
                 onKeyDown={e =>
                   e.key === 'Enter' &&
                   (e.preventDefault(),
-                  addTag(portfolioTagInput, setPortfolioTagInput, setPortfolioTags))
+                    addTag(portfolioTagInput, setPortfolioTagInput, setPortfolioTags))
                 }
                 sx={{ mb: 3 }}
               />
@@ -550,7 +551,7 @@ export default function PhotoPortfolio({ providerId: propProviderId }) {
                               {item.media.slice(0, 3).map((url, idx) => (
                                 <img
                                   key={idx}
-                                  src={`${API_BASE_URL}/${url}`}
+                                  src={getApiImageUrl(url)}
                                   alt=""
                                   onClick={() => openFullscreen(item.media, idx, false)}
                                   style={{
@@ -652,7 +653,7 @@ export default function PhotoPortfolio({ providerId: propProviderId }) {
                 onKeyDown={e =>
                   e.key === 'Enter' &&
                   (e.preventDefault(),
-                  addTag(videoTagInput, setVideoTagInput, setVideoTags))
+                    addTag(videoTagInput, setVideoTagInput, setVideoTags))
                 }
                 sx={{ mb: 3 }}
               />
@@ -880,7 +881,7 @@ export default function PhotoPortfolio({ providerId: propProviderId }) {
 
           {isVideoMode ? (
             currentMediaUrls[currentIndex]?.includes('embed') ||
-            currentMediaUrls[currentIndex]?.includes('player.vimeo') ? (
+              currentMediaUrls[currentIndex]?.includes('player.vimeo') ? (
               <iframe
                 src={currentMediaUrls[currentIndex]}
                 style={{

@@ -50,6 +50,7 @@ import {
   Web,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 const MakeupList = () => {
   const navigate = useNavigate();
@@ -83,7 +84,7 @@ const MakeupList = () => {
   const [currentTab, setCurrentTab] = useState(0);
 
   /* ---------- API ---------- */
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae/api';
+  // API_BASE_URL is now imported from apiImageUtils
   const API_URL = `${API_BASE_URL}/makeup-packages`;
 
   const getToken = () => {
@@ -345,8 +346,8 @@ const MakeupList = () => {
       <table border="1">
         <thead><tr>${headers.map((h) => `<th>${h}</th>`).join('')}</tr></thead>
         <tbody>${filtered
-          .map(
-            (c) => `<tr>
+        .map(
+          (c) => `<tr>
               <td>${c.id}</td>
               <td>${c.title}</td>
               <td>${c.makeupType}</td>
@@ -359,8 +360,8 @@ const MakeupList = () => {
               <td>${c.isTopPick ? 'Yes' : 'No'}</td>
               <td>${c.isActive ? 'Active' : 'Inactive'}</td>
             </tr>`
-          )
-          .join('')}</tbody>
+        )
+        .join('')}</tbody>
       </table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);

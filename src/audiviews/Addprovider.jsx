@@ -1419,7 +1419,8 @@ import {
   FormControlLabel,
   Checkbox
 } from '@mui/material';
-import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 function AddAuditorium() {
   const [open, setOpen] = useState(false);
@@ -1432,7 +1433,7 @@ function AddAuditorium() {
   const activeModuleId = localStorage.getItem('moduleDbId');
 
 
-   /* ---------------- BANK DETAILS (NEW) ---------------- */
+  /* ---------------- BANK DETAILS (NEW) ---------------- */
   const [bankDetails, setBankDetails] = useState({
     accountHolderName: '',
     bankName: '',
@@ -1505,9 +1506,7 @@ function AddAuditorium() {
     coverImage: null
   });
 
-  const API_BASE_URL = import.meta.env.MODE === 'development'
-    ? 'http://localhost:5000/api'
-    : 'https://api.bookmyevent.ae/api';
+  // API_BASE_URL is now imported from apiImageUtils
 
   // Fetch subscription plans
   useEffect(() => {
@@ -1522,7 +1521,7 @@ function AddAuditorium() {
         setPlansLoading(true);
         const res = await fetch(`${API_BASE_URL}/subscription/plan/module/${formData.module}`);
         const data = await res.json();
-        
+
         if (data && data.success && Array.isArray(data.plans)) {
           setPlans(data.plans);
         } else if (Array.isArray(data)) {
@@ -1782,7 +1781,7 @@ function AddAuditorium() {
     try {
       setLoading(true);
       const payload = new FormData();
-      
+
       // Basic info
       payload.append('firstName', formData.firstName);
       payload.append('lastName', formData.lastName);
@@ -1790,16 +1789,16 @@ function AddAuditorium() {
       payload.append('phone', formData.phone);
       payload.append('role', 'vendor');
       payload.append('storeName', formData.storeName);
-      
+
 
       // ---------------- BANK DETAILS ----------------
-payload.append('accountHolderName', bankDetails.accountHolderName);
-payload.append('bankName', bankDetails.bankName);
-payload.append('accountNumber', bankDetails.accountNumber);
-payload.append('ifscCode', bankDetails.ifscCode);
-payload.append('branchName', bankDetails.branchName);
-payload.append('upiId', bankDetails.upiId);
-payload.append('accountType', bankDetails.accountType);
+      payload.append('accountHolderName', bankDetails.accountHolderName);
+      payload.append('bankName', bankDetails.bankName);
+      payload.append('accountNumber', bankDetails.accountNumber);
+      payload.append('ifscCode', bankDetails.ifscCode);
+      payload.append('branchName', bankDetails.branchName);
+      payload.append('upiId', bankDetails.upiId);
+      payload.append('accountType', bankDetails.accountType);
 
       // Address
       // payload.append('storeAddress[street]', formData.storeAddress.street);
@@ -1808,11 +1807,11 @@ payload.append('accountType', bankDetails.accountType);
       // payload.append('storeAddress[zipCode]', formData.storeAddress.zipCode);
       // payload.append('storeAddress[fullAddress]', formData.storeAddress.fullAddress);
       payload.append(
-  'storeAddress',
-  JSON.stringify(formData.storeAddress)
-);
+        'storeAddress',
+        JSON.stringify(formData.storeAddress)
+      );
 
-      
+
       // Other fields
       payload.append('minimumDeliveryTime', formData.minimumDeliveryTime);
       payload.append('maximumDeliveryTime', formData.maximumDeliveryTime);
@@ -1843,11 +1842,11 @@ payload.append('accountType', bankDetails.accountType);
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
       // Register provider
-      const res = await fetch(`${API_BASE_URL}/auth/register`, { 
-        method: 'POST', 
-        body: payload 
+      const res = await fetch(`${API_BASE_URL}/auth/register`, {
+        method: 'POST',
+        body: payload
       });
-      
+
       let result;
       try {
         result = await res.json();
@@ -1870,12 +1869,12 @@ payload.append('accountType', bankDetails.accountType);
       }
 
       // Extract provider ID from response
-      const providerId = result.providerId || 
-                        result.userId || 
-                        result._id || 
-                        result.id ||
-                        (result.data && (result.data.providerId || result.data._id)) ||
-                        (result.user && (result.user._id || result.user.id));
+      const providerId = result.providerId ||
+        result.userId ||
+        result._id ||
+        result.id ||
+        (result.data && (result.data.providerId || result.data._id)) ||
+        (result.user && (result.user._id || result.user.id));
 
       console.log('Extracted providerId:', providerId);
 
@@ -1893,19 +1892,19 @@ payload.append('accountType', bankDetails.accountType);
         console.error('=== PROVIDER ID NOT FOUND ===');
         console.error('Full response:', JSON.stringify(result, null, 2));
         console.error('============================');
-        
+
         // Show detailed error with the actual response structure
         const responsePreview = JSON.stringify(result).substring(0, 200);
         showAlert(
-          `Provider created but ID not found in response. Check console for details. Response preview: ${responsePreview}...`, 
+          `Provider created but ID not found in response. Check console for details. Response preview: ${responsePreview}...`,
           'error'
         );
-        
+
         // Still reset form so user can try again
         setTimeout(() => {
           handleReset();
         }, 5000);
-        
+
         setLoading(false);
         return;
       }
@@ -1940,7 +1939,7 @@ payload.append('accountType', bankDetails.accountType);
       // Redirect to payment page
       if (paymentData.success && paymentData.payment_links && paymentData.payment_links.web) {
         showAlert('Redirecting to payment page...', 'info');
-        
+
         // Store necessary data in localStorage for return handling
         localStorage.setItem('pendingPayment', JSON.stringify({
           providerId: providerId,
@@ -2197,9 +2196,9 @@ payload.append('accountType', bankDetails.accountType);
             ) : plans.length > 0 ? (
               <FormControl fullWidth>
                 <InputLabel>Subscription Plan *</InputLabel>
-                <Select 
-                  label="Subscription Plan *" 
-                  value={subscriptionPlan} 
+                <Select
+                  label="Subscription Plan *"
+                  value={subscriptionPlan}
                   onChange={(e) => setSubscriptionPlan(e.target.value)}
                 >
                   <MenuItem value=""><em>Select Subscription Plan</em></MenuItem>
@@ -2229,70 +2228,70 @@ payload.append('accountType', bankDetails.accountType);
       </Box>
 
 
-{/* BANK DETAILS */}
-<Box
-  sx={{
-    mb: 3,
-    mt: 4,
-    p: 2,
-    borderRadius: 2,
-    border: '1px solid #ddd',
-    background: '#fafafa'
-  }}
->
-  <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-    Bank Details
-  </Typography>
+      {/* BANK DETAILS */}
+      <Box
+        sx={{
+          mb: 3,
+          mt: 4,
+          p: 2,
+          borderRadius: 2,
+          border: '1px solid #ddd',
+          background: '#fafafa'
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Bank Details
+        </Typography>
 
-  <Alert severity="info" sx={{ mb: 2 }}>
-    Please provide correct bank details. These details will be used for vendor settlements and payouts.
-  </Alert>
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Please provide correct bank details. These details will be used for vendor settlements and payouts.
+        </Alert>
 
-  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-    <TextField
-      fullWidth
-      label="Account Holder Name"
-      value={bankDetails.accountHolderName}
-      onChange={handleBankChange('accountHolderName')}
-    />
-    <TextField
-      fullWidth
-      label="Bank Name"
-      value={bankDetails.bankName}
-      onChange={handleBankChange('bankName')}
-    />
-  </Box>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Account Holder Name"
+            value={bankDetails.accountHolderName}
+            onChange={handleBankChange('accountHolderName')}
+          />
+          <TextField
+            fullWidth
+            label="Bank Name"
+            value={bankDetails.bankName}
+            onChange={handleBankChange('bankName')}
+          />
+        </Box>
 
-  <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-    <TextField
-      fullWidth
-      label="Account Number"
-      value={bankDetails.accountNumber}
-      onChange={handleBankChange('accountNumber')}
-    />
-    <TextField
-      fullWidth
-      label="IFSC Code"
-      value={bankDetails.ifscCode}
-      onChange={handleBankChange('ifscCode')}
-    />
-  </Box>
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Account Number"
+            value={bankDetails.accountNumber}
+            onChange={handleBankChange('accountNumber')}
+          />
+          <TextField
+            fullWidth
+            label="IFSC Code"
+            value={bankDetails.ifscCode}
+            onChange={handleBankChange('ifscCode')}
+          />
+        </Box>
 
-  <Box sx={{ display: 'flex', gap: 2 }}>
-    <TextField
-      fullWidth
-      label="Branch Name"
-      value={bankDetails.branchName}
-      onChange={handleBankChange('branchName')}
-    />
-    <TextField
-      fullWidth
-      label="UPI ID"
-      value={bankDetails.upiId}
-      onChange={handleBankChange('upiId')}
-    />
-  </Box>
-</Box>
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField
+            fullWidth
+            label="Branch Name"
+            value={bankDetails.branchName}
+            onChange={handleBankChange('branchName')}
+          />
+          <TextField
+            fullWidth
+            label="UPI ID"
+            value={bankDetails.upiId}
+            onChange={handleBankChange('upiId')}
+          />
+        </Box>
+      </Box>
 
 
 
@@ -2301,10 +2300,10 @@ payload.append('accountType', bankDetails.accountType);
         <Button variant="outlined" onClick={handleReset} disabled={loading}>
           Reset
         </Button>
-        <Button 
-          variant="contained" 
-          color="primary" 
-          onClick={handleSubmit} 
+        <Button
+          variant="contained"
+          color="primary"
+          onClick={handleSubmit}
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
@@ -2312,15 +2311,15 @@ payload.append('accountType', bankDetails.accountType);
         </Button>
       </Box>
 
-      <Snackbar 
-        open={open} 
-        autoHideDuration={6000} 
-        onClose={() => setOpen(false)} 
+      <Snackbar
+        open={open}
+        autoHideDuration={6000}
+        onClose={() => setOpen(false)}
         anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
       >
-        <Alert 
-          onClose={() => setOpen(false)} 
-          severity={alertSeverity} 
+        <Alert
+          onClose={() => setOpen(false)}
+          severity={alertSeverity}
           sx={{ width: '100%' }}
         >
           {alertMessage}

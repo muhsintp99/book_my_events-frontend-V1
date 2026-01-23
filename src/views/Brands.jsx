@@ -33,6 +33,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
+import { API_BASE_URL, getApiImageUrl, API_ORIGIN } from '../utils/apiImageUtils';
 
 const Brandlist = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -40,16 +41,16 @@ const Brandlist = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [success, setSuccess] = useState(null);
-  
+
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
-  
+
   // Filter state
   const [statusFilter, setStatusFilter] = useState('all');
   const [moduleFilter, setModuleFilter] = useState('all');
   const [modules, setModules] = useState([]);
-  
+
   // Create/Edit Brand state
   const [openDialog, setOpenDialog] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -61,8 +62,7 @@ const Brandlist = () => {
   });
   const [formLoading, setFormLoading] = useState(false);
 
-  // Base API URL
-  const API_BASE_URL = 'https://api.bookmyevent.ae';
+  // API_BASE_URL is now imported from apiImageUtils
 
   // Get auth token
   const getAuthToken = () => localStorage.getItem('token') || '';
@@ -79,7 +79,7 @@ const Brandlist = () => {
   // Fetch modules for dropdown
   const fetchModules = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/modules`, {
+      const response = await fetch(`${API_BASE_URL}/modules`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
         },
@@ -100,7 +100,7 @@ const Brandlist = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/api/brands`, {
+      const response = await fetch(`${API_BASE_URL}/brands`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
         },
@@ -111,7 +111,7 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         setBrands(data);
       } else {
@@ -135,8 +135,8 @@ const Brandlist = () => {
     try {
       setLoading(true);
       setError(null);
-      
-      const response = await fetch(`${API_BASE_URL}/api/brands/module/${moduleId}`, {
+
+      const response = await fetch(`${API_BASE_URL}/brands/module/${moduleId}`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
         },
@@ -147,7 +147,7 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       if (Array.isArray(data)) {
         setBrands(data);
       } else {
@@ -170,18 +170,18 @@ const Brandlist = () => {
       const formData = new FormData();
       formData.append('title', brandForm.title);
       formData.append('module', brandForm.module);
-      
+
       // Only append createdBy if we have a valid userId
       const userId = getUserId();
       if (userId) {
         formData.append('createdBy', userId);
       }
-      
+
       if (brandForm.icon) {
         formData.append('icon', brandForm.icon);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/brands`, {
+      const response = await fetch(`${API_BASE_URL}/brands`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
@@ -195,7 +195,7 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       setSuccess(data.message || 'Brand created successfully');
       setBrands([data.brand, ...brands]);
       handleCloseDialog();
@@ -217,18 +217,18 @@ const Brandlist = () => {
       const formData = new FormData();
       formData.append('title', brandForm.title);
       formData.append('module', brandForm.module);
-      
+
       // Only append updatedBy if we have a valid userId
       const userId = getUserId();
       if (userId) {
         formData.append('updatedBy', userId);
       }
-      
+
       if (brandForm.icon) {
         formData.append('icon', brandForm.icon);
       }
 
-      const response = await fetch(`${API_BASE_URL}/api/brands/${selectedBrand._id}`, {
+      const response = await fetch(`${API_BASE_URL}/brands/${selectedBrand._id}`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
@@ -242,7 +242,7 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       setSuccess(data.message || 'Brand updated successfully');
       setBrands(brands.map(b => b._id === selectedBrand._id ? data.brand : b));
       handleCloseDialog();
@@ -258,11 +258,11 @@ const Brandlist = () => {
   const toggleBrandStatus = async (brand) => {
     try {
       const endpoint = brand.isActive ? 'block' : 'reactivate';
-      
+
       const userId = getUserId();
       const body = userId ? { updatedBy: userId } : {};
-      
-      const response = await fetch(`${API_BASE_URL}/api/brands/${brand._id}/${endpoint}`, {
+
+      const response = await fetch(`${API_BASE_URL}/brands/${brand._id}/${endpoint}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
@@ -277,7 +277,7 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       setSuccess(data.message);
       setBrands(brands.map(b => b._id === brand._id ? data.brand : b));
     } catch (err) {
@@ -293,7 +293,7 @@ const Brandlist = () => {
     }
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/brands/${brandId}`, {
+      const response = await fetch(`${API_BASE_URL}/brands/${brandId}`, {
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
@@ -306,10 +306,10 @@ const Brandlist = () => {
       }
 
       const data = await response.json();
-      
+
       setSuccess(data.message || 'Brand deleted successfully');
       setBrands(brands.filter(b => b._id !== brandId));
-      
+
       // Adjust pagination if needed
       const newFilteredCount = brands.filter(b => b._id !== brandId).length;
       const newTotalPages = Math.ceil(newFilteredCount / itemsPerPage);
@@ -456,13 +456,13 @@ const Brandlist = () => {
   return (
     <Box sx={{ p: 3, backgroundColor: '#f5f5f5', minHeight: '100vh' }}>
       <Box sx={{ maxWidth: 'lg', margin: 'auto', backgroundColor: 'white', borderRadius: 2, boxShadow: 1, p: 3 }}>
-        
+
         {/* Header */}
         <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
           <Typography variant="h5" component="h1">
             Brand List ({filteredCount} {filteredCount === 1 ? 'brand' : 'brands'})
           </Typography>
-          
+
           <Button variant="contained" color="primary" onClick={() => handleOpenDialog()}>
             + Create Brand
           </Button>
@@ -493,7 +493,7 @@ const Brandlist = () => {
               startAdornment: <SearchIcon sx={{ mr: 1, color: 'action.active' }} />
             }}
           />
-          
+
           <FormControl size="small" sx={{ minWidth: 130 }}>
             <InputLabel>Status</InputLabel>
             <Select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} label="Status">
@@ -514,11 +514,11 @@ const Brandlist = () => {
               ))}
             </Select>
           </FormControl>
-          
+
           <Button variant="outlined" startIcon={<DownloadIcon />} onClick={handleExport} disabled={brands.length === 0}>
             Export
           </Button>
-          
+
           <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => { setModuleFilter('all'); fetchBrands(); }} disabled={loading}>
             Refresh
           </Button>
@@ -560,7 +560,7 @@ const Brandlist = () => {
                       <TableCell>
                         {brand.icon && (
                           <img
-                            src={`${API_BASE_URL}/${brand.icon}`}
+                            src={getApiImageUrl(brand.icon)}
                             alt={brand.title}
                             style={{ width: 80, height: 40, objectFit: 'contain' }}
                             onError={(e) => { e.target.style.display = 'none'; }}
@@ -635,7 +635,7 @@ const Brandlist = () => {
               fullWidth
               required
             />
-            
+
             <FormControl fullWidth required>
               <InputLabel>Module</InputLabel>
               <Select
@@ -664,7 +664,7 @@ const Brandlist = () => {
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="caption">Current Icon:</Typography>
                   <img
-                    src={`${API_BASE_URL}/${selectedBrand.icon}`}
+                    src={getApiImageUrl(selectedBrand.icon)}
                     alt="Current"
                     style={{ width: 100, height: 50, objectFit: 'contain', display: 'block', marginTop: 8 }}
                   />

@@ -8,6 +8,7 @@ import {
 import SearchIcon from "@mui/icons-material/Search";
 import { MoreVert } from "@mui/icons-material";
 import { styled } from "@mui/system";
+import { API_BASE_URL } from "../utils/apiImageUtils";
 
 const StyledCard = styled(Card)({
   borderRadius: 8,
@@ -75,7 +76,7 @@ const SubscribedStore = () => {
   // Fetch Subscribed Stores
   const fetchSubscribedStores = async () => {
     try {
-      const res = await fetch("https://api.bookmyevent.ae/api/subscription/all");
+      const res = await fetch(`${API_BASE_URL}/subscription/all`);
       const data = await res.json();
 
       if (data.success) {
@@ -107,7 +108,7 @@ const SubscribedStore = () => {
   // Fetch Modules
   const fetchModules = async () => {
     try {
-      const res = await fetch("https://api.bookmyevent.ae/api/modules");
+      const res = await fetch(`${API_BASE_URL}/modules`);
       const data = await res.json();
 
       if (Array.isArray(data)) {

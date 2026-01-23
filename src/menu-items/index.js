@@ -46,6 +46,10 @@ import cakemanagement from './cakes/cakemanagement';
 import cakesections from './cakes/cakesections';
 import CakeProvidermanagement from './cakes/providermanagement';
 
+import ornamentsmanagement from './ornaments/ornamentsmanagement';
+import ornamentssections from './ornaments/ornamentssections';
+import OrnamentsProvidermanagement from './ornaments/ornamentsprovidermanagement';
+
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
@@ -75,9 +79,12 @@ const moduleMenuItems = {
   cake: {
     items: [dashboard, cakemanagement, cakesections, CakeProvidermanagement]
   },
+  ornaments: {
+    items: [dashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
+  },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-   items: [zonemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
+    items: [zonemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
 
   }
 

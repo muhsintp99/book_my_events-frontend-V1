@@ -12,11 +12,11 @@ const icons = {
 };
 
 const makeupmanangement = {
-  id: 'makeup-customers',
+  id: 'makeup-management-group',
   title: 'MakeupManagement',
   type: 'group',
   children: [
-   
+
     {
       id: 'Coupons',
       title: 'Coupons',

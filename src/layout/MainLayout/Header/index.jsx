@@ -374,6 +374,7 @@ import ListItemIcon from '@mui/material/ListItemIcon';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
+import { API_BASE_URL, getApiImageUrl as getStandardImageUrl } from '../../../utils/apiImageUtils';
 
 // project imports
 import LogoSection from '../LogoSection';
@@ -472,7 +473,7 @@ export default function Header() {
   useEffect(() => {
     const fetchModules = async () => {
       try {
-        const res = await fetch('https://api.bookmyevent.ae/api/modules/');
+        const res = await fetch(`${API_BASE_URL}/modules/`);
         const data = await res.json();
 
         const formattedApiModules = data
@@ -509,7 +510,7 @@ export default function Header() {
 
     const fetchSecondaryModules = async () => {
       try {
-        const res = await fetch('https://api.bookmyevent.ae/api/secondary-modules/');
+        const res = await fetch(`${API_BASE_URL}/secondary-modules/`);
         const data = await res.json();
 
         const formattedSecondaryModules = data
@@ -662,8 +663,7 @@ export default function Header() {
 
   const getImageUrl = (icon, isSecondary = false) => {
     if (!icon) return '/default-icon.png';
-    if (icon.startsWith('http') || icon.startsWith('/')) return icon;
-    return isSecondary ? `https://api.bookmyevent.ae/${icon}` : `https://api.bookmyevent.ae/${icon}`;
+    return getStandardImageUrl(icon);
   };
 
   const renderModuleGrid = (moduleList, handleClick, isSecondary = false) => (

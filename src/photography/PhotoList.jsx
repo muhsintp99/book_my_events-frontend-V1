@@ -43,6 +43,7 @@ import {
   LocationOn,
   AttachMoney,
 } from '@mui/icons-material';
+import { API_BASE_URL, getApiImageUrl, API_ORIGIN } from '../utils/apiImageUtils';
 
 const PhotographyList = () => {
   const [packages, setPackages] = useState([]);
@@ -59,8 +60,7 @@ const PhotographyList = () => {
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
   const [tabValue, setTabValue] = useState(0);
 
-  // Correct Base URL
-  const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae';
+  // API_BASE_URL is now imported from apiImageUtils
   const API_URL = `${API_BASE_URL}/photography-packages`;
 
   const getToken = () => localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -92,11 +92,7 @@ const PhotographyList = () => {
       }
     }
   };
-const fixImageUrl = (url) => {
-  if (!url) return "";
-  if (url.startsWith("http")) return url;
-  return `https://api.bookmyevent.ae${url}`;
-};
+  const fixImageUrl = (url) => getApiImageUrl(url);
 
   const fetchPackages = async () => {
     try {
@@ -323,7 +319,7 @@ const fixImageUrl = (url) => {
         {viewPackage?.gallery?.length > 0 && (
           <Box sx={{ height: 320, bgcolor: '#000' }}>
             <img
-src={fixImageUrl(viewPackage.gallery[0])}
+              src={fixImageUrl(viewPackage.gallery[0])}
               alt="Package cover"
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               onError={(e) => e.target.src = 'https://via.placeholder.com/800x400?text=No+Image'}
@@ -425,7 +421,7 @@ src={fixImageUrl(viewPackage.gallery[0])}
                         {viewPackage.gallery.map((img, i) => (
                           <Grid item key={i}>
                             <img
-src={fixImageUrl(img)}
+                              src={fixImageUrl(img)}
                               alt={`Gallery ${i + 1}`}
                               style={{ width: 150, height: 150, objectFit: 'cover', borderRadius: 8, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}
                               onError={(e) => e.target.src = 'https://via.placeholder.com/150?text=No+Image'}

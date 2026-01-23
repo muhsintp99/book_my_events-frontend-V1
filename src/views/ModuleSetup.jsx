@@ -26,6 +26,7 @@ import {
   Edit as EditIcon,
   Close as CloseIcon,
 } from '@mui/icons-material';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 // Import CKEditor
 import { CKEditor } from '@ckeditor/ckeditor5-react';
@@ -71,7 +72,7 @@ const ModuleSetup = () => {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch('https://api.bookmyevent.ae/api/modules');
+        const res = await fetch(`${API_BASE_URL}/modules`);
         if (!res.ok) throw new Error('Failed to fetch modules');
         const data = await res.json();
         setModules(data);
@@ -90,7 +91,7 @@ const ModuleSetup = () => {
     setImagePreview({ appIcon: null, thumbnail: null });
     setFormError(null);
     setEditingModule(null);
-    
+
     // Reset file inputs
     const iconInput = document.getElementById('app-icon-upload');
     const thumbnailInput = document.getElementById('thumbnail-upload');
@@ -115,13 +116,13 @@ const ModuleSetup = () => {
       appIcon: null,
       thumbnail: null,
     });
-    
+
     // Set existing image previews if they exist
     setImagePreview({
-      appIcon: module.icon ? `https://api.bookmyevent.ae/${module.icon}` : null,
-      thumbnail: module.thumbnail ? `https://api.bookmyevent.ae/${module.thumbnail}` : null,
+      appIcon: module.icon ? getApiImageUrl(module.icon) : null,
+      thumbnail: module.thumbnail ? getApiImageUrl(module.thumbnail) : null,
     });
-    
+
     setShowForm(true);
     handleActionClose();
   };
@@ -140,16 +141,16 @@ const ModuleSetup = () => {
         setFormError('App icon file size should be less than 2MB');
         return;
       }
-      
+
       setModuleForm({ ...moduleForm, appIcon: file });
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(prev => ({ ...prev, appIcon: reader.result }));
       };
       reader.readAsDataURL(file);
-      
+
       setFormError(null);
     }
   };
@@ -167,16 +168,16 @@ const ModuleSetup = () => {
         setFormError('Thumbnail file size should be less than 2MB');
         return;
       }
-      
+
       setModuleForm({ ...moduleForm, thumbnail: file });
-      
+
       // Create preview
       const reader = new FileReader();
       reader.onloadend = () => {
         setImagePreview(prev => ({ ...prev, thumbnail: reader.result }));
       };
       reader.readAsDataURL(file);
-      
+
       setFormError(null);
     }
   };
@@ -185,7 +186,7 @@ const ModuleSetup = () => {
   const removeImagePreview = (type) => {
     setModuleForm(prev => ({ ...prev, [type]: null }));
     setImagePreview(prev => ({ ...prev, [type]: null }));
-    
+
     // Reset file input
     const inputId = type === 'appIcon' ? 'app-icon-upload' : 'thumbnail-upload';
     const input = document.getElementById(inputId);
@@ -220,11 +221,11 @@ const ModuleSetup = () => {
       const formData = new FormData();
       formData.append('title', moduleForm.name.trim());
       formData.append('description', moduleForm.description);
-      
+
       if (moduleForm.appIcon) {
         formData.append('icon', moduleForm.appIcon);
       }
-      
+
       if (moduleForm.thumbnail) {
         formData.append('thumbnail', moduleForm.thumbnail);
       }
@@ -232,13 +233,13 @@ const ModuleSetup = () => {
       let res;
       if (formMode === 'add') {
         // Create new module
-        res = await fetch('https://api.bookmyevent.ae/api/modules', {
+        res = await fetch(`${API_BASE_URL}/modules`, {
           method: 'POST',
           body: formData,
         });
       } else {
         // Update existing module
-        res = await fetch(`https://api.bookmyevent.ae/api/modules/${editingModule._id}`, {
+        res = await fetch(`${API_BASE_URL}/modules/${editingModule._id}`, {
           method: 'PUT',
           body: formData,
         });
@@ -250,18 +251,18 @@ const ModuleSetup = () => {
       }
 
       const responseData = await res.json();
-      
+
       if (formMode === 'add') {
         setModules([...modules, responseData.module]);
       } else {
-        setModules(modules.map(module => 
+        setModules(modules.map(module =>
           module._id === editingModule._id ? responseData.module : module
         ));
       }
-      
+
       resetForm();
       setShowForm(false);
-      
+
     } catch (err) {
       console.error(`${formMode} module error:`, err);
       setFormError(err.message || `Failed to ${formMode} module`);
@@ -279,9 +280,7 @@ const ModuleSetup = () => {
 
   // Get module icon URL
   const getModuleIconUrl = (icon) => {
-    if (!icon) return null;
-    if (icon.startsWith('http') || icon.startsWith('/')) return icon;
-    return `https://api.bookmyevent.ae/${icon}`;
+    return getApiImageUrl(icon);
   };
 
   return (
@@ -335,7 +334,7 @@ const ModuleSetup = () => {
               <CircularProgress />
             </Box>
           )}
-          
+
           {error && (
             <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
               {error}
@@ -374,8 +373,8 @@ const ModuleSetup = () => {
                       <TableCell sx={{ fontWeight: 500 }}>{module.title}</TableCell>
                       <TableCell>
                         <Box sx={{ display: 'flex', gap: 1 }}>
-                          <IconButton 
-                            size="small" 
+                          <IconButton
+                            size="small"
                             onClick={() => handleEditModule(module)}
                             sx={{ color: 'primary.main' }}
                           >
@@ -476,22 +475,22 @@ const ModuleSetup = () => {
               >
                 {imagePreview.appIcon ? (
                   <Box sx={{ position: 'relative', textAlign: 'center' }}>
-                    <img 
-                      src={imagePreview.appIcon} 
-                      alt="App Icon Preview" 
-                      style={{ 
-                        maxWidth: '120px', 
-                        maxHeight: '120px', 
+                    <img
+                      src={imagePreview.appIcon}
+                      alt="App Icon Preview"
+                      style={{
+                        maxWidth: '120px',
+                        maxHeight: '120px',
                         objectFit: 'contain',
                         marginBottom: '8px'
-                      }} 
+                      }}
                     />
                     <IconButton
                       size="small"
-                      sx={{ 
-                        position: 'absolute', 
-                        top: -10, 
-                        right: -10, 
+                      sx={{
+                        position: 'absolute',
+                        top: -10,
+                        right: -10,
                         backgroundColor: 'error.main',
                         color: 'white',
                         '&:hover': { backgroundColor: 'error.dark' }
@@ -549,22 +548,22 @@ const ModuleSetup = () => {
               >
                 {imagePreview.thumbnail ? (
                   <Box sx={{ position: 'relative', textAlign: 'center' }}>
-                    <img 
-                      src={imagePreview.thumbnail} 
-                      alt="Thumbnail Preview" 
-                      style={{ 
-                        maxWidth: '120px', 
-                        maxHeight: '120px', 
+                    <img
+                      src={imagePreview.thumbnail}
+                      alt="Thumbnail Preview"
+                      style={{
+                        maxWidth: '120px',
+                        maxHeight: '120px',
                         objectFit: 'contain',
                         marginBottom: '8px'
-                      }} 
+                      }}
                     />
                     <IconButton
                       size="small"
-                      sx={{ 
-                        position: 'absolute', 
-                        top: -10, 
-                        right: -10, 
+                      sx={{
+                        position: 'absolute',
+                        top: -10,
+                        right: -10,
                         backgroundColor: 'error.main',
                         color: 'white',
                         '&:hover': { backgroundColor: 'error.dark' }

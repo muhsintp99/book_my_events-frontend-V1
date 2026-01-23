@@ -15,6 +15,7 @@ import {
   Checkbox
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 function AddAuditorium() {
   const [open, setOpen] = useState(false);
@@ -99,7 +100,7 @@ function AddAuditorium() {
     coverImage: null
   });
 
-  const API_BASE_URL = import.meta.env.MODE === 'development' ? 'http://localhost:5000/api' : 'https://api.bookmyevent.ae/api';
+  // API_BASE_URL is now imported from apiImageUtils
 
   // Fetch subscription plans
   useEffect(() => {

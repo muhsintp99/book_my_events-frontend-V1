@@ -19,14 +19,15 @@ import {
   Snackbar,
   Avatar,
 } from "@mui/material";
-import { 
-  CloudUpload as CloudUploadIcon, 
-  Edit as EditIcon, 
+import {
+  CloudUpload as CloudUploadIcon,
+  Edit as EditIcon,
   Delete as DeleteIcon,
-  Image as ImageIcon 
+  Image as ImageIcon
 } from "@mui/icons-material";
 import axios from "axios";
 import { GoogleMap, Marker, useJsApiLoader } from "@react-google-maps/api";
+import { API_BASE_URL, getApiImageUrl } from "../utils/apiImageUtils";
 
 const ZoneSetup = () => {
   const theme = useTheme();
@@ -62,7 +63,7 @@ const ZoneSetup = () => {
   const fetchZones = async () => {
     try {
       setFetching(true);
-      const response = await axios.get("https://api.bookmyevent.ae/api/zones");
+      const response = await axios.get(`${API_BASE_URL}/zones`);
       const data = response.data.data;
       if (Array.isArray(data)) {
         setZones(data);
@@ -90,7 +91,7 @@ const ZoneSetup = () => {
         return;
       }
       setIconFile(file);
-      
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setIconPreview(reader.result);
@@ -129,7 +130,7 @@ const ZoneSetup = () => {
       formData.append("name", zoneName);
       formData.append("description", zoneDescription);
       formData.append("coordinates", JSON.stringify(selectedPositions));
-      
+
       if (iconFile) {
         formData.append("icon", iconFile);
       }
@@ -137,7 +138,7 @@ const ZoneSetup = () => {
       let response;
       if (editingZone) {
         response = await axios.put(
-          `https://api.bookmyevent.ae/api/zones/${editingZone._id}`,
+          `${API_BASE_URL}/zones/${editingZone._id}`,
           formData,
           {
             headers: {
@@ -148,7 +149,7 @@ const ZoneSetup = () => {
         showToast("Zone updated successfully", "success");
       } else {
         response = await axios.post(
-          "https://api.bookmyevent.ae/api/zones",
+          `${API_BASE_URL}/zones`,
           formData,
           {
             headers: {
@@ -175,11 +176,11 @@ const ZoneSetup = () => {
     setEditingZone(zone);
     setZoneName(zone.name);
     setZoneDescription(zone.description || "");
-    
+
     if (zone.iconUrl) {
-      setIconPreview(zone.iconUrl);
+      setIconPreview(getApiImageUrl(zone.iconUrl));
     }
-    
+
     if (zone.coordinates && Array.isArray(zone.coordinates)) {
       setSelectedPositions(
         zone.coordinates.map((c) => ({
@@ -190,7 +191,7 @@ const ZoneSetup = () => {
     } else {
       setSelectedPositions([{ lat: 10.8505, lng: 76.2711 }]);
     }
-    
+
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -200,7 +201,7 @@ const ZoneSetup = () => {
     }
 
     try {
-      await axios.delete(`https://api.bookmyevent.ae/api/zones/${zoneId}`);
+      await axios.delete(`${API_BASE_URL}/zones/${zoneId}`);
       showToast("Zone deleted successfully", "success");
       await fetchZones();
     } catch (err) {
@@ -214,10 +215,10 @@ const ZoneSetup = () => {
     try {
       const zone = zones.find((z) => z._id === zoneId);
       const response = await axios.put(
-        `https://api.bookmyevent.ae/api/zones/${zoneId}`,
+        `${API_BASE_URL}/zones/${zoneId}`,
         { isActive: !zone.isActive }
       );
-      
+
       showToast(
         `Zone ${response.data.data.isActive ? "activated" : "deactivated"} successfully`,
         "success"
@@ -233,15 +234,15 @@ const ZoneSetup = () => {
   const handleTopZoneToggle = async (zoneId) => {
     try {
       const response = await axios.patch(
-        `https://api.bookmyevent.ae/api/zones/${zoneId}/toggle-top`
+        `${API_BASE_URL}/zones/${zoneId}/toggle-top`
       );
-      
+
       const updatedZone = response.data.data;
       showToast(
         `Zone ${updatedZone.isTopZone ? "added to" : "removed from"} top zones`,
         "success"
       );
-      
+
       await fetchZones();
     } catch (err) {
       console.error(err);
@@ -396,14 +397,14 @@ const ZoneSetup = () => {
             <Typography variant="subtitle2" sx={{ fontWeight: 600, mb: 1, color: theme.palette.text.primary }}>
               Zone Coordinates (Click on map to add locations) *
             </Typography>
-            <Paper 
-              sx={{ 
-                width: "100%", 
-                height: 450, 
-                borderRadius: 2, 
+            <Paper
+              sx={{
+                width: "100%",
+                height: 450,
+                borderRadius: 2,
                 overflow: "hidden",
                 border: `1px solid ${theme.palette.grey[200]}`
-              }} 
+              }}
               elevation={0}
             >
               {isLoaded ? (
@@ -563,7 +564,7 @@ const ZoneSetup = () => {
               {zones.map((zone, index) => (
                 <TableRow
                   key={zone._id}
-                  sx={{ 
+                  sx={{
                     "&:hover": { backgroundColor: theme.palette.grey[50] },
                     backgroundColor: editingZone?._id === zone._id ? theme.palette.primary.light + "10" : "transparent"
                   }}
@@ -572,15 +573,15 @@ const ZoneSetup = () => {
                   <TableCell>
                     {zone.iconUrl ? (
                       <Avatar
-                        src={zone.iconUrl}
+                        src={getApiImageUrl(zone.iconUrl)}
                         alt={zone.name}
                         sx={{ width: 40, height: 40 }}
                         variant="rounded"
                       />
                     ) : (
                       <Avatar
-                        sx={{ 
-                          width: 40, 
+                        sx={{
+                          width: 40,
                           height: 40,
                           backgroundColor: theme.palette.grey[200]
                         }}
@@ -621,16 +622,16 @@ const ZoneSetup = () => {
                   </TableCell>
                   <TableCell sx={{ textAlign: "center" }}>
                     <Box sx={{ display: "flex", gap: 1, justifyContent: "center" }}>
-                      <IconButton 
-                        size="small" 
-                        color="primary" 
+                      <IconButton
+                        size="small"
+                        color="primary"
                         onClick={() => handleEdit(zone)}
                       >
                         <EditIcon fontSize="small" />
                       </IconButton>
-                      <IconButton 
-                        size="small" 
-                        color="error" 
+                      <IconButton
+                        size="small"
+                        color="error"
                         onClick={() => handleDelete(zone._id, zone.name)}
                       >
                         <DeleteIcon fontSize="small" />
@@ -650,9 +651,9 @@ const ZoneSetup = () => {
         onClose={() => setToastOpen(false)}
         anchorOrigin={{ vertical: "top", horizontal: "center" }}
       >
-        <Alert 
-          onClose={() => setToastOpen(false)} 
-          severity={toastSeverity} 
+        <Alert
+          onClose={() => setToastOpen(false)}
+          severity={toastSeverity}
           sx={{ width: "100%" }}
         >
           {toastMessage}

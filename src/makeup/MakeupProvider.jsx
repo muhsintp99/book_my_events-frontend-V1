@@ -25,7 +25,7 @@
 //   const { id } = useParams(); // Get the ID from URL
 //   const navigate = useNavigate();
 //   const [isEditMode, setIsEditMode] = useState(false);
-  
+
 //   const [open, setOpen] = useState(false);
 //   const [alertMessage, setAlertMessage] = useState("");
 //   const [alertSeverity, setAlertSeverity] = useState("success");
@@ -102,21 +102,21 @@
 //     try {
 //       setLoading(true);
 //       const response = await fetch(`${API_BASE_URL}/users/${vendorId}`);
-      
+
 //       if (!response.ok) {
 //         throw new Error('Failed to fetch vendor data');
 //       }
-      
+
 //       const data = await response.json();
 //       const vendor = data.user || data;
-      
+
 //       console.log('Fetched vendor data:', vendor); // Debug log
-      
+
 //       // Determine full name - could be from storeName or combined firstName/lastName
 //       const fullName = vendor.storeName || 
 //                        (vendor.firstName && vendor.lastName ? `${vendor.firstName} ${vendor.lastName}` : '') ||
 //                        vendor.fullName || '';
-      
+
 //       // Populate form with vendor data
 //       setFormData({
 //         vendorType: vendor.vendorType || 'individual',
@@ -147,7 +147,7 @@
 //         status: vendor.status || 'pending',
 //         isActive: vendor.isActive !== undefined ? vendor.isActive : true,
 //       });
-      
+
 //       // Set previews if images exist
 //       if (vendor.logo) {
 //         setLogoPreview(vendor.logo);
@@ -155,11 +155,11 @@
 //       if (vendor.coverImage) {
 //         setCoverPreview(vendor.coverImage);
 //       }
-      
+
 //       if (vendor.zone?._id || vendor.zone) {
 //         setSelectedZone(vendor.zone?._id || vendor.zone);
 //       }
-      
+
 //       showAlert('Vendor data loaded successfully', 'success');
 //     } catch (error) {
 //       console.error('Error fetching vendor:', error);
@@ -294,7 +294,7 @@
 //           fullAddress: place.formatted_address || "",
 //         },
 //       }));
-      
+
 //       showAlert("Location selected!", "success");
 //     });
 //   }, [map]);
@@ -467,7 +467,7 @@
 //       const url = isEditMode 
 //         ? `${API_BASE_URL}/users/${id}` 
 //         : `${API_BASE_URL}/auth/register`;
-      
+
 //       const method = isEditMode ? 'PUT' : 'POST';
 
 //       const res = await fetch(url, {
@@ -487,7 +487,7 @@
 //           'success'
 //         );
 //         console.log("Response:", result);
-        
+
 //         if (!isEditMode) {
 //           handleReset();
 //         } else {
@@ -542,7 +542,7 @@
 //     setLogoPreview(null);
 //     setCoverPreview(null);
 //     setFiles({ logo: null, coverImage: null });
-    
+
 //     if (markerRef.current) {
 //       markerRef.current.setMap(null);
 //       markerRef.current = null;
@@ -1069,6 +1069,7 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useParams, useNavigate } from "react-router-dom";
+import { API_BASE_URL, getApiImageUrl } from "../utils/apiImageUtils";
 
 function AddAuditorium() {
   const { id } = useParams();
@@ -1086,18 +1087,18 @@ function AddAuditorium() {
   const activeModuleId = localStorage.getItem("moduleDbId");
 
 
-   /* ---------------- BANK DETAILS (NEW) ---------------- */
-    const [bankDetails, setBankDetails] = useState({
-      accountHolderName: '',
-      bankName: '',
-      accountNumber: '',
-      ifscCode: '',
-      branchName: '',
-      accountType: 'savings',
-      upiId: ''
-    });
+  /* ---------------- BANK DETAILS (NEW) ---------------- */
+  const [bankDetails, setBankDetails] = useState({
+    accountHolderName: '',
+    bankName: '',
+    accountNumber: '',
+    ifscCode: '',
+    branchName: '',
+    accountType: 'savings',
+    upiId: ''
+  });
 
-    const handleBankChange = (field) => (e) => {
+  const handleBankChange = (field) => (e) => {
     setBankDetails({ ...bankDetails, [field]: e.target.value });
   };
 
@@ -1157,10 +1158,7 @@ function AddAuditorium() {
     coverImage: null,
   });
 
-  const API_BASE_URL =
-    import.meta.env.MODE === "development"
-      ? "http://localhost:5000/api"
-      : "https://api.bookmyevent.ae/api";
+  // API_BASE_URL is now imported from apiImageUtils
 
   // ==================== EDIT MODE: FETCH EXISTING VENDOR ====================
   useEffect(() => {
@@ -1213,8 +1211,8 @@ function AddAuditorium() {
       });
 
       setSelectedZone(vendor.zone?._id || vendor.zone || "");
-      if (vendor.logo) setLogoPreview(vendor.logo);
-      if (vendor.coverImage) setCoverPreview(vendor.coverImage);
+      if (vendor.logo) setLogoPreview(getApiImageUrl(vendor.logo));
+      if (vendor.coverImage) setCoverPreview(getApiImageUrl(vendor.coverImage));
 
       showAlert("Vendor data loaded successfully", "success");
     } catch (err) {
@@ -1481,15 +1479,15 @@ function AddAuditorium() {
       payload.append("phone", formData.phone);
 
 
-      
+
       // ---------------- BANK DETAILS ----------------
-payload.append('accountHolderName', bankDetails.accountHolderName);
-payload.append('bankName', bankDetails.bankName);
-payload.append('accountNumber', bankDetails.accountNumber);
-payload.append('ifscCode', bankDetails.ifscCode);
-payload.append('branchName', bankDetails.branchName);
-payload.append('upiId', bankDetails.upiId);
-payload.append('accountType', bankDetails.accountType);
+      payload.append('accountHolderName', bankDetails.accountHolderName);
+      payload.append('bankName', bankDetails.bankName);
+      payload.append('accountNumber', bankDetails.accountNumber);
+      payload.append('ifscCode', bankDetails.ifscCode);
+      payload.append('branchName', bankDetails.branchName);
+      payload.append('upiId', bankDetails.upiId);
+      payload.append('accountType', bankDetails.accountType);
 
 
       const storeName =
@@ -1506,10 +1504,10 @@ payload.append('accountType', bankDetails.accountType);
       // payload.append("storeAddress[zipCode]", formData.storeAddress.zipCode);
       // payload.append("storeAddress[fullAddress]", formData.storeAddress.fullAddress);
 
-         payload.append(
-  'storeAddress',
-  JSON.stringify(formData.storeAddress)
-);
+      payload.append(
+        'storeAddress',
+        JSON.stringify(formData.storeAddress)
+      );
 
       payload.append("latitude", formData.latitude);
       payload.append("longitude", formData.longitude);
@@ -1894,45 +1892,45 @@ payload.append('accountType', bankDetails.accountType);
 
 
       {/* BANK DETAILS */}
-            <Box
-              sx={{
-                mb: 3,
-                mt: 4,
-                p: 2,
-                borderRadius: 2,
-                border: '1px solid #ddd',
-                background: '#fafafa'
-              }}
-            >
-              <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
-                Bank Details
-              </Typography>
-      
-              <Alert severity="info" sx={{ mb: 2 }}>
-                Please provide correct bank details. These details will be used for vendor settlements and payouts.
-              </Alert>
-      
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField
-                  fullWidth
-                  label="Account Holder Name"
-                  value={bankDetails.accountHolderName}
-                  onChange={handleBankChange('accountHolderName')}
-                />
-                <TextField fullWidth label="Bank Name" value={bankDetails.bankName} onChange={handleBankChange('bankName')} />
-              </Box>
-      
-              <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
-                <TextField fullWidth label="Account Number" value={bankDetails.accountNumber} onChange={handleBankChange('accountNumber')} />
-                <TextField fullWidth label="IFSC Code" value={bankDetails.ifscCode} onChange={handleBankChange('ifscCode')} />
-              </Box>
-      
-              <Box sx={{ display: 'flex', gap: 2 }}>
-                <TextField fullWidth label="Branch Name" value={bankDetails.branchName} onChange={handleBankChange('branchName')} />
-                <TextField fullWidth label="UPI ID" value={bankDetails.upiId} onChange={handleBankChange('upiId')} />
-              </Box>
-            </Box>
-      
+      <Box
+        sx={{
+          mb: 3,
+          mt: 4,
+          p: 2,
+          borderRadius: 2,
+          border: '1px solid #ddd',
+          background: '#fafafa'
+        }}
+      >
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Bank Details
+        </Typography>
+
+        <Alert severity="info" sx={{ mb: 2 }}>
+          Please provide correct bank details. These details will be used for vendor settlements and payouts.
+        </Alert>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField
+            fullWidth
+            label="Account Holder Name"
+            value={bankDetails.accountHolderName}
+            onChange={handleBankChange('accountHolderName')}
+          />
+          <TextField fullWidth label="Bank Name" value={bankDetails.bankName} onChange={handleBankChange('bankName')} />
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2, mb: 2 }}>
+          <TextField fullWidth label="Account Number" value={bankDetails.accountNumber} onChange={handleBankChange('accountNumber')} />
+          <TextField fullWidth label="IFSC Code" value={bankDetails.ifscCode} onChange={handleBankChange('ifscCode')} />
+        </Box>
+
+        <Box sx={{ display: 'flex', gap: 2 }}>
+          <TextField fullWidth label="Branch Name" value={bankDetails.branchName} onChange={handleBankChange('branchName')} />
+          <TextField fullWidth label="UPI ID" value={bankDetails.upiId} onChange={handleBankChange('upiId')} />
+        </Box>
+      </Box>
+
 
       {/* Action Buttons */}
       <Box sx={{ display: "flex", justifyContent: "flex-end", gap: 2 }}>
@@ -1946,10 +1944,10 @@ payload.append('accountType', bankDetails.accountType);
           {loading
             ? "Processing..."
             : isEditMode
-            ? "Update Provider"
-            : isFreeTrial
-            ? "Submit"
-            : "Proceed to Payment"}
+              ? "Update Provider"
+              : isFreeTrial
+                ? "Submit"
+                : "Proceed to Payment"}
         </Button>
       </Box>
 

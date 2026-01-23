@@ -34,7 +34,7 @@ const icons = {
 };
 
 const makeupsections = {
-  id: 'makeup-customers',
+  id: 'makeup-sections-group',
   title: 'Makeup Sections',
   type: 'group',
   children: [

@@ -12,7 +12,7 @@ const icons = {
 };
 
 const cateringmanagement = {
-  id: 'catering-customers',
+  id: 'catering-management-group',
   title: 'cateringManagement',
   type: 'group',
   children: [

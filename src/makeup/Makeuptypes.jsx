@@ -44,11 +44,9 @@ import {
 } from "@mui/icons-material";
 
 import { useNavigate } from "react-router-dom";
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
-/* ---------------------------
-   API Configuration
-----------------------------*/
-const API_BASE_URL = import.meta.env.VITE_API_URL || "https://api.bookmyevent.ae/";
+// API_BASE_URL is now imported from apiImageUtils
 
 const API = {
   list: "/makeup-types",

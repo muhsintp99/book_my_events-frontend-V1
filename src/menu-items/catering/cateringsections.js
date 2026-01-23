@@ -30,7 +30,7 @@ const icons = {
 };
 
 const cateringsections = {
-  id: 'catering-customers',
+  id: 'catering-sections-group',
   title: 'cateringsections',
   type: 'group',
   children: [

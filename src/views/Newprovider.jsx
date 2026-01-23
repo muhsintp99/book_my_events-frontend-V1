@@ -22,6 +22,7 @@ import {
 
 import { Edit, Delete, Search } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
 const ProvidersList = ({ isVerified }) => {
   const navigate = useNavigate();
@@ -40,7 +41,7 @@ const ProvidersList = ({ isVerified }) => {
     const fetchUsers = async () => {
       try {
         setLoading(true);
-        const res = await fetch('https://api.bookmyevent.ae/api/users');
+        const res = await fetch(`${API_BASE_URL}/users`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
 

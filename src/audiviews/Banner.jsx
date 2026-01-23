@@ -940,10 +940,10 @@
 //           'Content-Type': 'application/json',
 //         },
 //       });
-      
+
 //       const result = await response.json();
 //       console.log('Zones Response:', result);
-      
+
 //       if (response.ok && result.data) {
 //         setZones(result.data);
 //       } else {
@@ -966,13 +966,13 @@
 //           'Content-Type': 'application/json',
 //         },
 //       });
-      
+
 //       const result = await response.json();
 //       console.log('Banners Response:', result);
-      
+
 //       if (response.ok) {
 //         let bannersList = [];
-        
+
 //         // Handle different response structures
 //         if (result.success && result.data && result.data.banners) {
 //           bannersList = result.data.banners;
@@ -1064,24 +1064,24 @@
 
 //   const handleSubmit = async (e) => {
 //     e.preventDefault();
-    
+
 //     if (!formData.title || !formData.zone || !formData.bannerImage) {
 //       showNotification('Please fill all required fields', 'error');
 //       return;
 //     }
 
 //     setLoading(true);
-    
+
 //     try {
 //       const formDataToSend = new FormData();
 //       formDataToSend.append('title', formData.title);
 //       formDataToSend.append('zone', formData.zone);
 //       formDataToSend.append('bannerType', formData.bannerType);
-      
+
 //       if (formData.link) {
 //         formDataToSend.append('link', formData.link);
 //       }
-      
+
 //       formDataToSend.append('image', formData.bannerImage);
 
 //       const response = await fetch(`${API_BASE_URL}/banners`, {
@@ -1183,7 +1183,7 @@
 //       <Box sx={{ mb: 4, fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>
 //         Add New Banner
 //       </Box>
-      
+
 //       <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
 //         <TextField
 //           fullWidth
@@ -1196,7 +1196,7 @@
 //           sx={{ mb: 3, bgcolor: 'white' }}
 //           disabled={loading}
 //         />
-        
+
 //         <FormControl fullWidth variant="outlined" sx={{ mb: 3, bgcolor: 'white' }}>
 //           <InputLabel id="zone-label">Select Zone *</InputLabel>
 //           <Select
@@ -1221,7 +1221,7 @@
 //             </Box>
 //           )}
 //         </FormControl>
-        
+
 //         <FormControl fullWidth variant="outlined" sx={{ mb: 3, bgcolor: 'white' }}>
 //           <InputLabel id="banner-type-label">Banner Type *</InputLabel>
 //           <Select
@@ -1238,7 +1238,7 @@
 //             <MenuItem value="zone_wise">Zone Wise</MenuItem>
 //           </Select>
 //         </FormControl>
-        
+
 //         <TextField
 //           fullWidth
 //           name="link"
@@ -1250,7 +1250,7 @@
 //           disabled={loading}
 //           placeholder="https://example.com"
 //         />
-        
+
 //         <Box
 //           sx={{
 //             border: '2px dashed #ccc',
@@ -1310,7 +1310,7 @@
 //             </Box>
 //           </label>
 //         </Box>
-        
+
 //         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4 }}>
 //           <Button 
 //             variant="contained" 
@@ -1337,7 +1337,7 @@
 //         <Box sx={{ mb: 3, fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>
 //           Existing Banners
 //         </Box>
-        
+
 //         {loading && banners.length === 0 ? (
 //           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
 //             <CircularProgress />
@@ -1508,10 +1508,10 @@ import {
   Snackbar,
 } from '@mui/material';
 import { Edit as EditIcon, Delete as DeleteIcon } from '@mui/icons-material';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 // Use environment variable or fallback to localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
-const BASE_URL = import.meta.env.VITE_API_URL ? 'https://api.bookmyevent.ae' : 'http://localhost:5000';
+// API_BASE_URL is now imported from apiImageUtils
 
 function BannerForm() {
   const [formData, setFormData] = useState({
@@ -1526,10 +1526,10 @@ function BannerForm() {
   const [zones, setZones] = useState([]);
   const [loading, setLoading] = useState(false);
   const [zonesLoading, setZonesLoading] = useState(false);
-  const [notification, setNotification] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' 
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
   // Fetch zones on component mount
@@ -1547,10 +1547,10 @@ function BannerForm() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
       console.log('Zones Response:', result);
-      
+
       if (response.ok && result.data) {
         setZones(result.data);
       } else {
@@ -1573,13 +1573,13 @@ function BannerForm() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
       console.log('Banners Response:', result);
-      
+
       if (response.ok) {
         let bannersList = [];
-        
+
         // Handle different response structures
         if (result.success && result.data && result.data.banners) {
           bannersList = result.data.banners;
@@ -1591,41 +1591,8 @@ function BannerForm() {
           bannersList = result;
         }
 
-        // Process banners with proper image URL handling
         const formattedBanners = bannersList.map((banner) => {
-          let imageUrl = '';
-          if (banner.image) {
-            // Handle full URLs
-            if (banner.image.startsWith('http://') || banner.image.startsWith('https://')) {
-              imageUrl = banner.image;
-            } 
-            // Handle absolute server paths like /var/www/backend/Uploads/...
-            else if (banner.image.includes('/Uploads/')) {
-              const uploadsIndex = banner.image.indexOf('/Uploads/');
-              const relativePath = banner.image.substring(uploadsIndex);
-              imageUrl = `${BASE_URL}${relativePath}`;
-            }
-            // Handle paths that start with Uploads (without leading slash)
-            else if (banner.image.startsWith('Uploads/')) {
-              imageUrl = `${BASE_URL}/${banner.image}`;
-            }
-            // Handle paths that start with /uploads (lowercase)
-            else if (banner.image.startsWith('/uploads') || banner.image.startsWith('uploads')) {
-              const cleanPath = banner.image.startsWith('/') ? banner.image : `/${banner.image}`;
-              imageUrl = `${BASE_URL}${cleanPath}`;
-            } 
-            // Default case
-            else {
-              imageUrl = `${BASE_URL}/${banner.image}`;
-            }
-          }
-
-          console.log('Banner image processing:', {
-            id: banner._id,
-            original: banner.image,
-            final: imageUrl
-          });
-
+          const imageUrl = banner.image ? getApiImageUrl(banner.image) : '';
           return {
             ...banner,
             image: imageUrl
@@ -1667,24 +1634,24 @@ function BannerForm() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.title || !formData.zone || !formData.bannerImage) {
       showNotification('Please fill all required fields', 'error');
       return;
     }
 
     setLoading(true);
-    
+
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.title);
       formDataToSend.append('zone', formData.zone);
       formDataToSend.append('bannerType', formData.bannerType);
-      
+
       if (formData.link) {
         formDataToSend.append('link', formData.link);
       }
-      
+
       formDataToSend.append('image', formData.bannerImage);
 
       const response = await fetch(`${API_BASE_URL}/banners`, {
@@ -1697,12 +1664,12 @@ function BannerForm() {
 
       if (response.ok || result.success) {
         showNotification(result.message || 'Banner created successfully', 'success');
-        setFormData({ 
-          title: '', 
-          zone: '', 
-          bannerType: 'top_deal', 
-          link: '', 
-          bannerImage: null 
+        setFormData({
+          title: '',
+          zone: '',
+          bannerType: 'top_deal',
+          link: '',
+          bannerImage: null
         });
         setImagePreview(null);
         fetchBanners();
@@ -1718,12 +1685,12 @@ function BannerForm() {
   };
 
   const handleCancel = () => {
-    setFormData({ 
-      title: '', 
-      zone: '', 
-      bannerType: 'top_deal', 
-      link: '', 
-      bannerImage: null 
+    setFormData({
+      title: '',
+      zone: '',
+      bannerType: 'top_deal',
+      link: '',
+      bannerImage: null
     });
     setImagePreview(null);
   };
@@ -1786,7 +1753,7 @@ function BannerForm() {
       <Box sx={{ mb: 4, fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>
         Add New Banner
       </Box>
-      
+
       <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
         <TextField
           fullWidth
@@ -1799,7 +1766,7 @@ function BannerForm() {
           sx={{ mb: 3, bgcolor: 'white' }}
           disabled={loading}
         />
-        
+
         <FormControl fullWidth variant="outlined" sx={{ mb: 3, bgcolor: 'white' }}>
           <InputLabel id="zone-label">Select Zone *</InputLabel>
           <Select
@@ -1824,7 +1791,7 @@ function BannerForm() {
             </Box>
           )}
         </FormControl>
-        
+
         <FormControl fullWidth variant="outlined" sx={{ mb: 3, bgcolor: 'white' }}>
           <InputLabel id="banner-type-label">Banner Type *</InputLabel>
           <Select
@@ -1841,7 +1808,7 @@ function BannerForm() {
             <MenuItem value="zone_wise">Zone Wise</MenuItem>
           </Select>
         </FormControl>
-        
+
         <TextField
           fullWidth
           name="link"
@@ -1853,7 +1820,7 @@ function BannerForm() {
           disabled={loading}
           placeholder="https://example.com"
         />
-        
+
         <Box
           sx={{
             border: '2px dashed #ccc',
@@ -1881,10 +1848,10 @@ function BannerForm() {
                   <img
                     src={imagePreview}
                     alt="Banner Preview"
-                    style={{ 
-                      maxWidth: '100%', 
-                      maxHeight: '200px', 
-                      objectFit: 'contain' 
+                    style={{
+                      maxWidth: '100%',
+                      maxHeight: '200px',
+                      objectFit: 'contain'
                     }}
                   />
                   <Button
@@ -1913,21 +1880,21 @@ function BannerForm() {
             </Box>
           </label>
         </Box>
-        
+
         <Box sx={{ display: 'flex', justifyContent: 'center', gap: 2, mb: 4 }}>
-          <Button 
-            variant="contained" 
-            type="submit" 
-            color="primary" 
+          <Button
+            variant="contained"
+            type="submit"
+            color="primary"
             sx={{ minWidth: 120, height: 45 }}
             disabled={loading}
           >
             {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
           </Button>
-          <Button 
-            variant="outlined" 
-            onClick={handleCancel} 
-            color="primary" 
+          <Button
+            variant="outlined"
+            onClick={handleCancel}
+            color="primary"
             sx={{ minWidth: 120, height: 45 }}
             disabled={loading}
           >
@@ -1940,7 +1907,7 @@ function BannerForm() {
         <Box sx={{ mb: 3, fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>
           Existing Banners
         </Box>
-        
+
         {loading && banners.length === 0 ? (
           <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
             <CircularProgress />
@@ -2040,16 +2007,16 @@ function BannerForm() {
                         </Box>
                       </TableCell>
                       <TableCell>
-                        <IconButton 
-                          color="primary" 
+                        <IconButton
+                          color="primary"
                           onClick={() => handleEdit(banner)}
                           disabled={loading}
                           size="small"
                         >
                           <EditIcon />
                         </IconButton>
-                        <IconButton 
-                          color="error" 
+                        <IconButton
+                          color="error"
                           onClick={() => handleDelete(banner._id)}
                           disabled={loading}
                           size="small"

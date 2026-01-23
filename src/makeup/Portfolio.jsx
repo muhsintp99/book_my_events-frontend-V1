@@ -33,8 +33,9 @@ import { CloudUpload, Close, VideoLibrary, Delete, ChevronLeft, ChevronRight, Li
 
 import axios from 'axios';
 
-const API_BASE_URL = 'https://api.bookmyevent.ae';
-const api = axios.create({ baseURL: API_BASE_URL });
+import { API_BASE_URL, getApiImageUrl, API_ORIGIN } from '../utils/apiImageUtils';
+
+const api = axios.create({ baseURL: API_ORIGIN });
 
 export default function PortfolioManagement({ providerId: propProviderId }) {
   const [tabValue, setTabValue] = useState(0);
@@ -181,7 +182,7 @@ export default function PortfolioManagement({ providerId: propProviderId }) {
   const openFullscreen = (mediaArray, index = 0, isVideo = false) => {
     const urls = mediaArray.map(item => {
       if (item.type === "videoLink") return formatVideoUrl(item.url);
-      return `${API_BASE_URL}/${item.url}`;
+      return getApiImageUrl(item.url);
     });
 
     setCurrentMediaUrls(urls);
@@ -516,7 +517,7 @@ export default function PortfolioManagement({ providerId: propProviderId }) {
                               {item.media.slice(0, 3).map((url, idx) => (
                                 <img
                                   key={idx}
-                                  src={`${API_BASE_URL}/${url}`}
+                                  src={getApiImageUrl(url)}
                                   style={{
                                     width: 70,
                                     height: 60,

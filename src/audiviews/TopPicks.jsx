@@ -14,18 +14,19 @@ import {
   Alert,
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 // Use environment variable or fallback to production URL
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://api.bookmyevent.ae';
+// API_BASE_URL is now imported from apiImageUtils
 
 function TopPicks() {
   const [search, setSearch] = useState('');
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [notification, setNotification] = useState({ 
-    open: false, 
-    message: '', 
-    severity: 'success' 
+  const [notification, setNotification] = useState({
+    open: false,
+    message: '',
+    severity: 'success'
   });
 
   // Fetch venues on component mount and when search changes
@@ -45,52 +46,17 @@ function TopPicks() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
       console.log('Venues Response:', result);
-      
+
       if (response.ok && result.data) {
         // Process venues with proper image URL handling
-        const formattedVenues = result.data.map((venue) => {
-          let imageUrl = venue.thumbnail || '';
-          if (imageUrl) {
-            // Use full URL as-is if it’s already absolute
-            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-              // No change needed
-            }
-            // Handle absolute server paths like /var/www/backend/Uploads/...
-            else if (imageUrl.includes('/Uploads/')) {
-              const uploadsIndex = imageUrl.indexOf('/Uploads/');
-              const relativePath = imageUrl.substring(uploadsIndex);
-              imageUrl = `${API_BASE_URL}${relativePath}`;
-            }
-            // Handle paths that start with Uploads (without leading slash)
-            else if (imageUrl.startsWith('Uploads/')) {
-              imageUrl = `${API_BASE_URL}/${imageUrl}`;
-            }
-            // Handle paths that start with /uploads (lowercase)
-            else if (imageUrl.startsWith('/uploads') || imageUrl.startsWith('uploads')) {
-              const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-              imageUrl = `${API_BASE_URL}${cleanPath}`;
-            }
-            // Default case (relative path)
-            else {
-              imageUrl = `${API_BASE_URL}/${imageUrl}`;
-            }
-          }
-
-          console.log('Venue image processing:', {
-            id: venue._id,
-            original: venue.thumbnail,
-            final: imageUrl
-          });
-
-          return {
-            ...venue,
-            thumbnail: imageUrl,
-            isTopPick: venue.isTopPick || false
-          };
-        });
+        const formattedVenues = result.data.map((venue) => ({
+          ...venue,
+          thumbnail: venue.thumbnail ? getApiImageUrl(venue.thumbnail) : '',
+          isTopPick: venue.isTopPick || false
+        }));
         setVenues(formattedVenues);
       } else {
         showNotification('Failed to fetch venues', 'error');
@@ -112,40 +78,16 @@ function TopPicks() {
           'Content-Type': 'application/json',
         },
       });
-      
+
       const result = await response.json();
       console.log('Search Response:', result);
-      
-      if (response.ok && result.data) {
-        const formattedVenues = result.data.map((venue) => {
-          let imageUrl = venue.thumbnail || '';
-          if (imageUrl) {
-            if (imageUrl.startsWith('http://') || imageUrl.startsWith('https://')) {
-              // No change needed
-            }
-            else if (imageUrl.includes('/Uploads/')) {
-              const uploadsIndex = imageUrl.indexOf('/Uploads/');
-              const relativePath = imageUrl.substring(uploadsIndex);
-              imageUrl = `${API_BASE_URL}${relativePath}`;
-            }
-            else if (imageUrl.startsWith('Uploads/')) {
-              imageUrl = `${API_BASE_URL}/${imageUrl}`;
-            }
-            else if (imageUrl.startsWith('/uploads') || imageUrl.startsWith('uploads')) {
-              const cleanPath = imageUrl.startsWith('/') ? imageUrl : `/${imageUrl}`;
-              imageUrl = `${API_BASE_URL}${cleanPath}`;
-            }
-            else {
-              imageUrl = `${API_BASE_URL}/${imageUrl}`;
-            }
-          }
 
-          return {
-            ...venue,
-            thumbnail: imageUrl,
-            isTopPick: venue.isTopPick || false
-          };
-        });
+      if (response.ok && result.data) {
+        const formattedVenues = result.data.map((venue) => ({
+          ...venue,
+          thumbnail: venue.thumbnail ? getApiImageUrl(venue.thumbnail) : '',
+          isTopPick: venue.isTopPick || false
+        }));
         setVenues(formattedVenues);
       } else {
         showNotification('Failed to search venues', 'error');

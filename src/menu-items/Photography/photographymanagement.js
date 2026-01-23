@@ -12,11 +12,11 @@ const icons = {
 };
 
 const photographymanangement = {
-  id: 'photography-customers',
+  id: 'photography-management-group',
   title: 'PhotographyManagement',
   type: 'group',
   children: [
-   
+
     {
       id: 'Coupons',
       title: 'Coupons',
