@@ -15,7 +15,7 @@ const CakeProvidermanagement = {
   children: [
     {
       id: 'new-providers-request',
-      title: 'New Providers Request',
+      title: 'Providers List',
       type: 'item',
       url: '/providers/cakeprovider',
       icon: icons.IconBuildingSkyscraper,
@@ -37,8 +37,8 @@ const CakeProvidermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
-    
-     
+
+
   ]
 };
 

@@ -15,7 +15,7 @@ const Providermanagement = {
   children: [
     {
       id: 'new-providers-request',
-      title: 'New Providers Request',
+      title: 'Providers List',
       type: 'item',
       url: '/auditorium/provider',
       icon: icons.IconBuildingSkyscraper,
@@ -37,7 +37,7 @@ const Providermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
-     
+
   ]
 };
 

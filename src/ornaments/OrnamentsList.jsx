@@ -624,4 +624,4 @@ const OrnamentsList = () => {
   );
 };
 
-export default CateringList;
+export default OrnamentsList;

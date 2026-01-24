@@ -13,7 +13,7 @@ const OrnamentsProvidermanagement = {
     children: [
         {
             id: 'new-providers-request',
-            title: 'New Providers Request',
+            title: 'Providers List',
             type: 'item',
             url: '/ornaments/ornamentsprovider',
             icon: icons.IconBuildingSkyscraper,

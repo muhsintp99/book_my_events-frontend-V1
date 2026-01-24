@@ -14,13 +14,13 @@ const PhotographyProvidermanagement = {
   type: 'group',
   children: [
     {
-         id: 'new-providers-request',
-         title: 'New Providers Request',
-         type: 'item',
-         url: '/photography/photographyvendors',
-         icon: icons.IconBuildingSkyscraper,
-         breadcrumbs: false
-       },
+      id: 'new-providers-request',
+      title: 'Providers List',
+      type: 'item',
+      url: '/photography/photographyvendors',
+      icon: icons.IconBuildingSkyscraper,
+      breadcrumbs: false
+    },
     {
       id: 'cateringadd',
       title: 'Add Providers',
@@ -37,7 +37,7 @@ const PhotographyProvidermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
-     
+
   ]
 };
 

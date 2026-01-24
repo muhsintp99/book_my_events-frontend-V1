@@ -213,7 +213,7 @@ const MainRoutes = {
     { path: 'vehicles/list', element: <Vehiclelist /> },
     { path: 'vehicles/brands', element: <Brands /> },
     { path: '/vehicles/Attributes', element: <Vehicleattributes /> },
-    { path: '/providers/vehiclevendorlist', element: <Vehiclevendorlist /> },
+    { path: '/providers/vehiclevendorlist', element: <ProviderList /> },
     // Vehicles - Category
     { path: 'vehicles/category', element: <Category /> },
     { path: 'vehicles/category/edit/:id', element: <Category /> },

@@ -15,7 +15,7 @@ const CateringProvidermanagement = {
   children: [
     {
       id: 'new-providers-request',
-      title: 'New Providers Request',
+      title: 'Providers List',
       type: 'item',
       url: '/catering/cateringprovider',
       icon: icons.IconBuildingSkyscraper,
@@ -37,7 +37,7 @@ const CateringProvidermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
-     
+
   ]
 };
 

@@ -15,7 +15,7 @@ const MakeupProvidermanagement = {
   children: [
     {
       id: 'new-providers-request',
-      title: 'New Providers Request',
+      title: 'Providers List',
       type: 'item',
       url: '/providers/makeupprovider',
       icon: icons.IconBuildingSkyscraper,
@@ -37,8 +37,8 @@ const MakeupProvidermanagement = {
       icon: icons.IconTools,
       breadcrumbs: false
     },
-    
-     
+
+
   ]
 };
 

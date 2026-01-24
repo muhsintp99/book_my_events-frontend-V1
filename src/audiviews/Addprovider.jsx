@@ -1419,6 +1419,7 @@ import {
   FormControlLabel,
   Checkbox
 } from '@mui/material';
+import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
 
