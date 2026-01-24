@@ -83,9 +83,17 @@ export default function AuthLogin() {
 
       // Role-based redirection
       const userRole = data.user.role;
-      if (userRole === 'superadmin') navigate('/superadmin-dashboard');
-      else if (userRole === 'vendor') navigate('/vendor-dashboard');
-      else navigate('/dashboard');
+      if (userRole === 'superadmin' || userRole === 'admin') {
+        navigate('/dashboard');
+      } else {
+        // If not admin, clear storage and show error
+        localStorage.removeItem('token');
+        localStorage.removeItem('user');
+        sessionStorage.removeItem('token');
+        sessionStorage.removeItem('user');
+        setError('Access denied. Only administrators can access this portal.');
+        setLoading(false);
+      }
     } catch (err) {
       setError(err.message || 'Network error');
     } finally {

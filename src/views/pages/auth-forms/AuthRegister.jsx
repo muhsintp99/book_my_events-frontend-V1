@@ -121,8 +121,8 @@ export default function AuthRegister() {
         }
 
         // Redirect based on role
-        if (data.data.user.role === 'superadmin') {
-          navigate('/superadmin-dashboard');
+        if (data.data.user.role === 'superadmin' || data.data.user.role === 'admin') {
+          navigate('/dashboard');
         } else {
           navigate('/dashboard');
         }

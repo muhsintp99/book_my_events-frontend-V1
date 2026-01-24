@@ -29,9 +29,11 @@ export default function ProtectedRoute({ children }) {
   const location = useLocation();
   const [token, setToken] = useState(localStorage.getItem('token') || sessionStorage.getItem('token'));
   const [isValid, setIsValid] = useState(true);
+  const [isAuthorized, setIsAuthorized] = useState(true);
 
   useEffect(() => {
     const currentToken = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const currentUser = JSON.parse(localStorage.getItem('user') || sessionStorage.getItem('user') || '{}');
 
     if (!currentToken || isTokenExpired(currentToken)) {
       if (currentToken) {
@@ -45,11 +47,23 @@ export default function ProtectedRoute({ children }) {
     } else {
       setIsValid(true);
       setToken(currentToken);
+
+      // Check for admin/superadmin role
+      const role = currentUser.role;
+      if (role !== 'superadmin' && role !== 'admin') {
+        setIsAuthorized(false);
+      } else {
+        setIsAuthorized(true);
+      }
     }
   }, [location.pathname]); // Re-verify on navigation
 
   if (!isValid || !token) {
     return <Navigate to="/login" replace />;
+  }
+
+  if (!isAuthorized) {
+    return <Navigate to="/unauthorized" replace />;
   }
 
   return children;

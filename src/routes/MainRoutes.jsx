@@ -135,6 +135,7 @@ const Ornamentsprovider = ProviderList;
 const OrnamentsCoupon = Loadable(lazy(() => import('../ornaments/OrnamentsCoupon')));
 
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
+const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
 import ProtectedRoute from './ProtectedRoute';
 
@@ -149,6 +150,7 @@ const MainRoutes = {
     { path: '/', element: <DashboardDefault /> },
     { path: '*', element: <PageNotFound /> },
     { path: 'dashboard', element: <DashboardDefault /> },
+    { path: 'unauthorized', element: <Unauthorized /> },
     { path: 'statistics', element: <Statistics /> },
     { path: 'typography', element: <UtilsTypography /> },
     { path: 'color', element: <UtilsColor /> },
