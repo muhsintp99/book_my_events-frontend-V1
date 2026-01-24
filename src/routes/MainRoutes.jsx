@@ -277,7 +277,7 @@ const MainRoutes = {
 
     { path: '/photography/category', element: <Photographycategory /> },
     { path: '/photography/photographylist', element: <PhotographyList /> },
-    { path: '/photography/AddProvider', element: <Photographyprovider /> },
+    { path: '/photography/AddProvider', element: <Photographyaddprovider /> },
     { path: '/photography/Coupons', element: <PhotographyCoupon /> },
     // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
 

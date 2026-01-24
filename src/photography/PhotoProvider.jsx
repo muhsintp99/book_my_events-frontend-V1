@@ -21,7 +21,7 @@ import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useParams, useNavigate } from "react-router-dom";
 import { API_BASE_URL, getApiImageUrl } from "../utils/apiImageUtils";
 
-function AddAuditorium() {
+function PhotoProvider() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isEditMode, setIsEditMode] = useState(false);
@@ -504,7 +504,7 @@ function AddAuditorium() {
 
       if (isEditMode) {
         showAlert("Provider updated successfully!", "success");
-        setTimeout(() => navigate("/makeup/CateringProvider"), 2000);
+        setTimeout(() => navigate("/photography/photographyvendors"), 2000);
         setLoading(false);
         return;
       }
@@ -916,4 +916,4 @@ function AddAuditorium() {
   );
 }
 
-export default AddAuditorium;
+export default PhotoProvider;
