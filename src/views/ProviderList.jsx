@@ -23,7 +23,8 @@ import {
     FormControl,
     InputLabel,
     Tooltip,
-    Stack
+    Stack,
+    Grid
 } from '@mui/material';
 
 import EditIcon from '@mui/icons-material/Edit';
@@ -47,6 +48,8 @@ function ProviderList() {
     const [sortOrder, setSortOrder] = useState('desc');
     const [modules, setModules] = useState([]);
     const [selectedModule, setSelectedModule] = useState('all');
+    const [paymentFilter, setPaymentFilter] = useState('all');
+    const [packageStatusFilter, setPackageStatusFilter] = useState('all');
     const [notification, setNotification] = useState({
         open: false,
         message: '',
@@ -170,7 +173,9 @@ function ProviderList() {
             v.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
             (v.phone && v.phone.toLowerCase().includes(searchTerm.toLowerCase()));
         const moduleMatch = selectedModule === 'all' || v.moduleId === selectedModule;
-        return tabMatch && searchMatch && moduleMatch;
+        const paymentMatch = paymentFilter === 'all' || (paymentFilter === 'paid' ? v.isPaid : !v.isPaid);
+        const packageStatusMatch = packageStatusFilter === 'all' || v.packageStatus.toLowerCase() === packageStatusFilter.toLowerCase();
+        return tabMatch && searchMatch && moduleMatch && paymentMatch && packageStatusMatch;
     });
 
     const handleSortChange = (event) => {
@@ -238,81 +243,114 @@ function ProviderList() {
                 </Tabs>
 
                 <Box p={3}>
-                    <Stack
-                        direction={{ xs: 'column', sm: 'row' }}
-                        spacing={2}
-                        justifyContent="space-between"
-                        alignItems={{ xs: 'stretch', sm: 'center' }}
-                        mb={3}
-                    >
-                        <Typography variant="h6" fontWeight={600}>
-                            Vendors ({filteredVendors.length})
-                        </Typography>
+                    <Grid container spacing={2} alignItems="center" mb={3}>
+                        <Grid item xs={12} md={3}>
+                            <Typography variant="h6" fontWeight={600}>
+                                Vendors ({filteredVendors.length})
+                            </Typography>
+                        </Grid>
 
-                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ flex: 1, maxWidth: { sm: 600 } }}>
-                            <FormControl size="small" sx={{ minWidth: 160 }}>
-                                <InputLabel>Sort By</InputLabel>
-                                <Select
-                                    value={['createdAt', 'popularity', ''].includes(sortBy) ? sortBy : ''}
-                                    label="Sort By"
-                                    onChange={(e) => {
-                                        setSortBy(e.target.value);
-                                    }}
-                                    startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
-                                >
-                                    <MenuItem value="">Default</MenuItem>
-                                    <MenuItem value="createdAt">Newest / Oldest</MenuItem>
-                                    <MenuItem value="popularity">Popularity</MenuItem>
-                                </Select>
-                            </FormControl>
+                        <Grid item xs={12} md={9}>
+                            <Stack
+                                direction="row"
+                                spacing={2}
+                                flexWrap="wrap"
+                                useFlexGap
+                                justifyContent={{ xs: 'flex-start', md: 'flex-end' }}
+                            >
+                                <FormControl size="small" sx={{ minWidth: 150 }}>
+                                    <InputLabel>Module</InputLabel>
+                                    <Select
+                                        value={selectedModule}
+                                        label="Module"
+                                        onChange={(e) => setSelectedModule(e.target.value)}
+                                        sx={{ bgcolor: 'white' }}
+                                    >
+                                        <MenuItem value="all">All Modules</MenuItem>
+                                        {modules.map((m) => (
+                                            <MenuItem key={m._id} value={m._id}>
+                                                {m.title}
+                                            </MenuItem>
+                                        ))}
+                                    </Select>
+                                </FormControl>
 
-                            <FormControl size="small" sx={{ minWidth: 160 }}>
-                                <InputLabel>Metric Filter</InputLabel>
-                                <Select
-                                    value={['packageCount', 'bookingCount'].includes(sortBy) ? sortBy : ''}
-                                    label="Metric Filter"
-                                    onChange={(e) => {
-                                        setSortBy(e.target.value);
-                                    }}
-                                    startAdornment={<SearchIcon sx={{ mr: 1, color: 'action.active' }} />}
-                                >
-                                    <MenuItem value="">None</MenuItem>
-                                    <MenuItem value="packageCount">Top Packages</MenuItem>
-                                    <MenuItem value="bookingCount">Top Bookings</MenuItem>
-                                </Select>
-                            </FormControl>
+                                <FormControl size="small" sx={{ minWidth: 140 }}>
+                                    <InputLabel>Payment</InputLabel>
+                                    <Select
+                                        value={paymentFilter}
+                                        label="Payment"
+                                        onChange={(e) => setPaymentFilter(e.target.value)}
+                                        sx={{ bgcolor: 'white' }}
+                                    >
+                                        <MenuItem value="all">All Payments</MenuItem>
+                                        <MenuItem value="paid">Paid Only</MenuItem>
+                                        <MenuItem value="free">Free Only</MenuItem>
+                                    </Select>
+                                </FormControl>
 
-                            <Tooltip title={sortOrder === 'desc' ? 'Downward (High to Low)' : 'Upward (Low to High)'}>
-                                <IconButton
-                                    onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
-                                    sx={{
-                                        border: '1px solid #e0e0e0',
-                                        borderRadius: 1.5,
-                                        bgcolor: 'white',
-                                        '&:hover': { bgcolor: '#f5f5f5' }
-                                    }}
-                                >
-                                    {sortOrder === 'desc' ? <SortIcon sx={{ transform: 'scaleY(-1)' }} /> : <SortIcon />}
-                                </IconButton>
-                            </Tooltip>
+                                <FormControl size="small" sx={{ minWidth: 140 }}>
+                                    <InputLabel>Status</InputLabel>
+                                    <Select
+                                        value={packageStatusFilter}
+                                        label="Status"
+                                        onChange={(e) => setPackageStatusFilter(e.target.value)}
+                                        sx={{ bgcolor: 'white' }}
+                                    >
+                                        <MenuItem value="all">All Status</MenuItem>
+                                        <MenuItem value="active">Active (With Packages)</MenuItem>
+                                        <MenuItem value="pending">Pending (No Packages)</MenuItem>
+                                    </Select>
+                                </FormControl>
 
-                            <FormControl size="small" sx={{ minWidth: 150 }}>
-                                <InputLabel>Module</InputLabel>
-                                <Select
-                                    value={selectedModule}
-                                    label="Module"
-                                    onChange={(e) => setSelectedModule(e.target.value)}
-                                >
-                                    <MenuItem value="all">All Modules</MenuItem>
-                                    {modules.map((m) => (
-                                        <MenuItem key={m._id} value={m._id}>
-                                            {m.title}
-                                        </MenuItem>
-                                    ))}
-                                </Select>
-                            </FormControl>
-                        </Stack>
-                    </Stack>
+                                <FormControl size="small" sx={{ minWidth: 160 }}>
+                                    <InputLabel>Sort By</InputLabel>
+                                    <Select
+                                        value={['createdAt', 'popularity', ''].includes(sortBy) ? sortBy : ''}
+                                        label="Sort By"
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        startAdornment={<SortIcon sx={{ mr: 1, color: 'action.active' }} />}
+                                        sx={{ bgcolor: 'white' }}
+                                    >
+                                        <MenuItem value="">Default</MenuItem>
+                                        <MenuItem value="createdAt">Newest / Oldest</MenuItem>
+                                        <MenuItem value="popularity">Popularity</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <FormControl size="small" sx={{ minWidth: 160 }}>
+                                    <InputLabel>Metric Filter</InputLabel>
+                                    <Select
+                                        value={['packageCount', 'bookingCount'].includes(sortBy) ? sortBy : ''}
+                                        label="Metric Filter"
+                                        onChange={(e) => setSortBy(e.target.value)}
+                                        startAdornment={<SearchIcon sx={{ mr: 1, color: 'action.active' }} />}
+                                        sx={{ bgcolor: 'white' }}
+                                    >
+                                        <MenuItem value="">None</MenuItem>
+                                        <MenuItem value="packageCount">Top Packages</MenuItem>
+                                        <MenuItem value="bookingCount">Top Bookings</MenuItem>
+                                    </Select>
+                                </FormControl>
+
+                                <Tooltip title={sortOrder === 'desc' ? 'Downward (High to Low)' : 'Upward (Low to High)'}>
+                                    <IconButton
+                                        onClick={() => setSortOrder(prev => prev === 'desc' ? 'asc' : 'desc')}
+                                        sx={{
+                                            border: '1px solid #e0e0e0',
+                                            borderRadius: 1.5,
+                                            bgcolor: 'white',
+                                            height: 40,
+                                            width: 40,
+                                            '&:hover': { bgcolor: '#f5f5f5' }
+                                        }}
+                                    >
+                                        {sortOrder === 'desc' ? <SortIcon sx={{ transform: 'scaleY(-1)' }} /> : <SortIcon />}
+                                    </IconButton>
+                                </Tooltip>
+                            </Stack>
+                        </Grid>
+                    </Grid>
 
                     {loading ? (
                         <Box display="flex" alignItems="center" gap={2} py={4}>
@@ -328,9 +366,10 @@ function ProviderList() {
                                         <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>{selectedModule && modules.find(m => m._id === selectedModule && (m.title.toLowerCase().includes('transport') || m.title.toLowerCase().includes('vehicle'))) ? 'Vehicles' : 'Packages'}</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Vehicles/Packages</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Bookings</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Status</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Verification</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Package Status</TableCell>
                                         <TableCell align="center" sx={{ fontWeight: 600 }}>Actions</TableCell>
                                     </TableRow>
                                 </TableHead>
@@ -353,7 +392,22 @@ function ProviderList() {
                                                     >
                                                         {vendor.name.charAt(0).toUpperCase()}
                                                     </Avatar>
-                                                    <Typography fontWeight={500}>{vendor.name}</Typography>
+                                                    <Box>
+                                                        <Typography fontWeight={500}>{vendor.name}</Typography>
+                                                        {vendor.isPaid && (
+                                                            <Chip
+                                                                label="Paid"
+                                                                size="small"
+                                                                sx={{
+                                                                    height: 18,
+                                                                    fontSize: '0.65rem',
+                                                                    bgcolor: '#FFD700',
+                                                                    color: '#000',
+                                                                    fontWeight: 700
+                                                                }}
+                                                            />
+                                                        )}
+                                                    </Box>
                                                 </Box>
                                             </TableCell>
 
@@ -380,6 +434,15 @@ function ProviderList() {
                                                     label={vendor.status}
                                                     size="small"
                                                     color={vendor.isVerified ? 'success' : 'warning'}
+                                                />
+                                            </TableCell>
+
+                                            <TableCell>
+                                                <Chip
+                                                    label={vendor.packageStatus}
+                                                    size="small"
+                                                    color={vendor.packageStatus === 'Active' ? 'success' : 'default'}
+                                                    variant={vendor.packageStatus === 'Active' ? 'filled' : 'outlined'}
                                                 />
                                             </TableCell>
 

@@ -123,6 +123,8 @@ export const formatVendorsForList = (vendors) => {
             isVerified: v.isVerified || false,
             status: v.isVerified ? 'Verified' : 'Pending',
             packageCount: v.packageCount || 0,
+            packageStatus: (v.packageCount || 0) > 0 ? 'Active' : 'Pending',
+            isPaid: (v.isFreeTrial === false && !!v.subscriptionPlan) || (v.user?.isPaid === true), // Added common paid markers
             bookingCount: v.bookingCount || 0,
             module: v.module?.title || 'N/A',
             moduleId: v.module?._id || v.module || null,
