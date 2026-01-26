@@ -15,9 +15,14 @@ import {
   Checkbox
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
+import { useParams, useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
 
 function AddOrnaments() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [profileId, setProfileId] = useState(null);
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
@@ -135,6 +140,87 @@ function AddOrnaments() {
 
     fetchPlans();
   }, [formData.module, API_BASE_URL]);
+
+  // Fetch vendor data when editing
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      fetchVendorData(id);
+    }
+  }, [id]);
+
+  const fetchVendorData = async (vendorId) => {
+    try {
+      setLoading(true);
+      // We use the admin details endpoint to get everything
+      const response = await fetch(`${API_BASE_URL}/profile/admin/vendor/${vendorId}/details`);
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.message || 'Failed to fetch');
+
+      const { user, profile, vendorProfile } = result.data.profile;
+      setProfileId(profile?._id || null);
+
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        storeName: vendorProfile?.storeName || profile?.vendorName || '',
+        storeAddress: vendorProfile?.storeAddress || profile?.storeAddress || {
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          fullAddress: profile?.businessAddress || ''
+        },
+        minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
+        maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
+        zone: vendorProfile?.zone?._id || vendorProfile?.zone || '',
+        module: vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || '',
+        latitude: vendorProfile?.latitude || profile?.latitude || '',
+        longitude: vendorProfile?.longitude || profile?.longitude || '',
+        ownerFirstName: vendorProfile?.ownerFirstName || '',
+        ownerLastName: vendorProfile?.ownerLastName || '',
+        ownerPhone: vendorProfile?.ownerPhone || '',
+        ownerEmail: vendorProfile?.ownerEmail || '',
+        status: vendorProfile?.status || 'pending',
+        reviewedBy: vendorProfile?.reviewedBy || '',
+        reviewedAt: vendorProfile?.reviewedAt || '',
+        rejectionReason: vendorProfile?.rejectionReason || '',
+        adminNotes: vendorProfile?.adminNotes || '',
+        isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
+        approvedProvider: vendorProfile?.approvedProvider || ''
+      });
+
+      if (profile?.bankDetails) {
+        setBankDetails({
+          ...bankDetails,
+          ...profile.bankDetails
+        });
+      }
+
+      const logo = (vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto);
+      if (logo) setLogoPreview(logo);
+
+      const cover = (vendorProfile?.coverImage);
+      if (cover) setCoverPreview(cover);
+
+      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
+        setSelectedZone(vendorProfile.zone?._id || vendorProfile.zone);
+      }
+
+      setIsFreeTrial(user.isFreeTrial || false);
+      if (user.subscriptionPlan) setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
+
+      showAlert('Provider data loaded successfully', 'success');
+    } catch (err) {
+      console.error('Error fetching vendor:', err);
+      showAlert('Failed to load provider data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load Google Maps script
   useEffect(() => {
@@ -429,6 +515,32 @@ function AddOrnaments() {
       if (files.logo) payload.append('logo', files.logo);
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
+      if (isEditMode) {
+        // Update logic (Targets Profile update which also handles user if role=user, 
+        // but for vendor we might need to handle specific fields)
+        // For simplicity and matching common pattern, we use the profile update endpoint
+        // and let the backend handle the mapping.
+
+        // Add role to payload for the backend to know how to handle it
+        payload.append('role', 'vendor');
+
+        const updateId = profileId || id; // Profile ID is better if available, else User ID
+
+        const res = await fetch(`${API_BASE_URL}/profile/${updateId}`, {
+          method: 'PUT',
+          body: payload
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Update failed');
+
+        showAlert('Provider updated successfully!', 'success');
+        setTimeout(() => {
+          navigate('/ornaments/ornamentsprovider');
+        }, 2000);
+        return;
+      }
+
       // Register provider
       const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -609,7 +721,7 @@ function AddOrnaments() {
   return (
     <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Add Ornaments Provider
+        {isEditMode ? 'Edit Ornaments Provider' : 'Add Ornaments Provider'}
       </Typography>
 
       {/* Store Information */}
@@ -1019,7 +1131,7 @@ function AddOrnaments() {
           disabled={loading}
           startIcon={loading ? <CircularProgress size={20} color="inherit" /> : null}
         >
-          {loading ? 'Processing...' : isFreeTrial ? 'Submit' : 'Proceed to Payment'}
+          {loading ? 'Processing...' : isEditMode ? 'Update' : isFreeTrial ? 'Submit' : 'Proceed to Payment'}
         </Button>
       </Box>
 

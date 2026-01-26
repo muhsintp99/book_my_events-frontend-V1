@@ -227,6 +227,7 @@ const MainRoutes = {
     { path: 'auditorium/category', element: <Auditoriumcategory /> },
     { path: 'auditorium/provider', element: <Auditoriumnewprovidersrequest /> },
     { path: 'auditorium/addprovider', element: <Auditoriumaddprovider /> },
+    { path: 'auditorium/addprovider/:id', element: <Auditoriumaddprovider /> },
     { path: 'auditorium/auditoriumlist', element: <Auditoriumlist /> },
     { path: 'auditorium/create', element: <Createauditorium /> },
     { path: 'auditorium/venuelist', element: <Venuelist /> },
@@ -246,6 +247,7 @@ const MainRoutes = {
     { path: '/catering/cateringprovider', element: <Cateringprovider /> },
 
     { path: 'catering/addprovider', element: <Cateringaddprovider /> },
+    { path: 'catering/addprovider/:id', element: <Cateringaddprovider /> },
     { path: 'catering/Category', element: <Cateringcategory /> },
     { path: 'catering/Cateringlist', element: <CateringList /> },
     { path: '/catering/provider', element: <Cateringprovider /> },
@@ -278,6 +280,7 @@ const MainRoutes = {
     { path: '/photography/category', element: <Photographycategory /> },
     { path: '/photography/photographylist', element: <PhotographyList /> },
     { path: '/photography/AddProvider', element: <Photographyaddprovider /> },
+    { path: '/photography/AddProvider/:id', element: <Photographyaddprovider /> },
     { path: '/photography/Coupons', element: <PhotographyCoupon /> },
     // { path: '/photography/portfolio', element: <PhotographyPortfolio /> }
 
@@ -285,6 +288,7 @@ const MainRoutes = {
     //  cakes///////////////////////
     { path: '/cake/dashboard', element: <Cakedashboard /> },
     { path: '/cake/AddProvider', element: <Cakeaddprovider /> },
+    { path: '/cake/AddProvider/:id', element: <Cakeaddprovider /> },
     { path: '/cake/cakevendors', element: <Cakevendorslist /> },
 
 
@@ -297,6 +301,7 @@ const MainRoutes = {
     // ornaments///////////////////////
     { path: '/ornaments/dashboard', element: <Ornamentsdashboard /> },
     { path: '/ornaments/AddProvider', element: <Ornamentsaddprovider /> },
+    { path: '/ornaments/AddProvider/:id', element: <Ornamentsaddprovider /> },
     { path: '/ornaments/ornamentsvendors', element: <Ornamentsvendorslist /> },
     { path: '/ornaments/category', element: <Ornamentscategory /> },
     { path: '/ornaments/ornamentslist', element: <OrnamentsList /> },

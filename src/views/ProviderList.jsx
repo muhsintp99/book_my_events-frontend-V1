@@ -366,7 +366,7 @@ function ProviderList() {
                                         <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>
-                                        <TableCell sx={{ fontWeight: 600 }}>Vehicles/Packages</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Packages</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Bookings</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Verification</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Package Status</TableCell>

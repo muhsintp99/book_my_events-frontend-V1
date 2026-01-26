@@ -33,6 +33,10 @@ import {
   List,
   ListItem,
   ListItemText,
+  Stack,
+  FormControl,
+  InputLabel,
+  Select
 } from '@mui/material';
 import {
   VisibilityOutlined,
@@ -41,17 +45,21 @@ import {
   Download,
   Save,
   Close,
-  Restaurant,
+  Diamond,
   AttachMoney,
   Tag,
   People,
   Web,
   Phone,
   Email,
-  Category,
+  Category as CategoryIcon,
+  Add as AddIcon,
+  CloudUpload,
+
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
+import { getAllVendors, formatVendorsForList } from '../api/providerApi';
 
 const OrnamentsList = () => {
   const navigate = useNavigate();
@@ -79,6 +87,29 @@ const OrnamentsList = () => {
   const [editFormData, setEditFormData] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
+
+  // Add Dialog
+  const [openAddDialog, setOpenAddDialog] = useState(false);
+  const [addFormData, setAddFormData] = useState({
+    name: '',
+    description: '',
+    unit: '',
+    weight: 1,
+    material: '',
+    buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
+    availabilityMode: 'purchase',
+    category: '',
+    subCategory: '',
+    provider: '',
+    isActive: true
+  });
+  const [providers, setProviders] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [subCategories, setSubCategories] = useState([]);
+  const [thumbnail, setThumbnail] = useState(null);
+  const [galleryImages, setGalleryImages] = useState([]);
+  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [dependenciesLoading, setDependenciesLoading] = useState(false);
 
   /* ---------- API ---------- */
   // API_BASE_URL is now imported from apiImageUtils
@@ -133,26 +164,30 @@ const OrnamentsList = () => {
   const mapOrnament = (c, idx) => ({
     id: idx + 1,
     _id: c._id,
-    cateringId: c.cateringId,
-    title: c.title || 'Untitled',
-    subtitle: c.subtitle || '',
+    ornamentId: c.ornamentId,
+    title: c.name || 'Untitled',
     description: c.description || '',
-    cateringType: c.cateringType || '',
-    price: c.price ?? 0,
+    unit: c.unit || '',
+    weight: c.weight ?? 0,
+    material: c.material || '',
+    price: c.buyPricing?.totalPrice ?? 0,
     providerName:
       c.provider?.firstName && c.provider?.lastName
         ? `${c.provider.firstName} ${c.provider.lastName}`
         : c.provider?.firstName || '—',
     providerEmail: c.provider?.email || '',
-    includes: (c.includes || [])
-      .map(inc => `${inc.title}: ${inc.items.join(', ')}`)
-      .join(' | '),
-    isTopPick: c.isTopPick ?? false,
     isActive: c.isActive ?? false,
     thumbnail: c.thumbnail || '',
-    searchTags: c.searchTags || [],
-    faqs: c.faqs || [],
-    rawCatering: c,
+    galleryImages: c.galleryImages || [],
+    availabilityMode: c.availabilityMode || 'purchase',
+    buyPricing: c.buyPricing || {},
+    rentalPricing: c.rentalPricing || {},
+    stock: c.stock || {},
+    shipping: c.shipping || {},
+    occasions: c.occasions || [],
+    features: c.features || {},
+    tags: c.tags || [],
+    rawOrnament: c,
   });
 
   /* ---------- Fetch ---------- */
@@ -173,124 +208,157 @@ const OrnamentsList = () => {
     }
   };
 
+  /* ---------- Fetch Dependencies ---------- */
+  const fetchDependencies = async () => {
+    try {
+      setDependenciesLoading(true);
+      const [vData, cData] = await Promise.all([
+        getAllVendors(),
+        fetch(`${API_BASE_URL}/categories`).then(r => r.json())
+      ]);
+
+      if (vData?.success) {
+        const formatted = formatVendorsForList(vData.data);
+        // Filter for Ornaments module vendors if possible, but for now show all who might be relevant
+        setProviders(formatted.filter(v => (v.module || '').toLowerCase().includes('ornament')));
+      }
+
+      if (cData) {
+        const cats = Array.isArray(cData) ? cData : cData.data || [];
+        // Filter for Ornaments module categories
+        setCategories(cats.filter(c => {
+          const modTitle = c.module?.title || '';
+          return modTitle.toLowerCase().includes('ornament');
+        }));
+      }
+    } catch (e) {
+      console.error('Error fetching dependencies:', e);
+    } finally {
+      setDependenciesLoading(false);
+    }
+  };
+
+  const handleAddClick = () => {
+    fetchDependencies();
+    setOpenAddDialog(true);
+  };
+
   useEffect(() => { fetchOrnaments(); }, []);
 
   /* ---------- Toggles ---------- */
   const handleTopPickToggle = useCallback(async (_id) => {
     const key = `${_id}-topPick`;
     if (toggleLoading[key]) return;
-    const cat = caterings.find(c => c._id === _id);
-    if (!cat) return;
-    const newVal = !cat.isTopPick;
+    const item = ornaments.find(c => c._id === _id);
+    if (!item) return;
+    const newVal = !item.isTopPick;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
     } catch (e) {
-      setCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [caterings, toggleLoading]);
+  }, [ornaments, toggleLoading]);
 
   const handleStatusToggle = useCallback(async (_id) => {
     const key = `${_id}-status`;
     if (toggleLoading[key]) return;
-    const cat = caterings.find(c => c._id === _id);
-    if (!cat) return;
-    const newVal = !cat.isActive;
+    const item = ornaments.find(c => c._id === _id);
+    if (!item) return;
+    const newVal = !item.isActive;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
     } catch (e) {
-      setCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [caterings, toggleLoading]);
+  }, [ornaments, toggleLoading]);
 
   /* ---------- Delete ---------- */
-  const handleDeleteClick = cat => { setCateringToDelete(cat); setOpenDeleteDialog(true); };
+  const handleDeleteClick = item => { setOrnamentToDelete(item); setOpenDeleteDialog(true); };
   const handleDeleteConfirm = async () => {
     try {
-      await makeAPICall(`${API_URL}/${cateringToDelete._id}`, getFetchOptions('DELETE'));
-      setCaterings(p => p.filter(c => c._id !== cateringToDelete._id));
-      setAllCaterings(p => p.filter(c => c._id !== cateringToDelete._id));
-      setNotification({ open: true, message: `${cateringToDelete.title} deleted`, severity: 'success' });
+      await makeAPICall(`${API_URL}/${ornamentToDelete._id}`, getFetchOptions('DELETE'));
+      setOrnaments(p => p.filter(c => c._id !== ornamentToDelete._id));
+      setAllOrnaments(p => p.filter(c => c._id !== ornamentToDelete._id));
+      setNotification({ open: true, message: `${ornamentToDelete.title} deleted`, severity: 'success' });
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
-      setOpenDeleteDialog(false); setCateringToDelete(null);
+      setOpenDeleteDialog(false); setOrnamentToDelete(null);
     }
   };
 
   /* ---------- Export (INR) ---------- */
-  const filtered = caterings.filter(c =>
-    `${c.title} ${c.subtitle} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = ornaments.filter(c =>
+    `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const exportCSV = () => {
-    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
+    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
     const rows = filtered.map(c => [
-      c.id, `"${c.title}"`, `"${c.subtitle}"`, c.cateringType, toINR(c.price),
-      `"${c.providerName}"`, `"${c.providerEmail}"`, `"${c.includes}"`,
-      c.isTopPick ? 'Yes' : 'No', c.isActive ? 'Active' : 'Inactive'
+      c.id, `"${c.title}"`, `"${c.providerName}"`, `"${c.providerEmail}"`, c.availabilityMode, toINR(c.price),
+      c.weight, c.isActive ? 'Active' : 'Inactive'
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `catering_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    a.href = url; a.download = `ornaments_${new Date().toISOString().split('T')[0]}.csv`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'CSV exported', severity: 'success' });
   };
 
   const exportExcel = () => {
-    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
+    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
     const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
-      <td>${c.id}</td><td>${c.title}</td><td>${c.subtitle}</td><td>${c.cateringType}</td><td>${toINR(c.price)}</td>
-      <td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.includes}</td>
-      <td>${c.isTopPick ? 'Yes' : 'No'}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
+      <td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.availabilityMode}</td><td>${toINR(c.price)}</td>
+      <td>${c.weight}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
     </tr>`).join('')}</tbody></table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `catering_${new Date().toISOString().split('T')[0]}.xls`; a.click();
+    a.href = url; a.download = `ornaments_${new Date().toISOString().split('T')[0]}.xls`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'Excel exported', severity: 'success' });
   };
 
   /* ---------- View ---------- */
-  const handleView = cat => {
-    setSelectedCatering(cat.rawCatering);
+  const handleView = item => {
+    setSelectedOrnament(item.rawOrnament);
     setOpenViewDialog(true);
   };
 
   /* ---------- Edit ---------- */
-  const handleEdit = cat => {
-    const r = cat.rawCatering;
-    setEditingCatering(cat);
+  const handleEdit = item => {
+    const r = item.rawOrnament;
+    setEditingOrnament(item);
     setEditFormData({
-      title: r.title || '',
-      subtitle: r.subtitle || '',
+      name: r.name || '',
       description: r.description || '',
-      cateringType: r.cateringType || '',
-      price: r.price || 0,
-      includes: r.includes || [],
-      searchTags: r.searchTags || [],
-      faqs: r.faqs || [],
-      thumbnail: r.thumbnail || '',
+      unit: r.unit || '',
+      weight: r.weight || 0,
+      material: r.material || '',
+      buyPricing: r.buyPricing || {},
+      rentalPricing: r.rentalPricing || {},
+      stock: r.stock || {},
+      shipping: r.shipping || {},
     });
     setCurrentTab(0);
     setOpenEditDialog(true);
@@ -300,15 +368,12 @@ const OrnamentsList = () => {
     try {
       setSaveLoading(true);
       const payload = { ...editFormData };
-      if (payload.includes) {
-        payload.includes = payload.includes.filter(inc => inc.title && inc.items?.length);
-      }
-      const data = await makeAPICall(`${API_URL}/${editingCatering._id}`, getFetchOptions('PUT', payload));
+      const data = await makeAPICall(`${API_BASE_URL}/ornaments/${editingOrnament._id}`, getFetchOptions('PUT', payload));
       if (data.success) {
-        const updated = mapCatering(data.data, editingCatering.id - 1);
-        setCaterings(p => p.map(x => x._id === editingCatering._id ? updated : x));
-        setAllCaterings(p => p.map(x => x._id === editingCatering._id ? updated : x));
-        setNotification({ open: true, message: 'Catering updated', severity: 'success' });
+        const updated = mapOrnament(data.data, editingOrnament.id - 1);
+        setOrnaments(p => p.map(x => x._id === editingOrnament._id ? updated : x));
+        setAllOrnaments(p => p.map(x => x._id === editingOrnament._id ? updated : x));
+        setNotification({ open: true, message: 'Ornament updated', severity: 'success' });
         setOpenEditDialog(false);
       }
     } catch (e) {
@@ -318,14 +383,79 @@ const OrnamentsList = () => {
     }
   };
 
-  const handleIncludeChange = (idx, field, val) => {
-    setEditFormData(p => ({
-      ...p,
-      includes: p.includes.map((inc, i) => i === idx ? { ...inc, [field]: val } : inc)
-    }));
+  /* ---------- Add Logic ---------- */
+  const handleThumbnailChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setThumbnail(file);
+      setThumbnailPreview(URL.createObjectURL(file));
+    }
   };
-  const addInclude = () => setEditFormData(p => ({ ...p, includes: [...(p.includes || []), { title: '', items: [] }] }));
-  const removeInclude = idx => setEditFormData(p => ({ ...p, includes: p.includes.filter((_, i) => i !== idx) }));
+
+  const handleGalleryChange = (e) => {
+    const files = Array.from(e.target.files);
+    setGalleryImages(prev => [...prev, ...files]);
+  };
+
+  const handleSubmitAdd = async () => {
+    if (!addFormData.name || !addFormData.category || !addFormData.provider || !thumbnail) {
+      setNotification({ open: true, message: 'Please fill name, category, provider and thumbnail', severity: 'warning' });
+      return;
+    }
+
+    try {
+      setSaveLoading(true);
+      const formData = new FormData();
+      formData.append('name', addFormData.name);
+      formData.append('description', addFormData.description);
+      formData.append('unit', addFormData.unit);
+      formData.append('weight', addFormData.weight);
+      formData.append('material', addFormData.material);
+      formData.append('availabilityMode', addFormData.availabilityMode);
+      formData.append('category', addFormData.category);
+      formData.append('subCategory', addFormData.subCategory);
+      formData.append('provider', addFormData.provider);
+      formData.append('isActive', addFormData.isActive);
+      formData.append('buyPricing', JSON.stringify(addFormData.buyPricing));
+
+      // Get Ornament Module ID
+      const moduleRes = await fetch(`${API_BASE_URL}/modules`).then(r => r.json());
+      const ornamentModule = (moduleRes.data || moduleRes).find(m => m.title.toLowerCase().includes('ornament'));
+      if (ornamentModule) formData.append('module', ornamentModule._id);
+
+      formData.append('thumbnail', thumbnail);
+      galleryImages.forEach(img => formData.append('galleryImages', img));
+
+      const token = getToken();
+      const res = await fetch(`${API_BASE_URL}/ornaments`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to add');
+
+      setNotification({ open: true, message: 'Ornament added successfully!', severity: 'success' });
+      setOpenAddDialog(false);
+
+      // Reset form
+      setAddFormData({
+        name: '', description: '', unit: '', weight: 1, material: '',
+        buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
+        availabilityMode: 'purchase', category: '', subCategory: '', provider: '', isActive: true
+      });
+      setThumbnail(null); setThumbnailPreview(null); setGalleryImages([]);
+
+      fetchOrnaments();
+    } catch (e) {
+      setNotification({ open: true, message: e.message, severity: 'error' });
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+
 
   /* ---------- Stats ---------- */
   const stats = {
@@ -345,9 +475,14 @@ const OrnamentsList = () => {
           <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive: {stats.inactive}</Box>
           <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Top-Pick: {stats.topPick}</Box>
         </Box>
-        <Button variant="contained" color="secondary" size="small" onClick={() => fetchOrnaments(true)} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Top-Picks'}
-        </Button>
+        <Stack direction="row" spacing={1}>
+          <Button variant="contained" color="success" size="small" startIcon={<AddIcon />} onClick={handleAddClick}>
+            Add Ornament
+          </Button>
+          <Button variant="contained" color="secondary" size="small" onClick={() => fetchOrnaments(true)} disabled={loading}>
+            {loading ? 'Loading...' : 'Fetch Top-Picks'}
+          </Button>
+        </Stack>
       </Box>
 
       {/* Search & Export */}
@@ -381,12 +516,12 @@ const OrnamentsList = () => {
             <TableHead>
               <TableRow sx={{ bgcolor: '#f5f5f5' }}>
                 <TableCell>Sl</TableCell>
-                <TableCell>Package</TableCell>
-                <TableCell>Subtitle</TableCell>
-                <TableCell>Type</TableCell>
+                <TableCell>Name</TableCell>
+                <TableCell>Material</TableCell>
+                <TableCell>Weight</TableCell>
                 <TableCell>Price (INR)</TableCell>
                 <TableCell>Provider</TableCell>
-                <TableCell>Includes</TableCell>
+                <TableCell>Availability</TableCell>
                 <TableCell>Top-Pick</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell>Actions</TableCell>
@@ -396,7 +531,7 @@ const OrnamentsList = () => {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No ornaments packages found</Typography>
+                    <Typography color="textSecondary">No ornaments found</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -407,11 +542,11 @@ const OrnamentsList = () => {
                     <TableRow key={c._id} hover>
                       <TableCell>{c.id}</TableCell>
                       <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</TableCell>
-                      <TableCell>{c.subtitle}</TableCell>
-                      <TableCell>{c.cateringType}</TableCell>
+                      <TableCell>{c.material}</TableCell>
+                      <TableCell>{c.weight}g</TableCell>
                       <TableCell>{toINR(c.price)}</TableCell>
                       <TableCell>{c.providerName}</TableCell>
-                      <TableCell sx={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.includes}</TableCell>
+                      <TableCell>{c.availabilityMode}</TableCell>
                       <TableCell>
                         <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
                         {toggleLoading[topKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
@@ -437,85 +572,40 @@ const OrnamentsList = () => {
       {/* ---------- VIEW DIALOG (INR) ---------- */}
       <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedCatering?.title}</Typography>
+          <Typography variant="h6">{selectedOrnament?.name || 'Ornament Details'}</Typography>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedCatering && (
+          {selectedOrnament && (
             <Grid container spacing={3}>
-              {/* Basic */}
               <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><Category fontSize="small" /> Package</Typography>
-                <Typography paragraph>{selectedCatering.title}</Typography>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom><CategoryIcon fontSize="small" /> Name</Typography>
+                <Typography paragraph>{selectedOrnament.name}</Typography>
 
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Subtitle</Typography>
-                <Typography paragraph>{selectedCatering.subtitle || '—'}</Typography>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Material</Typography>
+                <Typography paragraph>{selectedOrnament.material || '—'}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedCatering.price)}</Typography>
+                <Typography>₹{toINR(selectedOrnament.buyPricing?.totalPrice || 0)}</Typography>
 
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><Restaurant fontSize="small" /> Type</Typography>
-                <Typography>{selectedCatering.cateringType || '—'}</Typography>
+                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Weight</Typography>
+                <Typography>{selectedOrnament.weight}g</Typography>
               </Grid>
 
-              {/* Provider */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedCatering.provider?.firstName} {selectedCatering.provider?.lastName}</Typography>
+                <Typography>{selectedOrnament.provider?.firstName} {selectedOrnament.provider?.lastName}</Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedCatering.provider?.phone || '—'}
+                  <Phone fontSize="small" /> {selectedOrnament.provider?.phone || '—'}
                 </Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedCatering.provider?.email || '—'}
+                  <Email fontSize="small" /> {selectedOrnament.provider?.email || '—'}
                 </Typography>
-                {selectedCatering.provider?.website && (
-                  <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Web fontSize="small" /> <a href={selectedCatering.provider.website} target="_blank" rel="noopener noreferrer">{selectedCatering.provider.website}</a>
-                  </Typography>
-                )}
               </Grid>
 
-              {/* Includes */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Includes</Typography>
-                <List dense>
-                  {selectedCatering.includes?.map((inc, i) => (
-                    <ListItem key={i} disableGutters>
-                      <ListItemText primary={<strong>{inc.title}</strong>} secondary={inc.items.join(', ')} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Grid>
-
-              {/* Tags */}
-              {selectedCatering.searchTags?.length > 0 && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Search Tags</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selectedCatering.searchTags.map(t => <Chip key={t} label={t} size="small" variant="outlined" />)}
-                  </Box>
-                </Grid>
-              )}
-
-              {/* Description */}
-              {selectedCatering.description && (
+              {selectedOrnament.description && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedCatering.description}</Typography>
-                </Grid>
-              )}
-
-              {/* FAQs */}
-              {selectedCatering.faqs?.length > 0 && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>FAQs</Typography>
-                  <List dense>
-                    {selectedCatering.faqs.map((q, i) => (
-                      <ListItem key={i}>
-                        <ListItemText primary={q.question} secondary={q.answer} />
-                      </ListItem>
-                    ))}
-                  </List>
+                  <Typography paragraph>{selectedOrnament.description}</Typography>
                 </Grid>
               )}
             </Grid>
@@ -523,83 +613,106 @@ const OrnamentsList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawCatering: selectedCatering }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
+          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawOrnament: selectedOrnament }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ---------- EDIT DIALOG (INR Helper) ---------- */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Edit Catering: {editingCatering?.title}</Typography>
-          <IconButton size="small" onClick={() => setOpenEditDialog(false)} sx={{ color: 'white' }}><Close /></IconButton>
+      {/* ---------- EDIT DIALOG ---------- */}
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
+          <Typography variant="h6">Edit Ornament: {editingOrnament?.title}</Typography>
         </DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tab label="Basic" />
-            <Tab label="Includes" />
-            <Tab label="Other" />
-          </Tabs>
-
-          <Box sx={{ p: 3 }}>
-            {/* Basic */}
-            {currentTab === 0 && (
-              <Grid container spacing={2}>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Title" value={editFormData.title || ''} onChange={e => setEditFormData(p => ({ ...p, title: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Subtitle" value={editFormData.subtitle || ''} onChange={e => setEditFormData(p => ({ ...p, subtitle: e.target.value }))} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Type" value={editFormData.cateringType || ''} onChange={e => setEditFormData(p => ({ ...p, cateringType: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Price (AED)"
-                    type="number"
-                    value={editFormData.price || ''}
-                    onChange={e => setEditFormData(p => ({ ...p, price: Number(e.target.value) }))}
-                    helperText={`≈ ₹${toINR(editFormData.price || 0)}`}
-                  />
-                </Grid>
+        <DialogContent dividers>
+          {editingOrnament && (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Name" value={editFormData.name || ''} onChange={e => setEditFormData(p => ({ ...p, name: e.target.value }))} />
               </Grid>
-            )}
-
-            {/* Includes */}
-            {currentTab === 1 && (
-              <Box>
-                <Button variant="outlined" size="small" onClick={addInclude} sx={{ mb: 2 }}>Add Include</Button>
-                {editFormData.includes?.map((inc, idx) => (
-                  <Box key={idx} sx={{ border: '1px solid #ddd', borderRadius: 1, p: 2, mb: 2 }}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
-                        <TextField fullWidth label="Title" size="small" value={inc.title || ''} onChange={e => handleIncludeChange(idx, 'title', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField fullWidth label="Items (comma-separated)" size="small" value={inc.items?.join(', ') || ''} onChange={e => handleIncludeChange(idx, 'items', e.target.value.split(',').map(i => i.trim()).filter(Boolean))} />
-                      </Grid>
-                      <Grid item xs={12} md={2}>
-                        <IconButton color="error" onClick={() => removeInclude(idx)} size="small"><Delete /></IconButton>
-                      </Grid>
-                    </Grid>
-                  </Box>
-                ))}
-              </Box>
-            )}
-
-            {/* Other */}
-            {currentTab === 2 && (
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Autocomplete multiple freeSolo options={[]} value={editFormData.searchTags || []}
-                    onChange={(e, v) => setEditFormData(p => ({ ...p, searchTags: v }))}
-                    renderTags={(v, p) => v.map((o, i) => <Chip key={i} label={o} {...p(i)} />)}
-                    renderInput={p => <TextField {...p} label="Search Tags" />} />
-                </Grid>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Material" value={editFormData.material || ''} onChange={e => setEditFormData(p => ({ ...p, material: e.target.value }))} />
               </Grid>
-            )}
-          </Box>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth label="Weight (g)" type="number" value={editFormData.weight || 0} onChange={e => setEditFormData(p => ({ ...p, weight: Number(e.target.value) }))} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} />
+              </Grid>
+            </Grid>
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
-          <Button onClick={() => setOpenEditDialog(false)} variant="outlined" disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" startIcon={saveLoading ? <CircularProgress size={16} /> : <Save />} disabled={saveLoading}>
-            {saveLoading ? 'Saving...' : 'Save Changes'}
+        <DialogActions>
+          <Button onClick={() => setOpenEditDialog(false)} disabled={saveLoading}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={saveLoading}>
+            {saveLoading ? <CircularProgress size={24} /> : 'Save Changes'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* ---------- ADD DIALOG ---------- */}
+      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
+        <DialogTitle sx={{ bgcolor: 'success.main', color: 'white' }}>
+          <Typography variant="h6">Add New Ornament</Typography>
+        </DialogTitle>
+        <DialogContent dividers>
+          {dependenciesLoading ? (
+            <Box sx={{ textAlign: 'center', p: 3 }}><CircularProgress /><Typography>Loading providers and categories...</Typography></Box>
+          ) : (
+            <Grid container spacing={2} sx={{ mt: 1 }}>
+              <Grid item xs={12} md={6}>
+                <TextField fullWidth required label="Name" value={addFormData.name} onChange={e => setAddFormData({ ...addFormData, name: e.target.value })} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Provider</InputLabel>
+                  <Select value={addFormData.provider} label="Provider" onChange={e => setAddFormData({ ...addFormData, provider: e.target.value })}>
+                    {providers.map(v => <MenuItem key={v.vendorId} value={v.vendorId}>{v.name} ({v.email})</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth required>
+                  <InputLabel>Category</InputLabel>
+                  <Select value={addFormData.category} label="Category" onChange={e => setAddFormData({ ...addFormData, category: e.target.value })}>
+                    {categories.filter(c => !c.parentCategory).map(c => <MenuItem key={c._id} value={c._id}>{c.title || c.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <FormControl fullWidth>
+                  <InputLabel>Availability Mode</InputLabel>
+                  <Select value={addFormData.availabilityMode} label="Availability Mode" onChange={e => setAddFormData({ ...addFormData, availabilityMode: e.target.value })}>
+                    <MenuItem value="purchase">Purchase</MenuItem>
+                    <MenuItem value="rental">Rental</MenuItem>
+                    <MenuItem value="all">All</MenuItem>
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="Material" value={addFormData.material} onChange={e => setAddFormData({ ...addFormData, material: e.target.value })} />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="Weight (g)" type="number" value={addFormData.weight} onChange={e => setAddFormData({ ...addFormData, weight: Number(e.target.value) })} />
+              </Grid>
+              <Grid item xs={12} md={4}>
+                <TextField fullWidth label="Unit Price (AED)" type="number" value={addFormData.buyPricing.unitPrice} onChange={e => setAddFormData({ ...addFormData, buyPricing: { ...addFormData.buyPricing, unitPrice: Number(e.target.value) } })} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Description" multiline rows={3} value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} />
+              </Grid>
+              <Grid item xs={12} md={6}>
+                <Button variant="outlined" component="label" fullWidth startIcon={<CloudUpload />}>
+                  {thumbnail ? thumbnail.name : 'Upload Thumbnail *'}
+                  <input type="file" hidden accept="image/*" onChange={handleThumbnailChange} />
+                </Button>
+                {thumbnailPreview && <Box sx={{ mt: 1 }}><img src={thumbnailPreview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'cover' }} /></Box>}
+              </Grid>
+            </Grid>
+          )}
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setOpenAddDialog(false)} disabled={saveLoading}>Cancel</Button>
+          <Button onClick={handleSubmitAdd} variant="contained" color="success" disabled={saveLoading || dependenciesLoading}>
+            {saveLoading ? <CircularProgress size={24} /> : 'Add Ornament'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -607,7 +720,7 @@ const OrnamentsList = () => {
       {/* ---------- DELETE DIALOG ---------- */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{cateringToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
+        <DialogContent><DialogContentText>Delete <strong>{ornamentToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
           <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
