@@ -77,6 +77,9 @@ const ZoneSetup = Loadable(lazy(() => import('../views/ZoneSetup')));
 const ModuleSetup = Loadable(lazy(() => import('../views/ModuleSetup')));
 const SecondModuleSetup = Loadable(lazy(() => import('../views/SecondmoduleSetup')));
 
+const PincodeSetup = Loadable(lazy(() => import('../views/Pincodesetup')));
+
+
 const SubscriptionList = Loadable(lazy(() => import('../views/SubscriptionList')));
 const Addpackage = Loadable(lazy(() => import('../views/Addpackage')));
 const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')));
@@ -134,6 +137,20 @@ const OrnamentsList = Loadable(lazy(() => import('../ornaments/OrnamentsList')))
 const Ornamentsprovider = ProviderList;
 const OrnamentsCoupon = Loadable(lazy(() => import('../ornaments/OrnamentsCoupon')));
 
+
+
+
+
+// boutiquee////////////////////////////////
+const Boutiquedashboard = Loadable(lazy(() => import('../boutique/dashboard')));
+const Boutiqueaddprovider = Loadable(lazy(() => import('../boutique/AddProvider')));
+const Boutiquevendorslist = ProviderList;
+const Boutiquecategory = Loadable(lazy(() => import('../Boutique/Category')));
+const Boutiqueattributes = Loadable(lazy(() => import('../boutique/Attributes')));
+
+const BoutiqueList = Loadable(lazy(() => import('../boutique/BoutiqueList')));
+const Boutiqueprovider = ProviderList;
+const BoutiqueCoupon = Loadable(lazy(() => import('../boutique/BoutiqueCoupon')));
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
@@ -188,6 +205,8 @@ const MainRoutes = {
     //setting
     { path: 'settings/zone-setup', element: <ZoneSetup /> },
     { path: '/settings/module-setup', element: <ModuleSetup /> },
+        { path: '/settings/pincode-setup', element: <PincodeSetup /> },
+
     { path: '/settings/secondery-module-setup', element: <SecondModuleSetup /> },
 
     { path: '/settings/sub/list', element: <SubscriptionList /> },
@@ -307,6 +326,19 @@ const MainRoutes = {
     { path: '/ornaments/ornamentslist', element: <OrnamentsList /> },
     { path: '/ornaments/ornamentsprovider', element: <Ornamentsprovider /> },
     { path: '/ornaments/coupons', element: <OrnamentsCoupon /> },
+
+
+     // boutiqueee///////////////////////
+    { path: '/boutique/dashboard', element: <Boutiquedashboard /> },
+    { path: '/boutique/AddProvider', element: <Boutiqueaddprovider /> },
+    { path: '/boutique/AddProvider/:id', element: <Boutiqueaddprovider /> },
+    { path: '/boutique/ornamentsvendors', element: <Boutiquevendorslist /> },
+    { path: '/boutique/category', element: <Boutiquecategory /> },
+        { path: '/boutique/attributes', element: <Boutiqueattributes /> },
+
+    { path: '/boutique/boutiqueList', element: <BoutiqueList /> },
+    { path: '/boutique/boutiqueprovider', element: <Boutiqueprovider /> },
+    { path: '/boutique/coupons', element: <BoutiqueCoupon /> },
   ]
 };
 

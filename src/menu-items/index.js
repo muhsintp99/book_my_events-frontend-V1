@@ -50,6 +50,11 @@ import ornamentsmanagement from './ornaments/ornamentsmanagement';
 import ornamentssections from './ornaments/ornamentssections';
 import OrnamentsProvidermanagement from './ornaments/ornamentsprovidermanagement';
 
+import boutiquemanagement from './boutique/boutiquemanagement';
+import boutiquesections from './boutique/boutiquesections';
+import BoutiqueProvidermanagement from './boutique/boutiqueprovidermanagement';
+import pincodemanagement from './settings-items/pincodemanagment';
+
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
@@ -82,9 +87,13 @@ const moduleMenuItems = {
   ornaments: {
     items: [dashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
   },
+
+   boutique: {
+    items: [dashboard, boutiquemanagement, boutiquesections, BoutiqueProvidermanagement]
+  },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
+    items: [zonemanagement,pincodemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
 
   }
 
