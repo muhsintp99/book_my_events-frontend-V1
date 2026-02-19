@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
-const BASE_URL = 'https://api.bookmyevent.ae/api';
+const BASE_URL = 'http://localhost:5000/api';
 
 const PincodeSetup = () => {
   const [zones, setZones] = useState([]);
@@ -11,11 +11,14 @@ const PincodeSetup = () => {
 
   const [filterZone, setFilterZone] = useState('');
   const [search, setSearch] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 10;
 
   const [addForm, setAddForm] = useState({ code: '', city: '', state: '', lat: '', lng: '' });
   const [editRow, setEditRow] = useState(null);   // stores _id
   const [editForm, setEditForm] = useState({});
   const [deleteId, setDeleteId] = useState(null);
+  const fileInputRef = useRef(null);
 
   const [toast, setToast] = useState(null); // { msg, type }
 
@@ -77,12 +80,27 @@ const PincodeSetup = () => {
 
   // ── Filter ───────────────────────────────────────────────
   const filtered = rows.filter((r) => {
-    const matchZone = filterZone ? r.state === filterZone : true;
+    const normalize = (s) => (s || '').toLowerCase().trim().replace(/e$/, '');
+    // Check zone_id.name first, then fall back to r.state
+    const rowZoneName = r.zone_id?.name || r.state || '';
+    const matchZone = filterZone ? normalize(rowZoneName) === normalize(filterZone) : true;
+
+    const s = search.toLowerCase();
     const matchSearch = search
-      ? r.city?.toLowerCase().includes(search.toLowerCase()) || r.code?.includes(search)
+      ? r.city?.toLowerCase().includes(s) || r.code?.includes(s) || r.state?.toLowerCase().includes(s)
       : true;
     return matchZone && matchSearch;
   });
+
+  // ── Pagination ──────────────────────────────────────────
+  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
+  const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedRows = filtered.slice(startIdx, startIdx + ITEMS_PER_PAGE);
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterZone, search]);
 
   // ── CREATE ───────────────────────────────────────────────
   const handleAdd = async () => {
@@ -120,7 +138,8 @@ const PincodeSetup = () => {
     setEditForm({
       code: row.code || '',
       city: row.city || '',
-      state: row.state || '',
+      state: row.zone_id?.name || row.state || '',
+      zone_id: row.zone_id?._id || row.zone_id || '',
       country: row.country || 'India',
       lat: row.location?.coordinates?.[1]?.toString() || '',
       lng: row.location?.coordinates?.[0]?.toString() || '',
@@ -136,7 +155,7 @@ const PincodeSetup = () => {
       const res = await fetch(`${BASE_URL}/pincodes/${editRow}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ code, city, state, country, lat, lng, status }),
+        body: JSON.stringify({ code, city, state, zone_id: editForm.zone_id, country, lat, lng, status }),
       });
       const data = await res.json();
       if (data.success) {
@@ -192,6 +211,129 @@ const PincodeSetup = () => {
     a.click();
     URL.revokeObjectURL(url);
   };
+
+  // ── CSV Import ───────────────────────────────────────────
+  const handleImportCSV = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+      const csvData = event.target.result;
+      const lines = csvData.split('\n');
+      if (lines.length < 2) {
+        showToast('CSV file is empty or invalid', 'error');
+        return;
+      }
+
+      // Simple CSV parser
+      const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
+      const pincodes = [];
+
+      const stateIdx = headers.findIndex(h => h.includes('state'));
+
+      for (let i = 1; i < lines.length; i++) {
+        const currentLine = lines[i].split(',');
+        if (currentLine.length < 3) continue;
+
+        // 🔍 Auto-filter for Kerala if state column exists
+        if (stateIdx !== -1) {
+          const stateValue = currentLine[stateIdx]?.trim().replace(/^"|"$/g, '').toUpperCase();
+          if (stateValue && stateValue !== 'KERALA') continue;
+        }
+
+        const pincodeObj = {};
+        currentLine.forEach((cell, idx) => {
+  const header = headers[idx];
+  const value = cell.trim().replace(/^"|"$/g, '');
+
+  if (!value) return;
+
+  // PINCODE
+  if (header.includes('pincode') || header.includes('code') || header === 'pin') {
+    pincodeObj.code = value;
+  }
+
+  // OFFICE NAME → AREA NAME
+ else if (header.includes('officename')) {
+  const cleaned = value.replace(/\s+(BO|PO|HO|SO)$/i, '').trim();
+  if (cleaned && !['BO', 'PO', 'HO', 'SO'].includes(cleaned.toUpperCase())) {
+    pincodeObj.city = cleaned;
+  } else {
+    pincodeObj.city = value.trim();
+  }
+}
+
+  // DISTRICT → ZONE
+  else if (header.includes('district')) {
+    pincodeObj.zone = value;
+  }
+
+  // STATE
+  else if (header.includes('state')) {
+    pincodeObj.state = value;
+  }
+
+  // LAT
+  else if (header.includes('lat')) {
+    pincodeObj.lat = value;
+  }
+
+  // LNG
+  else if (header.includes('lon') || header.includes('lng')) {
+    pincodeObj.lng = value;
+  }
+});
+
+
+        if (pincodeObj.code && pincodeObj.lat && pincodeObj.lng) {
+          pincodes.push(pincodeObj);
+        }
+      }
+
+      if (pincodes.length === 0) {
+        showToast('No valid pincodes found in CSV. Ensure headers: pincode, area, zone, lat, lng', 'error');
+        return;
+      }
+
+      // Send to backend in chunks to avoid "Request Entity Too Large" / Timeout
+      try {
+        setSaving(true);
+        const CHUNK_SIZE = 500;
+        let successCount = 0;
+
+        for (let i = 0; i < pincodes.length; i += CHUNK_SIZE) {
+          const chunk = pincodes.slice(i, i + CHUNK_SIZE);
+          const res = await fetch(`${BASE_URL}/pincodes/bulk`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pincodes: chunk }),
+          });
+          const data = await res.json();
+          if (data.success) {
+            // Some pincodes in the chunk might have been successful
+            const count = data.message.match(/\d+/) ? parseInt(data.message.match(/\d+/)[0]) : chunk.length;
+            successCount += count;
+          }
+        }
+
+        showToast(`Import Processed! Successfully uploaded approximately ${successCount} pincodes.`);
+        fetchPincodes();
+      } catch (err) {
+        console.error('Error importing pincodes:', err);
+        showToast('Network error during import', 'error');
+      } finally {
+        setSaving(false);
+        e.target.value = ''; // Reset file input
+      }
+    };
+    reader.readAsText(file);
+  };
+
 
   return (
     <div style={styles.page}>
@@ -406,7 +548,16 @@ const PincodeSetup = () => {
           </div>
 
           <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
-            <button className="btn btn-green">↑ Import CSV</button>
+            <input
+              type="file"
+              ref={fileInputRef}
+              style={{ display: 'none' }}
+              accept=".csv"
+              onChange={handleFileChange}
+            />
+            <button className="btn btn-green" onClick={handleImportCSV} disabled={saving}>
+              {saving ? 'Uploading...' : '↑ Import CSV'}
+            </button>
             <button className="btn btn-csv-export" onClick={handleExportCSV}>↓ Export CSV</button>
           </div>
         </div>
@@ -440,12 +591,12 @@ const PincodeSetup = () => {
                   </td>
                 </tr>
               ) : (
-                filtered.map((row, i) => (
+                paginatedRows.map((row, i) => (
                   <tr key={row._id}>
-                    <td style={{ color: '#8a8f9e', fontWeight: 600, fontFamily: "'DM Mono', monospace" }}>#{i + 1}</td>
+                    <td style={{ color: '#8a8f9e', fontWeight: 600, fontFamily: "'DM Mono', monospace" }}>#{startIdx + i + 1}</td>
                     <td style={{ fontFamily: "'DM Mono', monospace", fontWeight: 500 }}>{row.code}</td>
                     <td>{row.city}</td>
-                    <td><span className="zone-chip">{row.state}</span></td>
+                    <td><span className="zone-chip">{row.zone_id?.name || row.state}</span></td>
                     <td>
                       <span className={`badge ${row.status === 'Active' ? 'badge-active' : 'badge-inactive'}`}>
                         {row.status || 'Active'}
@@ -462,9 +613,72 @@ const PincodeSetup = () => {
           </table>
         </div>
 
-        {!loadingPincodes && (
+        {!loadingPincodes && filtered.length > 0 && (
+          <div style={{ marginTop: 18, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
+            <div style={{ fontSize: 12.5, color: '#8a8f9e', fontFamily: "'DM Sans', sans-serif" }}>
+              Showing {startIdx + 1}–{Math.min(startIdx + ITEMS_PER_PAGE, filtered.length)} of {filtered.length} pincodes
+            </div>
+            {totalPages > 1 && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                <button
+                  onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                  disabled={currentPage === 1}
+                  style={{
+                    padding: '6px 12px', fontSize: 13, fontWeight: 600, border: '1px solid #e0e3ed',
+                    borderRadius: 8, background: currentPage === 1 ? '#f4f5fa' : '#fff',
+                    color: currentPage === 1 ? '#c0c4d0' : '#1a1d2e', cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
+                    fontFamily: "'DM Sans', sans-serif", transition: 'all .15s'
+                  }}
+                >
+                  ← Prev
+                </button>
+
+                {Array.from({ length: totalPages }, (_, idx) => idx + 1)
+                  .filter((pg) => pg === 1 || pg === totalPages || Math.abs(pg - currentPage) <= 1)
+                  .reduce((acc, pg, i, arr) => {
+                    if (i > 0 && pg - arr[i - 1] > 1) acc.push('...');
+                    acc.push(pg);
+                    return acc;
+                  }, [])
+                  .map((pg, idx) =>
+                    pg === '...' ? (
+                      <span key={`dot-${idx}`} style={{ padding: '0 4px', color: '#8a8f9e', fontSize: 13 }}>…</span>
+                    ) : (
+                      <button
+                        key={pg}
+                        onClick={() => setCurrentPage(pg)}
+                        style={{
+                          width: 34, height: 34, fontSize: 13, fontWeight: currentPage === pg ? 700 : 500,
+                          border: currentPage === pg ? '1.5px solid #e53935' : '1px solid #e0e3ed',
+                          borderRadius: 8, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
+                          background: currentPage === pg ? 'linear-gradient(135deg,#fff5f5,#fff0f0)' : '#fff',
+                          color: currentPage === pg ? '#e53935' : '#1a1d2e', transition: 'all .15s'
+                        }}
+                      >
+                        {pg}
+                      </button>
+                    )
+                  )}
+
+                <button
+                  onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={currentPage === totalPages}
+                  style={{
+                    padding: '6px 12px', fontSize: 13, fontWeight: 600, border: '1px solid #e0e3ed',
+                    borderRadius: 8, background: currentPage === totalPages ? '#f4f5fa' : '#fff',
+                    color: currentPage === totalPages ? '#c0c4d0' : '#1a1d2e', cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
+                    fontFamily: "'DM Sans', sans-serif", transition: 'all .15s'
+                  }}
+                >
+                  Next →
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+        {!loadingPincodes && filtered.length === 0 && rows.length > 0 && (
           <div style={{ marginTop: 14, fontSize: 12.5, color: '#8a8f9e', fontFamily: "'DM Sans', sans-serif" }}>
-            Showing {filtered.length} of {rows.length} pincodes
+            No matching pincodes found
           </div>
         )}
       </div>
