@@ -153,6 +153,16 @@ const Boutiqueattributes = Loadable(lazy(() => import('../Boutique/Attributes'))
 const BoutiqueList = Loadable(lazy(() => import('../Boutique/Boutiquelist')));
 const Boutiqueprovider = ProviderList;
 const BoutiqueCoupon = Loadable(lazy(() => import('../Boutique/BoutiqueCoupon')));
+
+
+// mehandi///////////////////////////
+const Mehandidashboard = Loadable(lazy(() => import('../mehandi/dashboard')));
+const Mehandiaddprovider = Loadable(lazy(() => import('../mehandi/AddProvider')));
+const Mehandivendorslist = ProviderList;
+const Mehandicategory = Loadable(lazy(() => import('../mehandi/Category')));
+const MehandiList = Loadable(lazy(() => import('../mehandi/MehandiList')));
+const Mehandiprovider = ProviderList;
+const MehandiCoupon = Loadable(lazy(() => import('../mehandi/MehandiCoupon')));
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
@@ -343,6 +353,16 @@ const MainRoutes = {
     { path: '/boutique/boutiqueList', element: <BoutiqueList /> },
     { path: '/boutique/boutiqueprovider', element: <Boutiqueprovider /> },
     { path: '/boutique/coupons', element: <BoutiqueCoupon /> },
+
+    // mehandi///////////////////////
+    { path: '/mehandi/dashboard', element: <Mehandidashboard /> },
+    { path: '/mehandi/AddProvider', element: <Mehandiaddprovider /> },
+    { path: '/mehandi/AddProvider/:id', element: <Mehandiaddprovider /> },
+    { path: '/mehandi/mehandivendors', element: <Mehandivendorslist /> },
+    { path: '/mehandi/category', element: <Mehandicategory /> },
+    { path: '/mehandi/mehandiList', element: <MehandiList /> },
+    { path: '/mehandi/mehandiprovider', element: <Mehandiprovider /> },
+    { path: '/mehandi/coupons', element: <MehandiCoupon /> },
   ]
 };
 

@@ -55,6 +55,9 @@ import boutiquesections from './boutique/boutiquesections';
 import BoutiqueProvidermanagement from './boutique/boutiqueprovidermanagement';
 import pincodemanagement from './settings-items/pincodemanagment';
 import vendorregistrations from './settings-items/vendorregistrations';
+import mehandimanagement from './mehandi/mehandimanagement';
+import mehandisections from './mehandi/mehandisections';
+import MehandiProvidermanagement from './mehandi/mehandiprovidermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -91,6 +94,10 @@ const moduleMenuItems = {
 
   boutique: {
     items: [dashboard, boutiquemanagement, boutiquesections, BoutiqueProvidermanagement]
+  },
+
+  mehandi: {
+    items: [dashboard, mehandimanagement, mehandisections, MehandiProvidermanagement]
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]

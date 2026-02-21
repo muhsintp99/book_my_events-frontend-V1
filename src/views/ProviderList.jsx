@@ -87,11 +87,16 @@ function ProviderList() {
                 // Often 'CRM' or 'Rental' is the module name for Transport.
                 detectedMod = modulesList.find(m => m._id === 'crm' || m.title === 'CRM' || m.title === 'Rental');
             }
+        } else if (path.includes('mehandi')) {
+            detectedMod = modulesList.find(m =>
+                (m.title || '').toLowerCase().includes('mehandi') ||
+                (m.title || '').toLowerCase().includes('mehndi')
+            );
         }
 
         if (detectedMod) {
             console.log('Detected module:', detectedMod.title);
-            setSelectedModule(detectedMod._id);
+            setSelectedModule(detectedMod._id?.$oid || detectedMod._id);
         }
     }, [location.pathname]);
 
@@ -115,7 +120,10 @@ function ProviderList() {
 
     const fetchModules = async () => {
         try {
-            const response = await fetch(`${API_BASE_URL}/modules`);
+            const isMehandiPath = location.pathname.toLowerCase().includes('mehandi');
+            const endpoint = isMehandiPath ? 'secondary-modules' : 'modules';
+
+            const response = await fetch(`${API_BASE_URL}/${endpoint}`);
             const data = await response.json();
             let modulesList = [];
             if (Array.isArray(data)) {
@@ -123,8 +131,15 @@ function ProviderList() {
             } else if (data.data && Array.isArray(data.data)) {
                 modulesList = data.data;
             }
-            setModules(modulesList);
-            detectModuleFromUrl(modulesList);
+
+            // Normalize IDs
+            const normalized = modulesList.map(m => ({
+                ...m,
+                _id: m._id?.$oid || m._id
+            }));
+
+            setModules(normalized);
+            detectModuleFromUrl(normalized);
         } catch (err) {
             console.error('Error fetching modules:', err);
         }

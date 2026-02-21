@@ -127,7 +127,7 @@ export const formatVendorsForList = (vendors) => {
             isPaid: (v.isFreeTrial === false && !!v.subscriptionPlan) || (v.user?.isPaid === true), // Added common paid markers
             bookingCount: v.bookingCount || 0,
             module: v.module?.title || 'N/A',
-            moduleId: v.module?._id || v.module || null,
+            moduleId: v.module?._id?.$oid || v.module?._id || v.module?.$oid || v.module || null,
             zone: v.zone?.name || 'N/A',
             coverImage: v.coverImage || ''
         }));

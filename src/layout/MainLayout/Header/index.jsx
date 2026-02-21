@@ -415,7 +415,9 @@ export default function Header() {
   // Module mapping: maps display titles to their target modules and routes
   const moduleMapping = {
     venues: { targetModule: 'auditorium', route: '/auditorium/dashboard' },
-    transport: { targetModule: 'rental', route: '/rental/dashboard' }
+    transport: { targetModule: 'rental', route: '/rental/dashboard' },
+    mehandi: { targetModule: 'mehandi', route: '/mehandi/dashboard' },
+    'mehandi artist': { targetModule: 'mehandi', route: '/mehandi/dashboard' }
   };
 
   // Utility function to dispatch module events
