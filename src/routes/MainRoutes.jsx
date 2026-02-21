@@ -84,6 +84,8 @@ const SubscriptionList = Loadable(lazy(() => import('../views/SubscriptionList')
 const Addpackage = Loadable(lazy(() => import('../views/Addpackage')));
 const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')));
 const SubscriptionRequests = Loadable(lazy(() => import('../views/SubscriptionRequests')));
+const VendorRegistrations = Loadable(lazy(() => import('../views/settings/VendorRegistrations')));
+const VendorRegistrationDetail = Loadable(lazy(() => import('../views/settings/VendorRegistrations/VendorDetailView')));
 
 // catering///////////////
 // const cateringDashboard = Loadable(lazy(() => import('../catering/')));
@@ -142,15 +144,15 @@ const OrnamentsCoupon = Loadable(lazy(() => import('../ornaments/OrnamentsCoupon
 
 
 // boutiquee////////////////////////////////
-const Boutiquedashboard = Loadable(lazy(() => import('../boutique/dashboard')));
-const Boutiqueaddprovider = Loadable(lazy(() => import('../boutique/AddProvider')));
+const Boutiquedashboard = Loadable(lazy(() => import('../Boutique/dashboard')));
+const Boutiqueaddprovider = Loadable(lazy(() => import('../Boutique/Addprovider')));
 const Boutiquevendorslist = ProviderList;
 const Boutiquecategory = Loadable(lazy(() => import('../Boutique/Category')));
-const Boutiqueattributes = Loadable(lazy(() => import('../boutique/Attributes')));
+const Boutiqueattributes = Loadable(lazy(() => import('../Boutique/Attributes')));
 
-const BoutiqueList = Loadable(lazy(() => import('../boutique/BoutiqueList')));
+const BoutiqueList = Loadable(lazy(() => import('../Boutique/Boutiquelist')));
 const Boutiqueprovider = ProviderList;
-const BoutiqueCoupon = Loadable(lazy(() => import('../boutique/BoutiqueCoupon')));
+const BoutiqueCoupon = Loadable(lazy(() => import('../Boutique/BoutiqueCoupon')));
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
@@ -205,7 +207,7 @@ const MainRoutes = {
     //setting
     { path: 'settings/zone-setup', element: <ZoneSetup /> },
     { path: '/settings/module-setup', element: <ModuleSetup /> },
-        { path: '/settings/pincode-setup', element: <PincodeSetup /> },
+    { path: '/settings/pincode-setup', element: <PincodeSetup /> },
 
     { path: '/settings/secondery-module-setup', element: <SecondModuleSetup /> },
 
@@ -215,6 +217,8 @@ const MainRoutes = {
 
     { path: '/settings/sub/store', element: <SubscribedStore /> },
     { path: '/settings/sub/requests', element: <SubscriptionRequests /> },
+    { path: '/settings/vendor-registrations', element: <VendorRegistrations /> },
+    { path: '/settings/vendor-registrations/:id', element: <VendorRegistrationDetail /> },
 
     // Bookingssss
 
@@ -328,13 +332,13 @@ const MainRoutes = {
     { path: '/ornaments/coupons', element: <OrnamentsCoupon /> },
 
 
-     // boutiqueee///////////////////////
+    // boutiqueee///////////////////////
     { path: '/boutique/dashboard', element: <Boutiquedashboard /> },
     { path: '/boutique/AddProvider', element: <Boutiqueaddprovider /> },
     { path: '/boutique/AddProvider/:id', element: <Boutiqueaddprovider /> },
     { path: '/boutique/ornamentsvendors', element: <Boutiquevendorslist /> },
     { path: '/boutique/category', element: <Boutiquecategory /> },
-        { path: '/boutique/attributes', element: <Boutiqueattributes /> },
+    { path: '/boutique/attributes', element: <Boutiqueattributes /> },
 
     { path: '/boutique/boutiqueList', element: <BoutiqueList /> },
     { path: '/boutique/boutiqueprovider', element: <Boutiqueprovider /> },

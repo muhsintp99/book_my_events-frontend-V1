@@ -54,6 +54,7 @@ import boutiquemanagement from './boutique/boutiquemanagement';
 import boutiquesections from './boutique/boutiquesections';
 import BoutiqueProvidermanagement from './boutique/boutiqueprovidermanagement';
 import pincodemanagement from './settings-items/pincodemanagment';
+import vendorregistrations from './settings-items/vendorregistrations';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -88,12 +89,12 @@ const moduleMenuItems = {
     items: [dashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
   },
 
-   boutique: {
+  boutique: {
     items: [dashboard, boutiquemanagement, boutiquesections, BoutiqueProvidermanagement]
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement,pincodemanagement, modulemanagement, subscriptionmanagement, kycmanagement]
+    items: [zonemanagement, pincodemanagement, modulemanagement, subscriptionmanagement, kycmanagement, vendorregistrations]
 
   }
 
