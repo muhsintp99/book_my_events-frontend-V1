@@ -95,7 +95,9 @@ function AddMehandi() {
     services: [],
     specialised: '',
     startingPrice: '',
-    minBookingPrice: ''
+    minBookingPrice: '',
+    vendorType: 'individual',
+    maxBookings: ''
   });
 
   const [categories, setCategories] = useState([]);
@@ -151,35 +153,35 @@ function AddMehandi() {
 
   // Fetch categories for the module
   useEffect(() => {
-  const fetchCategories = async () => {
-    if (!formData.module) return;
-    try {
-      setCategoriesLoading(true);
+    const fetchCategories = async () => {
+      if (!formData.module) return;
+      try {
+        setCategoriesLoading(true);
 
-      // Fetch directly from the secondary module — it has its own categories array
-      const res = await fetch(`${API_BASE_URL}/secondary-modules/${formData.module}`);
-      const data = await res.json();
+        // Fetch directly from the secondary module — it has its own categories array
+        const res = await fetch(`${API_BASE_URL}/secondary-modules/${formData.module}`);
+        const data = await res.json();
 
-      // SecondaryModule has populated categories array
-      const moduleData = data.module || data.data || data;
-      const sourceCats = Array.isArray(moduleData?.categories)
-        ? moduleData.categories
-        : [];
+        // SecondaryModule has populated categories array
+        const moduleData = data.module || data.data || data;
+        const sourceCats = Array.isArray(moduleData?.categories)
+          ? moduleData.categories
+          : [];
 
-      const normalized = sourceCats.map((c) => ({
-        ...c,
-        _id: c._id?.$oid || c._id
-      }));
+        const normalized = sourceCats.map((c) => ({
+          ...c,
+          _id: c._id?.$oid || c._id
+        }));
 
-      setCategories(normalized);
-    } catch (err) {
-      console.error('Error fetching categories:', err);
-    } finally {
-      setCategoriesLoading(false);
-    }
-  };
-  fetchCategories();
-}, [formData.module]);
+        setCategories(normalized);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+      } finally {
+        setCategoriesLoading(false);
+      }
+    };
+    fetchCategories();
+  }, [formData.module]);
 
   // Fetch vendor data when editing
   useEffect(() => {
@@ -209,12 +211,12 @@ function AddMehandi() {
         storeName: vendorProfile?.storeName || profile?.vendorName || '',
         storeAddress: vendorProfile?.storeAddress ||
           profile?.storeAddress || {
-            street: '',
-            city: '',
-            state: '',
-            zipCode: '',
-            fullAddress: profile?.businessAddress || ''
-          },
+          street: '',
+          city: '',
+          state: '',
+          zipCode: '',
+          fullAddress: profile?.businessAddress || ''
+        },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
         zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone || '',
@@ -246,7 +248,9 @@ function AddMehandi() {
           vendorProfile?.specialised ||
           '',
         startingPrice: vendorProfile?.startingPrice || '',
-        minBookingPrice: vendorProfile?.minBookingPrice || ''
+        minBookingPrice: vendorProfile?.minBookingPrice || '',
+        vendorType: vendorProfile?.vendorType || 'individual',
+        maxBookings: vendorProfile?.maxBookings || ''
       });
 
       if (profile?.bankDetails) {
@@ -431,9 +435,9 @@ function AddMehandi() {
       const zoneList = data.data || data || [];
       const normalized = Array.isArray(zoneList)
         ? zoneList.map((z) => ({
-            ...z,
-            _id: z._id?.$oid || z._id
-          }))
+          ...z,
+          _id: z._id?.$oid || z._id
+        }))
         : [];
       setZones(normalized);
     } catch (err) {
@@ -599,6 +603,8 @@ function AddMehandi() {
       payload.append('specialised', formData.specialised);
       payload.append('startingPrice', formData.startingPrice);
       payload.append('minBookingPrice', formData.minBookingPrice);
+      payload.append('vendorType', formData.vendorType);
+      payload.append('maxBookings', formData.maxBookings);
 
       // Subscription info
       payload.append('isFreeTrial', isFreeTrial);
@@ -795,7 +801,9 @@ function AddMehandi() {
       services: [],
       specialised: '',
       startingPrice: '',
-      minBookingPrice: ''
+      minBookingPrice: '',
+      vendorType: 'individual',
+      maxBookings: ''
     });
     setSelectedZone('');
     setLogoPreview(null);
@@ -834,6 +842,31 @@ function AddMehandi() {
         <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
           Store Information
         </Typography>
+        <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
+          <FormControl fullWidth>
+            <InputLabel>Vendor Type</InputLabel>
+            <Select
+              label="Vendor Type"
+              value={formData.vendorType}
+              onChange={handleInputChange('vendorType')}
+            >
+              <MenuItem value="individual">Individual</MenuItem>
+              <MenuItem value="company">Company</MenuItem>
+            </Select>
+          </FormControl>
+
+          <TextField
+            fullWidth
+            label="Maximum Bookings Per Day"
+            name="maxBookings"
+            type="number"
+            variant="outlined"
+            value={formData.maxBookings}
+            onChange={handleInputChange('maxBookings')}
+            placeholder="No limit if empty"
+          />
+        </Box>
+
         <TextField
           fullWidth
           label="Store Name"

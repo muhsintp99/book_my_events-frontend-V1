@@ -299,10 +299,10 @@ export default function CategoryManagement() {
           status: cat.isActive !== undefined ? cat.isActive : true,
           image: imageUrl,
           module: cat.module ? (typeof cat.module === 'object' ? {
-  ...cat.module,
-  _id: cat.module._id?.$oid || cat.module._id,
-  title: cat.module.title || cat.module.name || 'N/A'
-} : { _id: cat.module, title: 'N/A' }) : null
+            ...cat.module,
+            _id: cat.module._id?.$oid || cat.module._id,
+            title: cat.module.title || cat.module.name || 'N/A'
+          } : { _id: cat.module, title: 'N/A' }) : null
         };
       });
 
@@ -386,7 +386,7 @@ export default function CategoryManagement() {
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', formData.name.trim());
-formDataToSend.append('secondaryModule', formData.module);      if (formData.description.trim()) {
+      formDataToSend.append('module', formData.module); if (formData.description.trim()) {
         formDataToSend.append('description', formData.description.trim());
       }
       if (formData.parentCategory.trim()) {
@@ -789,7 +789,7 @@ formDataToSend.append('secondaryModule', formData.module);      if (formData.des
     const currentLang = getCurrentLanguageKey();
     const matchesSearch = category.names[currentLang].toLowerCase().includes(searchTerm.toLowerCase());
     const categoryModuleId = category.module?._id || category.module;
-const matchesModule = selectedModuleFilter === 'all' || categoryModuleId === selectedModuleFilter || (!categoryModuleId && selectedModuleFilter);
+    const matchesModule = selectedModuleFilter === 'all' || categoryModuleId === selectedModuleFilter || (!categoryModuleId && selectedModuleFilter);
     return matchesSearch && matchesModule;
   });
 
