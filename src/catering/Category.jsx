@@ -303,7 +303,8 @@ export default function CategoryManagement() {
         },
         status: cat.isActive !== undefined ? cat.isActive : true,
         image: cat.image ? getApiImageUrl(cat.image) : '',
-        module: cat.module || null
+        module: cat.module || null,
+        parentCategory: cat.parentCategory?._id || cat.parentCategory || null
       }));
 
       setCategories(formattedCategories);
@@ -819,9 +820,81 @@ export default function CategoryManagement() {
   const filteredCategories = categories.filter((category) => {
     const currentLang = getCurrentLanguageKey();
     const matchesSearch = category.names[currentLang].toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = selectedModuleFilter === 'all' || category.module?._id === selectedModuleFilter;
+    const matchesModule = selectedModuleFilter === 'all' || category.module?._id === selectedModuleFilter || category.module === selectedModuleFilter;
     return matchesSearch && matchesModule;
   });
+
+  const parentCats = filteredCategories.filter(c => !c.parentCategory);
+  const subCats = filteredCategories.filter(c => c.parentCategory);
+
+  const renderCategoryRow = (category, index) => {
+    const currentLang = getCurrentLanguageKey();
+    return (
+      <TableRow key={category.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+        <TableCell>{index + 1}</TableCell>
+        <TableCell>
+          {category.image ? (
+            <Box sx={{ width: 50, height: 35, borderRadius: 1, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
+              <img
+                src={category.image}
+                alt={category.names[currentLang]}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
+                }}
+              />
+            </Box>
+          ) : (
+            <Box sx={{ width: 50, height: 35, borderRadius: 1, backgroundColor: '#f5f5f5', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid #e0e0e0' }}>
+              <Typography variant="caption" color="text.secondary">No Image</Typography>
+            </Box>
+          )}
+        </TableCell>
+        <TableCell sx={{ fontWeight: 500, maxWidth: 200, direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' }}>
+          <Stack spacing={0.5}>
+            <Typography variant="body2" sx={{ wordBreak: 'break-word', fontWeight: 600 }}>
+              {category.names[currentLang]}
+            </Typography>
+            {category.parentCategory && (
+              <Typography variant="caption" sx={{ color: '#ed6c02', fontStyle: 'italic' }}>
+                Parent: {(() => {
+                  const parent = categories.find(p => p.id === category.parentCategory);
+                  return parent ? parent.names[currentLang] : 'Unknown';
+                })()}
+              </Typography>
+            )}
+          </Stack>
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2">
+            {category.module ? category.module.title || 'N/A' : 'None'}
+          </Typography>
+        </TableCell>
+        <TableCell>
+          <Switch
+            checked={category.status}
+            onChange={() => handleStatusToggle(category.id)}
+            sx={{
+              '& .MuiSwitch-switchBase.Mui-checked': { color: '#2196f3' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#2196f3' }
+            }}
+            disabled={loading}
+          />
+        </TableCell>
+        <TableCell>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton size="small" onClick={() => handleEdit(category.id)} sx={{ color: '#2196f3' }} disabled={loading}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={() => handleDeleteClick(category.id)} sx={{ color: '#f44336' }} disabled={loading}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   const handleExportMenuOpen = (event) => {
     setExportMenuAnchor(event.currentTarget);
@@ -1528,113 +1601,41 @@ export default function CategoryManagement() {
 
                 <TableBody>
                   {filteredCategories.length > 0 ? (
-                    filteredCategories.map((category, index) => {
-                      const currentLang = getCurrentLanguageKey();
-                      return (
-                        <TableRow
-                          key={category.id}
-                          sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}
-                        >
-                          <TableCell>
-                            {index + 1 + (pagination.currentPage - 1) * pagination.itemsPerPage}
-                          </TableCell>
-                          <TableCell>
-                            {category.image ? (
-                              <Box
-                                sx={{
-                                  width: 50,
-                                  height: 35,
-                                  borderRadius: 1,
-                                  overflow: 'hidden',
-                                  border: '1px solid #e0e0e0'
-                                }}
-                              >
-                                <img
-                                  src={category.image}
-                                  alt={category.names[currentLang]}
-                                  style={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'cover'
-                                  }}
-                                  onError={(e) => {
-                                    console.error('Image failed to load:', category.image);
-                                    e.target.style.display = 'none';
-                                    e.target.parentElement.innerHTML = '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
-                                  }}
-                                />
-                              </Box>
-                            ) : (
-                              <Box
-                                sx={{
-                                  width: 50,
-                                  height: 35,
-                                  borderRadius: 1,
-                                  backgroundColor: '#f5f5f5',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  border: '1px solid #e0e0e0'
-                                }}
-                              >
-                                <Typography variant="caption" color="text.secondary">
-                                  No Image
+                    <>
+                      {/* PARENT CATEGORIES */}
+                      {parentCats.length > 0 && (
+                        <>
+                          <TableRow sx={{ backgroundColor: '#f5f9ff' }}>
+                            <TableCell colSpan={6} sx={{ py: 1.5 }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ width: 4, height: 18, bgcolor: '#1976d2', borderRadius: 1 }} />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#1976d2', letterSpacing: 0.5 }}>
+                                  PARENT CATEGORIES ({parentCats.length})
                                 </Typography>
                               </Box>
-                            )}
-                          </TableCell>
-                          <TableCell
-                            sx={{
-                              fontWeight: 500,
-                              maxWidth: 200,
-                              direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr'
-                            }}
-                          >
-                            <Typography variant="body2" sx={{ wordBreak: 'break-word' }}>
-                              {category.names[currentLang]}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Typography variant="body2">
-                              {category.module ? category.module.title || 'N/A' : 'None'}
-                            </Typography>
-                          </TableCell>
-                          <TableCell>
-                            <Switch
-                              checked={category.status}
-                              onChange={() => handleStatusToggle(category.id)}
-                              sx={{
-                                '& .MuiSwitch-switchBase.Mui-checked': { color: '#2196f3' },
-                                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-                                  backgroundColor: '#2196f3'
-                                }
-                              }}
-                              disabled={loading}
-                            />
-                          </TableCell>
-                          <TableCell>
-                            <Box sx={{ display: 'flex', gap: 1 }}>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleEdit(category.id)}
-                                sx={{ color: '#2196f3' }}
-                                disabled={loading}
-                              >
-                                <EditIcon fontSize="small" />
-                              </IconButton>
-                              <IconButton
-                                size="small"
-                                onClick={() => handleDeleteClick(category.id)}
-                                sx={{ color: '#f44336' }}
-                                disabled={loading}
-                              >
-                                <DeleteIcon fontSize="small" />
-                              </IconButton>
-                            </Box>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })
+                            </TableCell>
+                          </TableRow>
+                          {parentCats.map((category, index) => renderCategoryRow(category, index))}
+                        </>
+                      )}
+
+                      {/* SUBCATEGORIES */}
+                      {subCats.length > 0 && (
+                        <>
+                          <TableRow sx={{ backgroundColor: '#fff7ed' }}>
+                            <TableCell colSpan={6} sx={{ py: 1.5, borderTop: '2px solid #fff' }}>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Box sx={{ width: 4, height: 18, bgcolor: '#ed6c02', borderRadius: 1 }} />
+                                <Typography variant="subtitle2" sx={{ fontWeight: 700, color: '#ed6c02', letterSpacing: 0.5 }}>
+                                  SUBCATEGORIES ({subCats.length})
+                                </Typography>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                          {subCats.map((category, index) => renderCategoryRow(category, index))}
+                        </>
+                      )}
+                    </>
                   ) : (
                     <TableRow>
                       <TableCell colSpan={6} sx={{ textAlign: 'center', py: 4, color: '#999' }}>

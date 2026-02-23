@@ -34,7 +34,7 @@ import {
   Stack,
   Grid,
   Avatar,
-  Tooltip,
+  Tooltip
 } from '@mui/material';
 import {
   Edit as EditIcon,
@@ -66,7 +66,12 @@ export default function CategoryManagement() {
   const [modulesError, setModulesError] = useState(null);
   const [selectedModuleFilter, setSelectedModuleFilter] = useState('all');
   const [expandedCategories, setExpandedCategories] = useState({});
-
+  const toggleCategoryExpand = (categoryId) => {
+    setExpandedCategories((prev) => ({
+      ...prev,
+      [categoryId]: !prev[categoryId]
+    }));
+  };
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -219,25 +224,19 @@ export default function CategoryManagement() {
       let defaultModule = null;
 
       if (currentPath.includes('/catering')) {
-        defaultModule = modulesList.find(m =>
-          (m.title || m.name || '').toLowerCase().includes('catering')
-        );
+        defaultModule = modulesList.find((m) => (m.title || m.name || '').toLowerCase().includes('catering'));
       } else if (currentPath.includes('/auditorium')) {
-        defaultModule = modulesList.find(m =>
-          (m.title || m.name || '').toLowerCase().includes('auditorium')
-        );
+        defaultModule = modulesList.find((m) => (m.title || m.name || '').toLowerCase().includes('auditorium'));
       } else if (currentPath.includes('/ornaments')) {
-        defaultModule = modulesList.find(m =>
-          (m.title || m.name || '').toLowerCase().includes('ornaments')
-        );
+        defaultModule = modulesList.find((m) => (m.title || m.name || '').toLowerCase().includes('ornaments'));
       }
 
       // Fallback: use found module or first one
       if (defaultModule) {
-        setFormData(prev => ({ ...prev, module: defaultModule._id }));
+        setFormData((prev) => ({ ...prev, module: defaultModule._id }));
         setSelectedModuleFilter(defaultModule._id);
       } else if (modulesList.length > 0) {
-        setFormData(prev => ({ ...prev, module: modulesList[0]._id }));
+        setFormData((prev) => ({ ...prev, module: modulesList[0]._id }));
         setSelectedModuleFilter(modulesList[0]._id);
       } else {
         setModulesError('No modules available. Please create a module first.');
@@ -320,12 +319,13 @@ export default function CategoryManagement() {
       setCategories(formattedCategories);
 
       // Handle pagination
-      const pag = data.pagination || (data.data && data.data.pagination) || {
-        currentPage: pagination.currentPage,
-        totalPages: Math.ceil(categoriesList.length / pagination.itemsPerPage),
-        totalItems: categoriesList.length,
-        itemsPerPage: pagination.itemsPerPage
-      };
+      const pag = data.pagination ||
+        (data.data && data.data.pagination) || {
+          currentPage: pagination.currentPage,
+          totalPages: Math.ceil(categoriesList.length / pagination.itemsPerPage),
+          totalItems: categoriesList.length,
+          itemsPerPage: pagination.itemsPerPage
+        };
       setPagination({
         currentPage: pag.currentPage,
         totalPages: pag.totalPages,
@@ -334,9 +334,8 @@ export default function CategoryManagement() {
       });
 
       // Organize categories hierarchically for the dropdowns
-      const rootCategories = formattedCategories.filter(cat => !cat.module || cat.module);
+      const rootCategories = formattedCategories.filter((cat) => !cat.module || cat.module);
       // This is just a flat list for now, hierarchy handled in render or logic
-
     } catch (error) {
       console.error('Error fetching categories:', error);
       setError(error.message);
@@ -549,7 +548,7 @@ export default function CategoryManagement() {
       return;
     }
 
-    setEditDialog(prev => ({ ...prev, open: true, loading: true, categoryId: id }));
+    setEditDialog((prev) => ({ ...prev, open: true, loading: true, categoryId: id }));
 
     try {
       const response = await fetch(`${API_BASE_URL}/categories/${id}`, {
@@ -582,13 +581,12 @@ export default function CategoryManagement() {
         setExistingImageUrl(null);
         setEditImagePreview(null);
       }
-
     } catch (err) {
       console.error('Fetch category error:', err);
       showNotification(`Failed to load category: ${err.message}`, 'error');
-      setEditDialog(prev => ({ ...prev, open: false }));
+      setEditDialog((prev) => ({ ...prev, open: false }));
     } finally {
-      setEditDialog(prev => ({ ...prev, loading: false }));
+      setEditDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -612,7 +610,7 @@ export default function CategoryManagement() {
   };
 
   const handleEditFormChange = (field, value) => {
-    setEditFormData(prev => {
+    setEditFormData((prev) => {
       const newData = { ...prev, [field]: value };
       if (field === 'module') {
         newData.parentCategory = '';
@@ -631,7 +629,7 @@ export default function CategoryManagement() {
     }
     setEditUploadedImage(file);
     const reader = new FileReader();
-    reader.onload = e => setEditImagePreview(e.target.result);
+    reader.onload = (e) => setEditImagePreview(e.target.result);
     reader.readAsDataURL(file);
   };
 
@@ -644,7 +642,7 @@ export default function CategoryManagement() {
       return;
     }
 
-    setEditDialog(prev => ({ ...prev, loading: true }));
+    setEditDialog((prev) => ({ ...prev, loading: true }));
     try {
       const formDataToSend = new FormData();
       formDataToSend.append('title', editFormData.name.trim());
@@ -680,7 +678,7 @@ export default function CategoryManagement() {
       console.error('Update error:', err);
       showNotification(err.message, 'error');
     } finally {
-      setEditDialog(prev => ({ ...prev, loading: false }));
+      setEditDialog((prev) => ({ ...prev, loading: false }));
     }
   };
 
@@ -834,140 +832,210 @@ export default function CategoryManagement() {
 
   const filteredCategories = categories.filter((category) => {
     const currentLang = getCurrentLanguageKey();
+
     const matchesSearch = category.names[currentLang].toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesModule = selectedModuleFilter === 'all' || category.module?._id === selectedModuleFilter;
+
+    const categoryModuleId = typeof category.module === 'object' ? category.module?._id : category.module;
+
+    const matchesModule = selectedModuleFilter === 'all' || categoryModuleId === selectedModuleFilter;
+
     return matchesSearch && matchesModule;
   });
+  const getRootCategories = () => {
+    return filteredCategories.filter((cat) => !cat.raw?.parentCategory);
+  };
+
+  const getSubcategories = (parentId) => {
+    return filteredCategories.filter((cat) => cat.raw?.parentCategory === parentId || cat.raw?.parentCategory?._id === parentId);
+  };
+
+  const parentCats = filteredCategories.filter((c) => !c.raw?.parentCategory);
+  const subCats = filteredCategories.filter((c) => c.raw?.parentCategory);
+
+  const renderCategoryRow = (category, index) => {
+    const currentLang = getCurrentLanguageKey();
+    return (
+      <TableRow key={category.id} sx={{ '&:hover': { backgroundColor: '#f9f9f9' } }}>
+        <TableCell>{index + 1}</TableCell>
+        <TableCell>
+          {category.image ? (
+            <Box sx={{ width: 50, height: 35, borderRadius: 1, overflow: 'hidden', border: '1px solid #e0e0e0' }}>
+              <img
+                src={category.image}
+                alt={category.names[currentLang]}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                onError={(e) => {
+                  e.target.style.display = 'none';
+                  e.target.parentElement.innerHTML =
+                    '<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:#f5f5f5;font-size:10px;color:#999;">Error</div>';
+                }}
+              />
+            </Box>
+          ) : (
+            <Box
+              sx={{
+                width: 50,
+                height: 35,
+                borderRadius: 1,
+                backgroundColor: '#f5f5f5',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1px solid #e0e0e0'
+              }}
+            >
+              <Typography variant="caption" color="text.secondary">
+                No Image
+              </Typography>
+            </Box>
+          )}
+        </TableCell>
+        <TableCell sx={{ fontWeight: 500, maxWidth: 200, direction: languageTabs[tabValue].key === 'arabic' ? 'rtl' : 'ltr' }}>
+          <Stack spacing={0.5}>
+            <Typography variant="body2" sx={{ wordBreak: 'break-word', fontWeight: 600 }}>
+              {category.names[currentLang]}
+            </Typography>
+            {category.raw?.parentCategory && (
+              <Typography variant="caption" sx={{ color: '#ed6c02', fontStyle: 'italic' }}>
+                Parent:{' '}
+                {typeof category.raw.parentCategory === 'object'
+                  ? category.raw.parentCategory.title || category.raw.parentCategory.name
+                  : 'Unknown'}
+              </Typography>
+            )}
+          </Stack>
+        </TableCell>
+        <TableCell>
+          <Typography variant="body2">{category.module ? category.module.title || 'N/A' : 'None'}</Typography>
+        </TableCell>
+        <TableCell>
+          <Switch
+            checked={category.status}
+            onChange={() => handleStatusToggle(category.id)}
+            sx={{
+              '& .MuiSwitch-switchBase.Mui-checked': { color: '#2196f3' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#2196f3' }
+            }}
+            disabled={loading}
+          />
+        </TableCell>
+        <TableCell>
+          <Box sx={{ display: 'flex', gap: 1 }}>
+            <IconButton size="small" onClick={() => handleEdit(category.id)} sx={{ color: '#2196f3' }} disabled={loading}>
+              <EditIcon fontSize="small" />
+            </IconButton>
+            <IconButton size="small" onClick={() => handleDeleteClick(category.id)} sx={{ color: '#f44336' }} disabled={loading}>
+              <DeleteIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </TableCell>
+      </TableRow>
+    );
+  };
 
   const getSelectedModuleName = () => {
     if (selectedModuleFilter === 'all') return 'All';
-    const module = modules.find(m => m._id === selectedModuleFilter);
+    const module = modules.find((m) => m._id === selectedModuleFilter);
     return module?.title || module?.name || 'Categories';
   };
 
   // ------------------- CATEGORY HIERARCHY FUNCTIONS -------------------
-  const toggleCategoryExpand = (categoryId) => {
-    setExpandedCategories(prev => ({
-      ...prev,
-      [categoryId]: !prev[categoryId]
-    }));
-  };
+  // The previous hierarchy functions (toggleCategoryExpand, getRootCategories, getSubcategories, renderCategoryRow)
+  // have been replaced by the new flat grouping and renderCategoryRow above.
+  // The comments below are kept for context but the functions are no longer present.
 
-  const getRootCategories = () => {
-    // In this flat list, we need to identify roots.
-    // Assuming the API returns a 'parentCategory' field in the raw data or we need to rely on the fact that
-    // we set it to null in formattedCategories if missing.
-    // However, formattedCategories currently sets 'module' but we didn't explicitly map 'parentCategory'.
-    // Let's fix fetchCategories mapping first (Wait, I can't look back at the file content easily in this tool call).
-    // I need to ensure fetchCategories maps parentCategory.
-    // Let's assume I'll fix it in a separate chunk or this one if I can overlap.
-    // Ideally, I should have updated fetchCategories mapping in the previous chunks.
-    // Let's double check... I didn't touch the mapping in the previous chunks.
-    // So I need to update the mapping logic too.
+  // const toggleCategoryExpand = (categoryId) => {
+  //   setExpandedCategories(prev => ({
+  //     ...prev,
+  //     [categoryId]: !prev[categoryId]
+  //   }));
+  // };
 
-    // BUT, since `categories` state is used here, I need access to parentCategory property.
-    // I will update `fetchCategories` mapping in the NEXT tool call or this one.
-    // Let's add the recursive rendering logic here assuming the data structure is correct.
-    return filteredCategories.filter(cat => !cat.raw?.parentCategory);
-  };
+  // const getRootCategories = () => {
+  //   return filteredCategories.filter(cat => !cat.raw?.parentCategory);
+  // };
 
-  const getSubcategories = (parentId) => {
-    return filteredCategories.filter(cat => cat.raw?.parentCategory === parentId || cat.raw?.parentCategory?._id === parentId);
-  };
+  // const getSubcategories = (parentId) => {
+  //   return filteredCategories.filter(cat => cat.raw?.parentCategory === parentId || cat.raw?.parentCategory?._id === parentId);
+  // };
 
   // ------------------- RENDER HELPERS -------------------
-  const renderCategoryRow = (category, level = 0) => {
-    const isExpanded = expandedCategories[category.id];
-    const subcats = getSubcategories(category.id);
-    const hasSubcats = subcats.length > 0;
-    const indentation = level * 20;
-    const currentLang = getCurrentLanguageKey();
+  // The previous renderCategoryRow has been replaced by the new one above.
+  // const renderCategoryRow = (category, level = 0) => {
+  //   const isExpanded = expandedCategories[category.id];
+  //   const subcats = getSubcategories(category.id);
+  //   const hasSubcats = subcats.length > 0;
+  //   const indentation = level * 20;
+  //   const currentLang = getCurrentLanguageKey();
 
-    return (
-      <React.Fragment key={category.id}>
-        <TableRow hover>
-          <TableCell>{category.id.substring(0, 6)}...</TableCell>
-          <TableCell>
-            <Box sx={{ display: 'flex', alignItems: 'center', ml: `${indentation}px` }}>
-              {hasSubcats && (
-                <IconButton size="small" onClick={() => toggleCategoryExpand(category.id)}>
-                  {isExpanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
-                  {/* Using SubIcon as a placeholder if ExpandMore isn't ideal for 'closed' state, 
-                      but standard is usually Right Arrow for closed, Down for open. 
-                      Let's use standard grid icons if available, or just standard arrows. */}
-                </IconButton>
-              )}
-              {!hasSubcats && level > 0 && <FolderIcon color="action" sx={{ mr: 1, fontSize: '1rem' }} />}
+  //   return (
+  //     <React.Fragment key={category.id}>
+  //       <TableRow hover>
+  //         <TableCell>{category.id.substring(0, 6)}...</TableCell>
+  //         <TableCell>
+  //           <Box sx={{ display: 'flex', alignItems: 'center', ml: `${indentation}px` }}>
+  //             {hasSubcats && (
+  //               <IconButton size="small" onClick={() => toggleCategoryExpand(category.id)}>
+  //                 {isExpanded ? <ExpandMoreIcon /> : <ChevronRightIcon />}
+  //               </IconButton>
+  //             )}
+  //             {!hasSubcats && level > 0 && <FolderIcon color="action" sx={{ mr: 1, fontSize: '1rem' }} />}
 
-              <Avatar
-                src={category.image}
-                variant="rounded"
-                sx={{ width: 40, height: 40, mr: 2, bgcolor: '#f0f0f0' }}
-              >
-                <ImageIcon color="action" />
-              </Avatar>
-              <Typography variant="body2" fontWeight={500}>
-                {category.names[currentLang]}
-              </Typography>
-            </Box>
-          </TableCell>
-          {/* <TableCell>{category.names.english}</TableCell> */}
-          {/* <TableCell>{category.names.arabic}</TableCell> */}
-          <TableCell>
-            <Chip
-              label={category.module?.title || category.module?.name || 'N/A'}
-              size="small"
-              color="primary"
-              variant="outlined"
-            />
-          </TableCell>
-          <TableCell>
-            <Switch
-              checked={category.status}
-              onChange={() => handleStatusToggle(category.id)}
-              color="success"
-              size="small"
-            />
-          </TableCell>
-          <TableCell>
-            <Stack direction="row" spacing={1}>
-              <Tooltip title="Edit">
-                <IconButton size="small" color="primary" onClick={() => handleEdit(category.id)}>
-                  <EditIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Delete">
-                <IconButton size="small" color="error" onClick={() => handleDeleteClick(category.id)}>
-                  <DeleteIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title="Add Subcategory">
-                <IconButton size="small" color="secondary" onClick={() => {
-                  setFormData(prev => ({ ...prev, parentCategory: category.id }));
-                  // Scroll to top or open dialog? The user currently has an inline/top form or sidebar?
-                  // Based on previous file read, it looks like a form at the top/side?
-                  // Actually, looking at `Category.jsx`, I see a Dialog for "Add Category"? 
-                  // Wait, `handleAdd` is called... where?
-                  // Ah, I need to check the render method.
-                  // Standard practice: open the Add Dialog pre-filled.
-                  // But wait, there is no "Add Dialog" in the original file I read?
-                  // It seemed to use `handleEdit` which opens a dialog, but `handleAdd` was... 
-                  // Checking `handleAdd`: it validates and sends POST.
-                  // The form seems to be separate? Or maybe I missed the Add Dialog state.
-                  // Let's assume inline for now based on typical templates, OR strictly speaking, 
-                  // I should just set the parentCategory in formData so the user knows.
-                }}>
-                  <FolderIcon fontSize="small" />
-                </IconButton>
-              </Tooltip>
-            </Stack>
-          </TableCell>
-        </TableRow>
+  //             <Avatar
+  //               src={category.image}
+  //               variant="rounded"
+  //               sx={{ width: 40, height: 40, mr: 2, bgcolor: '#f0f0f0' }}
+  //             >
+  //               <ImageIcon color="action" />
+  //             </Avatar>
+  //             <Typography variant="body2" fontWeight={500}>
+  //               {category.names[currentLang]}
+  //             </Typography>
+  //           </Box>
+  //         </TableCell>
+  //         <TableCell>
+  //           <Chip
+  //             label={category.module?.title || category.module?.name || 'N/A'}
+  //             size="small"
+  //             color="primary"
+  //             variant="outlined"
+  //           />
+  //         </TableCell>
+  //         <TableCell>
+  //           <Switch
+  //             checked={category.status}
+  //             onChange={() => handleStatusToggle(category.id)}
+  //             color="success"
+  //             size="small"
+  //           />
+  //         </TableCell>
+  //         <TableCell>
+  //           <Stack direction="row" spacing={1}>
+  //             <Tooltip title="Edit">
+  //               <IconButton size="small" color="primary" onClick={() => handleEdit(category.id)}>
+  //                 <EditIcon fontSize="small" />
+  //               </IconButton>
+  //             </Tooltip>
+  //             <Tooltip title="Delete">
+  //               <IconButton size="small" color="error" onClick={() => handleDeleteClick(category.id)}>
+  //                 <DeleteIcon fontSize="small" />
+  //               </IconButton>
+  //             </Tooltip>
+  //             <Tooltip title="Add Subcategory">
+  //               <IconButton size="small" color="secondary" onClick={() => {
+  //                 setFormData(prev => ({ ...prev, parentCategory: category.id }));
+  //               }}>
+  //                 <FolderIcon fontSize="small" />
+  //               </IconButton>
+  //             </Tooltip>
+  //           </Stack>
+  //         </TableCell>
+  //       </TableRow>
 
-        {isExpanded && subcats.map(sub => renderCategoryRow(sub, level + 1))}
-      </React.Fragment>
-    );
-  };
+  //       {isExpanded && subcats.map(sub => renderCategoryRow(sub, level + 1))}
+  //     </React.Fragment>
+  //   );
+  // };
 
   // ------------------- CATEGORY HIERARCHY FUNCTIONS -------------------
 
@@ -1060,10 +1128,20 @@ export default function CategoryManagement() {
   return (
     <Box sx={{ width: '100%', minHeight: '100vh', backgroundColor: '#f5f5f5', p: { xs: 2, sm: 3 } }}>
       {/* Error/Success Messages with manual redirect buttons */}
-      <Snackbar open={!!error || !!modulesError} autoHideDuration={null} onClose={() => { setError(null); setModulesError(null); }}>
+      <Snackbar
+        open={!!error || !!modulesError}
+        autoHideDuration={null}
+        onClose={() => {
+          setError(null);
+          setModulesError(null);
+        }}
+      >
         <Alert
           severity="error"
-          onClose={() => { setError(null); setModulesError(null); }}
+          onClose={() => {
+            setError(null);
+            setModulesError(null);
+          }}
           action={
             <Stack direction="row" spacing={1}>
               {(error || modulesError) && (error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && (
@@ -1076,11 +1154,13 @@ export default function CategoryManagement() {
                   Go to Dashboard
                 </Button>
               )}
-              {(error || modulesError) && !(error?.includes('not authenticated') || modulesError?.includes('not authenticated')) && !(error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
-                <Button color="inherit" size="small" onClick={handleRetry}>
-                  Retry
-                </Button>
-              )}
+              {(error || modulesError) &&
+                !(error?.includes('not authenticated') || modulesError?.includes('not authenticated')) &&
+                !(error?.includes('Access denied') || modulesError?.includes('Access denied')) && (
+                  <Button color="inherit" size="small" onClick={handleRetry}>
+                    Retry
+                  </Button>
+                )}
             </Stack>
           }
         >
@@ -1178,12 +1258,16 @@ export default function CategoryManagement() {
                 }
               }}
             >
-              <MenuItem value=""><em>None (Root Category)</em></MenuItem>
-              {categories.filter(c => !c.raw.parentCategory).map((cat) => (
-                <MenuItem key={cat.id} value={cat.id}>
-                  {cat.names.default}
-                </MenuItem>
-              ))}
+              <MenuItem value="">
+                <em>None (Root Category)</em>
+              </MenuItem>
+              {categories
+                .filter((c) => !c.raw.parentCategory)
+                .map((cat) => (
+                  <MenuItem key={cat.id} value={cat.id}>
+                    {cat.names.default}
+                  </MenuItem>
+                ))}
             </TextField>
 
             {/* EDIT DIALOG */}
@@ -1197,11 +1281,20 @@ export default function CategoryManagement() {
               }}
               TransitionProps={{ timeout: 400 }}
             >
-              <DialogTitle sx={{
-                m: 0, p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                borderBottom: '1px solid #eee', bgcolor: '#fafafa'
-              }}>
-                <Typography variant="h6" fontWeight={700} color="primary">Edit Category</Typography>
+              <DialogTitle
+                sx={{
+                  m: 0,
+                  p: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  borderBottom: '1px solid #eee',
+                  bgcolor: '#fafafa'
+                }}
+              >
+                <Typography variant="h6" fontWeight={700} color="primary">
+                  Edit Category
+                </Typography>
                 <IconButton onClick={handleEditDialogClose} sx={{ color: '#999', '&:hover': { color: '#f44336' } }}>
                   <CloseIcon />
                 </IconButton>
@@ -1211,19 +1304,26 @@ export default function CategoryManagement() {
                 {editDialog.loading ? (
                   <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 8, gap: 2 }}>
                     <CircularProgress size={48} thickness={4} />
-                    <Typography variant="body1" color="textSecondary" fontWeight={500}>Fetching category details...</Typography>
+                    <Typography variant="body1" color="textSecondary" fontWeight={500}>
+                      Fetching category details...
+                    </Typography>
                   </Box>
                 ) : (
                   <Stack spacing={4} sx={{ mt: 1 }}>
                     {/* SECTION: BASIC INFO */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
                         Basic Information
                       </Typography>
                       <Grid container spacing={3}>
                         <Grid item xs={12}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Category Title *</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Category Title *
+                          </Typography>
                           <TextField
                             fullWidth
                             value={editFormData.name}
@@ -1234,7 +1334,9 @@ export default function CategoryManagement() {
                           />
                         </Grid>
                         <Grid item xs={12}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Description</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Description
+                          </Typography>
                           <TextField
                             fullWidth
                             multiline
@@ -1249,13 +1351,18 @@ export default function CategoryManagement() {
 
                     {/* SECTION: HIERARCHY & ASSOCIATIONS */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
                         Associations
                       </Typography>
                       <Grid container spacing={3}>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Module *</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Module *
+                          </Typography>
                           <TextField
                             select
                             fullWidth
@@ -1263,13 +1370,17 @@ export default function CategoryManagement() {
                             value={editFormData.module}
                             onChange={(e) => handleEditFormChange('module', e.target.value)}
                           >
-                            {modules.map(m => (
-                              <MenuItem key={m._id} value={m._id}>{m.title || m.name}</MenuItem>
+                            {modules.map((m) => (
+                              <MenuItem key={m._id} value={m._id}>
+                                {m.title || m.name}
+                              </MenuItem>
                             ))}
                           </TextField>
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Parent Category</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Parent Category
+                          </Typography>
                           <TextField
                             select
                             fullWidth
@@ -1277,11 +1388,15 @@ export default function CategoryManagement() {
                             value={editFormData.parentCategory}
                             onChange={(e) => handleEditFormChange('parentCategory', e.target.value)}
                           >
-                            <MenuItem value=""><em>None (Root Category)</em></MenuItem>
+                            <MenuItem value="">
+                              <em>None (Root Category)</em>
+                            </MenuItem>
                             {categories
-                              .filter(c => !c.raw.parentCategory && c.id !== editDialog.categoryId) // Don't show self or children (simplification)
-                              .map(cat => (
-                                <MenuItem key={cat.id} value={cat.id}>{cat.names.default}</MenuItem>
+                              .filter((c) => !c.raw.parentCategory && c.id !== editDialog.categoryId) // Don't show self or children (simplification)
+                              .map((cat) => (
+                                <MenuItem key={cat.id} value={cat.id}>
+                                  {cat.names.default}
+                                </MenuItem>
                               ))}
                           </TextField>
                         </Grid>
@@ -1290,22 +1405,34 @@ export default function CategoryManagement() {
 
                     {/* SECTION: VISUALS */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
                         Media & Visuals
                       </Typography>
                       <Box sx={{ display: 'flex', gap: 4, alignItems: 'flex-start' }}>
                         <Box
                           sx={{
-                            width: 180, height: 120, border: '1px solid #e0e0e0', borderRadius: 2, overflow: 'hidden',
-                            backgroundColor: '#f9f9f9', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                            width: 180,
+                            height: 120,
+                            border: '1px solid #e0e0e0',
+                            borderRadius: 2,
+                            overflow: 'hidden',
+                            backgroundColor: '#f9f9f9',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.05)'
                           }}
                         >
                           {editImagePreview ? (
                             <img src={editImagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                           ) : (
-                            <Typography variant="caption" color="textSecondary">No Image Selected</Typography>
+                            <Typography variant="caption" color="textSecondary">
+                              No Image Selected
+                            </Typography>
                           )}
                         </Box>
                         <Box sx={{ flex: 1 }}>
@@ -1334,7 +1461,8 @@ export default function CategoryManagement() {
                             </Button>
                           </label>
                           <Typography variant="caption" display="block" color="textSecondary" sx={{ mt: 1.5, lineHeight: 1.6 }}>
-                            Recommended: <strong>600x400px</strong> (3:2 ratio).<br />
+                            Recommended: <strong>600x400px</strong> (3:2 ratio).
+                            <br />
                             Max file size: 5MB. Supports JPG, PNG, WebP.
                           </Typography>
                         </Box>
@@ -1345,13 +1473,18 @@ export default function CategoryManagement() {
 
                     {/* SECTION: ADVANCED / SEO */}
                     <Box>
-                      <Typography variant="subtitle2" sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}>
+                      <Typography
+                        variant="subtitle2"
+                        sx={{ mb: 2, color: '#666', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 1 }}
+                      >
                         <Box component="span" sx={{ width: 4, height: 16, bgcolor: 'primary.main', borderRadius: 1 }} />
                         Settings & SEO
                       </Typography>
                       <Grid container spacing={3}>
                         <Grid item xs={12} sm={4}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Display Order</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Display Order
+                          </Typography>
                           <TextField
                             fullWidth
                             type="number"
@@ -1362,7 +1495,9 @@ export default function CategoryManagement() {
                         </Grid>
                         <Grid item xs={12} sm={8} sx={{ display: 'flex', gap: 6, alignItems: 'center', height: '100%', pt: 2.5 }}>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={500}>Active Status</Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              Active Status
+                            </Typography>
                             <Switch
                               checked={editFormData.isActive}
                               onChange={(e) => handleEditFormChange('isActive', e.target.checked)}
@@ -1370,7 +1505,9 @@ export default function CategoryManagement() {
                             />
                           </Box>
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                            <Typography variant="body2" fontWeight={500}>Featured</Typography>
+                            <Typography variant="body2" fontWeight={500}>
+                              Featured
+                            </Typography>
                             <Switch
                               checked={editFormData.isFeatured}
                               onChange={(e) => handleEditFormChange('isFeatured', e.target.checked)}
@@ -1380,7 +1517,9 @@ export default function CategoryManagement() {
                           </Box>
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Meta Title (SEO)</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Meta Title (SEO)
+                          </Typography>
                           <TextField
                             fullWidth
                             size="small"
@@ -1390,7 +1529,9 @@ export default function CategoryManagement() {
                           />
                         </Grid>
                         <Grid item xs={12} sm={6}>
-                          <Typography variant="body2" gutterBottom fontWeight={500}>Meta Description (SEO)</Typography>
+                          <Typography variant="body2" gutterBottom fontWeight={500}>
+                            Meta Description (SEO)
+                          </Typography>
                           <TextField
                             fullWidth
                             size="small"
@@ -1419,7 +1560,9 @@ export default function CategoryManagement() {
                   variant="contained"
                   color="primary"
                   sx={{
-                    textTransform: 'none', px: 5, borderRadius: 2,
+                    textTransform: 'none',
+                    px: 5,
+                    borderRadius: 2,
                     boxShadow: '0 4px 12px rgba(25, 118, 210, 0.2)',
                     fontWeight: 600
                   }}
@@ -1542,7 +1685,16 @@ export default function CategoryManagement() {
               <Button
                 variant="contained"
                 onClick={handleAdd}
-                disabled={!formData.name.trim() || !formData.module || !/^[0-9a-fA-F]{24}$/.test(formData.module) || !uploadedImage || loading || modulesLoading || modulesError || modules.length === 0}
+                disabled={
+                  !formData.name.trim() ||
+                  !formData.module ||
+                  !/^[0-9a-fA-F]{24}$/.test(formData.module) ||
+                  !uploadedImage ||
+                  loading ||
+                  modulesLoading ||
+                  modulesError ||
+                  modules.length === 0
+                }
                 sx={{
                   px: 4,
                   py: 1.5,
@@ -1556,8 +1708,8 @@ export default function CategoryManagement() {
               </Button>
             </Box>
           </CardContent>
-        </Card >
-      </Box >
+        </Card>
+      </Box>
 
       {/* Rest of the component (Table, Export, Dialogs, etc.) remains unchanged */}
       {/* ... [Table and other UI code unchanged from your original] ... */}
@@ -1694,54 +1846,183 @@ export default function CategoryManagement() {
                 <TableBody>
                   {loading ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
+                      <TableCell colSpan={5} align="center">
                         <CircularProgress size={30} />
                       </TableCell>
                     </TableRow>
                   ) : getRootCategories().length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={7} align="center" sx={{ py: 3 }}>
-                        <Typography color="text.secondary">
-                          {searchTerm
-                            ? `No categories found matching your search in ${languageTabs[tabValue].label}.`
-                            : 'No categories available. Create one to get started.'}
-                        </Typography>
+                      <TableCell colSpan={5} align="center">
+                        <Typography>No categories found.</Typography>
                       </TableCell>
                     </TableRow>
                   ) : (
-                    getRootCategories().map(cat => renderCategoryRow(cat))
+                    getRootCategories().map((parent, index) => {
+                      const isExpanded = expandedCategories[parent.id];
+                      const subcategories = getSubcategories(parent.id);
+
+                      return (
+                        <React.Fragment key={parent.id}>
+                          {/* Parent Row */}
+                          <TableRow
+                            hover
+                            onClick={() => toggleCategoryExpand(parent.id)}
+                            sx={{ cursor: subcategories.length > 0 ? 'pointer' : 'default' }}
+                          >
+                            <TableCell>{index + 1}</TableCell>
+
+                            <TableCell>
+                              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                {subcategories.length > 0 && <span>{isExpanded ? '▼' : '▶'}</span>}
+
+                                {/* Image */}
+                                {parent.image ? (
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: 1,
+                                      overflow: 'hidden',
+                                      border: '1px solid #e0e0e0'
+                                    }}
+                                  >
+                                    <img
+                                      src={parent.image}
+                                      alt={parent.names[getCurrentLanguageKey()]}
+                                      style={{
+                                        width: '100%',
+                                        height: '100%',
+                                        objectFit: 'cover'
+                                      }}
+                                    />
+                                  </Box>
+                                ) : (
+                                  <Box
+                                    sx={{
+                                      width: 40,
+                                      height: 40,
+                                      borderRadius: 1,
+                                      backgroundColor: '#f5f5f5',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      fontSize: 10
+                                    }}
+                                  >
+                                    No Img
+                                  </Box>
+                                )}
+
+                                <Typography fontWeight={600}>{parent.names[getCurrentLanguageKey()]}</Typography>
+                              </Box>
+                            </TableCell>
+
+                            <TableCell>{parent.module?.title || 'N/A'}</TableCell>
+
+                            <TableCell>
+                              <Switch
+                                checked={parent.status}
+                                onClick={(e) => e.stopPropagation()}
+                                onChange={() => handleStatusToggle(parent.id)}
+                              />
+                            </TableCell>
+
+                            <TableCell onClick={(e) => e.stopPropagation()}>
+                              <IconButton size="small" onClick={() => handleEdit(parent.id)}>
+                                <EditIcon fontSize="small" />
+                              </IconButton>
+                              <IconButton size="small" onClick={() => handleDeleteClick(parent.id)}>
+                                <DeleteIcon fontSize="small" />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+
+                          {/* Subcategories */}
+                          {isExpanded &&
+                            subcategories.map((sub) => (
+                              <TableRow key={sub.id} sx={{ backgroundColor: '#fafafa' }}>
+                                <TableCell></TableCell>
+
+<TableCell sx={{ pl: 6 }}>
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+    <span>↳</span>
+
+    {sub.image && (
+      <Box
+        sx={{
+          width: 35,
+          height: 35,
+          borderRadius: 1,
+          overflow: 'hidden',
+          border: '1px solid #e0e0e0'
+        }}
+      >
+        <img
+          src={sub.image}
+          alt={sub.names[getCurrentLanguageKey()]}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover'
+          }}
+        />
+      </Box>
+    )}
+
+    <Typography variant="body2">
+      {sub.names[getCurrentLanguageKey()]}
+    </Typography>
+  </Box>
+</TableCell>
+                                <TableCell>{sub.module?.title || 'N/A'}</TableCell>
+
+                                <TableCell>
+                                  <Switch checked={sub.status} onChange={() => handleStatusToggle(sub.id)} />
+                                </TableCell>
+
+                                <TableCell>
+                                  <IconButton size="small" onClick={() => handleEdit(sub.id)}>
+                                    <EditIcon fontSize="small" />
+                                  </IconButton>
+                                  <IconButton size="small" onClick={() => handleDeleteClick(sub.id)}>
+                                    <DeleteIcon fontSize="small" />
+                                  </IconButton>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                        </React.Fragment>
+                      );
+                    })
                   )}
                 </TableBody>
               </Table>
             </TableContainer>
 
-            {
-              pagination.totalPages > 1 && (
-                <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" p={2}>
-                  <Button
-                    variant="outlined"
-                    disabled={pagination.currentPage === 1 || loading}
-                    onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }))}
-                  >
-                    Previous
-                  </Button>
-                  <Typography variant="body2">
-                    Page {pagination.currentPage} of {pagination.totalPages}
-                    {pagination.totalItems ? ` (${pagination.totalItems} total)` : ''}
-                  </Typography>
-                  <Button
-                    variant="outlined"
-                    disabled={pagination.currentPage === pagination.totalPages || loading}
-                    onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }))}
-                  >
-                    Next
-                  </Button>
-                </Stack>
-              )
-            }
-          </CardContent >
-        </Card >
-      </Box >
+            {pagination.totalPages > 1 && (
+              <Stack direction="row" spacing={2} justifyContent="center" alignItems="center" p={2}>
+                <Button
+                  variant="outlined"
+                  disabled={pagination.currentPage === 1 || loading}
+                  onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage - 1 }))}
+                >
+                  Previous
+                </Button>
+                <Typography variant="body2">
+                  Page {pagination.currentPage} of {pagination.totalPages}
+                  {pagination.totalItems ? ` (${pagination.totalItems} total)` : ''}
+                </Typography>
+                <Button
+                  variant="outlined"
+                  disabled={pagination.currentPage === pagination.totalPages || loading}
+                  onClick={() => setPagination((prev) => ({ ...prev, currentPage: prev.currentPage + 1 }))}
+                >
+                  Next
+                </Button>
+              </Stack>
+            )}
+          </CardContent>
+        </Card>
+      </Box>
 
       <Dialog
         open={deleteDialog.open}
@@ -1778,6 +2059,6 @@ export default function CategoryManagement() {
           {notification.message}
         </Alert>
       </Snackbar>
-    </Box >
+    </Box>
   );
 }
