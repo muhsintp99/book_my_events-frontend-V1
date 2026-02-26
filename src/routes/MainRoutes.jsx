@@ -166,6 +166,30 @@ const MehandiCoupon = Loadable(lazy(() => import('../mehandi/MehandiCoupon')));
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
+
+const Invitationdashboard = Loadable(
+  lazy(() => import('../invitation&printing/dashboard'))
+);
+
+const Invitationaddprovider = Loadable(
+  lazy(() => import('../invitation&printing/AddProvider'))
+);
+
+const Invitationcategory = Loadable(
+  lazy(() => import('../invitation&printing/Category'))
+);
+
+const InvitationList = Loadable(
+  lazy(() => import('../invitation&printing/Invitationlist'))
+);
+
+const InvitationCoupon = Loadable(
+  lazy(() => import('../invitation&printing/Invitationcoupon'))
+);
+
+const Invitationprovider = ProviderList;
+
+
 import ProtectedRoute from './ProtectedRoute';
 
 const MainRoutes = {
@@ -363,6 +387,18 @@ const MainRoutes = {
     { path: '/mehandi/mehandiList', element: <MehandiList /> },
     { path: '/mehandi/mehandiprovider', element: <Mehandiprovider /> },
     { path: '/mehandi/coupons', element: <MehandiCoupon /> },
+
+
+// ===============================
+// Invitation & Printing Routes
+// ===============================
+{ path: 'invitation/dashboard', element: <Invitationdashboard /> },
+{ path: 'invitation/AddProvider', element: <Invitationaddprovider /> },
+{ path: 'invitation/AddProvider/:id', element: <Invitationaddprovider /> },
+{ path: 'invitation/category', element: <Invitationcategory /> },
+{ path: 'invitation/invitationList', element: <InvitationList /> },
+{ path: 'invitation/invitationprovider', element: <Invitationprovider /> },
+{ path: 'invitation/coupons', element: <InvitationCoupon /> },
   ]
 };
 

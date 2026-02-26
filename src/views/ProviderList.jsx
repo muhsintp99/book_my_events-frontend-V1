@@ -92,6 +92,10 @@ function ProviderList() {
                 (m.title || '').toLowerCase().includes('mehandi') ||
                 (m.title || '').toLowerCase().includes('mehndi')
             );
+        } else if (path.includes('invitation')) {
+            detectedMod = modulesList.find(m =>
+                (m.title || '').toLowerCase().includes('invitation')
+            );
         }
 
         if (detectedMod) {
@@ -121,7 +125,8 @@ function ProviderList() {
     const fetchModules = async () => {
         try {
             const isMehandiPath = location.pathname.toLowerCase().includes('mehandi');
-            const endpoint = isMehandiPath ? 'secondary-modules' : 'modules';
+            const isInvitationPath = location.pathname.toLowerCase().includes('invitation');
+            const endpoint = (isMehandiPath || isInvitationPath) ? 'secondary-modules' : 'modules';
 
             const response = await fetch(`${API_BASE_URL}/${endpoint}`);
             const data = await response.json();

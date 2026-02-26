@@ -58,6 +58,9 @@ import vendorregistrations from './settings-items/vendorregistrations';
 import mehandimanagement from './mehandi/mehandimanagement';
 import mehandisections from './mehandi/mehandisections';
 import MehandiProvidermanagement from './mehandi/mehandiprovidermanagement';
+import InvitationProvidermanagement from './invitation&management/invitationprovidermanagement';
+import invitationsections from './invitation&management/invitationsections';
+import invitationmanagement from './invitation&management/invitationmanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -99,6 +102,9 @@ const moduleMenuItems = {
   mehandi: {
     items: [dashboard, mehandimanagement, mehandisections, MehandiProvidermanagement]
   },
+  invitationprinting:{
+    items: [dashboard, invitationmanagement, invitationsections, InvitationProvidermanagement]
+  },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
     items: [zonemanagement, pincodemanagement, modulemanagement, subscriptionmanagement, kycmanagement, vendorregistrations]
@@ -113,8 +119,20 @@ export const getMenuItemsByModule = (moduleType = 'crm') => {
 };
 
 // Function to get current active module from localStorage
+// export const getCurrentModule = () => {
+//   return localStorage.getItem('activeModule') || 'crm';
+// };
+
 export const getCurrentModule = () => {
-  return localStorage.getItem('activeModule') || 'crm';
+  const module = localStorage.getItem('activeModule');
+
+  if (!module) return 'crm';
+
+  return module
+    .toLowerCase()
+    .replace(/\s+/g, '')  // remove spaces
+    .replace(/&/g, '')    // remove &
+    .trim();
 };
 
 // Default export for backward compatibility
