@@ -714,8 +714,8 @@ export default function Header() {
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
                 width: '100%',
-                height: '160px', // Fixed height for consistency
-                p: 2,
+                height: '100px', // Further reduced height
+                p: 1,
                 '&:hover': {
                   bgcolor: '#f8f9fa',
                   transform: 'translateY(-2px)',
@@ -726,14 +726,14 @@ export default function Header() {
             >
               <Box
                 sx={{
-                  width: 56,
-                  height: 56,
+                  width: 44, // Smaller icons
+                  height: 44,
                   borderRadius: '50%',
                   overflow: 'hidden',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  mb: 1.5,
+                  mb: 1,
                   border: '2px solid #eee',
                   background: '#fff',
                   flexShrink: 0
@@ -754,13 +754,13 @@ export default function Header() {
               </Box>
 
               <Typography
-                variant="body2"
+                variant="caption" // Smaller font
                 sx={{
                   textAlign: 'center',
-                  fontWeight: 500,
+                  fontWeight: 600,
                   color: '#333',
-                  fontSize: '0.875rem',
-                  lineHeight: 1.2,
+                  fontSize: '0.75rem',
+                  lineHeight: 1.1,
                   display: '-webkit-box',
                   WebkitLineClamp: 2,
                   WebkitBoxOrient: 'vertical',
@@ -912,9 +912,9 @@ export default function Header() {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               PaperProps={{
                 sx: {
-                  width: downMD ? '95vw' : 750,
+                  width: downMD ? '95vw' : 420, // Reduced width from 500
                   maxWidth: '100%',
-                  maxHeight: '85vh',
+                  maxHeight: '65vh', // Reduced height from 70vh
                   overflowY: 'auto',
                   borderRadius: 3,
                   boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
@@ -940,7 +940,7 @@ export default function Header() {
                 }
               }}
             >
-              <Box sx={{ p: 3 }}>
+              <Box sx={{ p: 2 }}> {/* Reduced padding from 3 */}
                 {/* Main Modules Section */}
                 <Box sx={{ mb: 4 }}>
                   <Box
