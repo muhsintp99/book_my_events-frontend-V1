@@ -167,27 +167,32 @@ const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetails
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 
 
-const Invitationdashboard = Loadable(
-  lazy(() => import('../invitation&printing/dashboard'))
-);
+const Invitationdashboard = Loadable(lazy(() => import('../invitation&printing/dashboard')));
 
-const Invitationaddprovider = Loadable(
-  lazy(() => import('../invitation&printing/AddProvider'))
-);
+const Invitationaddprovider = Loadable(lazy(() => import('../invitation&printing/AddProvider')));
 
-const Invitationcategory = Loadable(
-  lazy(() => import('../invitation&printing/Category'))
-);
+const Invitationcategory = Loadable(lazy(() => import('../invitation&printing/Category')));
 
-const InvitationList = Loadable(
-  lazy(() => import('../invitation&printing/Invitationlist'))
-);
+const InvitationList = Loadable(lazy(() => import('../invitation&printing/Invitationlist')));
 
-const InvitationCoupon = Loadable(
-  lazy(() => import('../invitation&printing/Invitationcoupon'))
-);
+const InvitationCoupon = Loadable(lazy(() => import('../invitation&printing/Invitationcoupon')));
 
 const Invitationprovider = ProviderList;
+
+
+
+
+const Flouristdashboard = Loadable(lazy(() => import('../Flourist&stage/dashboard')));
+
+const Flouristaddprovider = Loadable(lazy(() => import('../Flourist&stage/AddProvider')));
+
+const Flouristcategory = Loadable(lazy(() => import('../Flourist&stage/Category')));
+
+const FlouristList = Loadable(lazy(() => import('../Flourist&stage/Flouriststagelist')));
+
+const FlouristCoupon = Loadable(lazy(() => import('../Flourist&stage/flouriststagecoupon')));
+
+const Flouristprovider = ProviderList;
 
 
 import ProtectedRoute from './ProtectedRoute';
@@ -389,16 +394,29 @@ const MainRoutes = {
     { path: '/mehandi/coupons', element: <MehandiCoupon /> },
 
 
-// ===============================
-// Invitation & Printing Routes
-// ===============================
-{ path: 'invitation/dashboard', element: <Invitationdashboard /> },
-{ path: 'invitation/AddProvider', element: <Invitationaddprovider /> },
-{ path: 'invitation/AddProvider/:id', element: <Invitationaddprovider /> },
-{ path: 'invitation/category', element: <Invitationcategory /> },
-{ path: 'invitation/invitationList', element: <InvitationList /> },
-{ path: 'invitation/invitationprovider', element: <Invitationprovider /> },
-{ path: 'invitation/coupons', element: <InvitationCoupon /> },
+    // ===============================
+    // Invitation & Printing Routes
+    // ===============================
+    { path: 'invitation/dashboard', element: <Invitationdashboard /> },
+    { path: 'invitation/AddProvider', element: <Invitationaddprovider /> },
+    { path: 'invitation/AddProvider/:id', element: <Invitationaddprovider /> },
+    { path: 'invitation/category', element: <Invitationcategory /> },
+    { path: 'invitation/invitationList', element: <InvitationList /> },
+    { path: 'invitation/invitationprovider', element: <Invitationprovider /> },
+    { path: 'invitation/coupons', element: <InvitationCoupon /> },
+
+
+
+    // ===============================
+    // Florist & stage Routes
+    // ===============================
+    { path: 'florist/dashboard', element: <Flouristdashboard /> },
+    { path: 'florist/AddProvider', element: <Flouristaddprovider /> },
+    { path: 'florist/AddProvider/:id', element: <Flouristaddprovider /> },
+    { path: 'florist/category', element: <Flouristcategory /> },
+    { path: 'florist/floristList', element: <FlouristList /> },
+    { path: 'florist/floristprovider', element: <Flouristprovider /> },
+    { path: 'florist/coupons', element: <FlouristCoupon /> },
   ]
 };
 

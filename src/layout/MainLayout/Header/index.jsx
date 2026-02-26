@@ -419,7 +419,9 @@ export default function Header() {
     mehandi: { targetModule: 'mehandi', route: '/mehandi/dashboard' },
     'mehandi artist': { targetModule: 'mehandi', route: '/mehandi/dashboard' },
     'invitation & printing': { targetModule: 'invitation & printing', route: '/invitation/dashboard' },
-    'invitation and printing': { targetModule: 'invitation & printing', route: '/invitation/dashboard' }
+    'invitation and printing': { targetModule: 'invitation & printing', route: '/invitation/dashboard' },
+    'florist & stage': { targetModule: 'florist & stage', route: '/florist/dashboard' },
+    'florist and stage': { targetModule: 'florist & stage', route: '/florist/dashboard' }
   };
 
   // Utility function to dispatch module events

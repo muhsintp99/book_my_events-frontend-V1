@@ -96,6 +96,11 @@ function ProviderList() {
             detectedMod = modulesList.find(m =>
                 (m.title || '').toLowerCase().includes('invitation')
             );
+        } else if (path.includes('florist')) {
+            detectedMod = modulesList.find(m =>
+                (m.title || '').toLowerCase().includes('florist') ||
+                (m.title || '').toLowerCase().includes('flower')
+            );
         }
 
         if (detectedMod) {
@@ -126,7 +131,8 @@ function ProviderList() {
         try {
             const isMehandiPath = location.pathname.toLowerCase().includes('mehandi');
             const isInvitationPath = location.pathname.toLowerCase().includes('invitation');
-            const endpoint = (isMehandiPath || isInvitationPath) ? 'secondary-modules' : 'modules';
+            const isFloristPath = location.pathname.toLowerCase().includes('florist');
+            const endpoint = (isMehandiPath || isInvitationPath || isFloristPath) ? 'secondary-modules' : 'modules';
 
             const response = await fetch(`${API_BASE_URL}/${endpoint}`);
             const data = await response.json();
@@ -490,6 +496,9 @@ function ProviderList() {
                                                                 else if (moduleLower.includes('photography')) base = '/photography';
                                                                 else if (moduleLower.includes('cake')) base = '/cake';
                                                                 else if (moduleLower.includes('auditorium')) base = '/auditorium';
+                                                                else if (moduleLower.includes('mehandi') || moduleLower.includes('mehndi')) base = '/mehandi';
+                                                                else if (moduleLower.includes('invitation')) base = '/invitation';
+                                                                else if (moduleLower.includes('florist') || moduleLower.includes('flower')) base = '/florist';
                                                                 else if (moduleLower.includes('transport') || moduleLower.includes('vehicle') || moduleLower.includes('crm') || moduleLower.includes('rental')) base = '/providers';
 
                                                                 const action = (moduleLower.includes('catering') || moduleLower.includes('auditorium')) ? 'addprovider' : 'AddProvider';

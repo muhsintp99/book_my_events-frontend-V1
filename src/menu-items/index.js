@@ -61,15 +61,29 @@ import MehandiProvidermanagement from './mehandi/mehandiprovidermanagement';
 import InvitationProvidermanagement from './invitation&management/invitationprovidermanagement';
 import invitationsections from './invitation&management/invitationsections';
 import invitationmanagement from './invitation&management/invitationmanagement';
+import BoutiqProvidermanagement from './florist&stage/floristprovidermanagement';
+import FloristProvidermanagement from './florist&stage/floristprovidermanagement';
+import floristsections from './florist&stage/floristsections';
+import floristmanagement from './florist&stage/floristmanagement';
+import floristdashboard from './florist&stage/floristdashboard';
+import mehandidashboard from './mehandi/mehandidashboard';
+import invitationdashboard from './invitation&management/invitationdashboard';
+import cateringdashboard from './catering/dashboard';
+import makeupdashboard from './makeup/dashboard';
+import photographydashboard from './Photography/dashboard';
+import cakedashboard from './cakes/dashboard';
+import ornamentsdashboard from './ornaments/dashboard';
+import boutiquedashboard from './boutique/dashboard';
+import rentaldashboard from './CRM/rentaldashboard';
 
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
-    items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
+    items: [rentaldashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
 
   rental: {
-    items: [dashboard, Promotionmgt, vehiclemgt, Providermgt]
+    items: [rentaldashboard, Promotionmgt, vehiclemgt, Providermgt]
   },
 
   events: {
@@ -80,30 +94,33 @@ const moduleMenuItems = {
     items: [dashboard, auditoriummanagement, auditoriumsections, Providermanagement]
   },
   catering: {
-    items: [dashboard, cateringmanagement, cateringsections, CateringProvidermanagement]
+    items: [cateringdashboard, cateringmanagement, cateringsections, CateringProvidermanagement]
   },
   makeup: {
-    items: [dashboard, makeupmanangement, makeupsections, MakeupProvidermanagement]
+    items: [makeupdashboard, makeupmanangement, makeupsections, MakeupProvidermanagement]
   },
   photography: {
-    items: [dashboard, photographymanangement, photographysections, PhotographyProvidermanagement]
+    items: [photographydashboard, photographymanangement, photographysections, PhotographyProvidermanagement]
   },
   cake: {
-    items: [dashboard, cakemanagement, cakesections, CakeProvidermanagement]
+    items: [cakedashboard, cakemanagement, cakesections, CakeProvidermanagement]
   },
   ornaments: {
-    items: [dashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
+    items: [ornamentsdashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
   },
 
   boutique: {
-    items: [dashboard, boutiquemanagement, boutiquesections, BoutiqueProvidermanagement]
+    items: [boutiquedashboard, boutiquemanagement, boutiquesections, BoutiqueProvidermanagement]
   },
 
   mehandi: {
-    items: [dashboard, mehandimanagement, mehandisections, MehandiProvidermanagement]
+    items: [mehandidashboard, mehandimanagement, mehandisections, MehandiProvidermanagement]
   },
-  invitationprinting:{
-    items: [dashboard, invitationmanagement, invitationsections, InvitationProvidermanagement]
+  invitationprinting: {
+    items: [invitationdashboard, invitationmanagement, invitationsections, InvitationProvidermanagement]
+  },
+  floriststage: {
+    items: [floristdashboard, floristmanagement, floristsections, FloristProvidermanagement]
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
