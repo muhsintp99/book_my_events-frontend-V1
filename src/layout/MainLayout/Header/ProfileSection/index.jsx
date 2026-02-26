@@ -26,7 +26,6 @@ import Transitions from 'ui-component/extended/Transitions';
 import { useConfig } from 'contexts/ConfigContext';
 
 // assets
-import User1 from 'assets/images/users/user-round.svg';
 
 // ✅ MUI Icons
 import {
@@ -159,27 +158,28 @@ export default function ProfileSection() {
             mode === 'light'
               ? theme.palette.primary.light
               : theme.palette.dark.main,
-          border: `1px solid ${
-            mode === 'light'
-              ? theme.palette.primary.main
-              : theme.palette.darkTextPrimary
-          }`,
+          border: `1px solid ${mode === 'light'
+            ? theme.palette.primary.main
+            : theme.palette.darkTextPrimary
+            }`,
           '& .MuiChip-label': { lineHeight: 0 }
         }}
         icon={
           <Avatar
-            src={User1}
-            alt="user"
+            alt="Admin"
             sx={{
               ...theme.typography.mediumAvatar,
               margin: '8px 0 8px 8px !important',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              backgroundColor: `${theme.palette.primary.main} !important`,
+              color: '#ffffff !important'
             }}
             ref={anchorRef}
             aria-controls={open ? 'menu-list-grow' : undefined}
             aria-haspopup="true"
-            color="inherit"
-          />
+          >
+            <UserIcon sx={{ color: '#ffffff' }} />
+          </Avatar>
         }
         label={<SettingsIcon />}
         ref={anchorRef}

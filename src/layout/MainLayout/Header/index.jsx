@@ -421,7 +421,18 @@ export default function Header() {
     'invitation & printing': { targetModule: 'invitation & printing', route: '/invitation/dashboard' },
     'invitation and printing': { targetModule: 'invitation & printing', route: '/invitation/dashboard' },
     'florist & stage': { targetModule: 'florist & stage', route: '/florist/dashboard' },
-    'florist and stage': { targetModule: 'florist & stage', route: '/florist/dashboard' }
+    'florist and stage': { targetModule: 'florist & stage', route: '/florist/dashboard' },
+    'light & sounds': { targetModule: 'light & sounds', route: '/lights/dashboard' },
+    'light and sounds': { targetModule: 'light & sounds', route: '/lights/dashboard' },
+    'bouncers & security': { targetModule: 'bouncers & security', route: '/bouncers/dashboard' },
+    'bouncers and security': { targetModule: 'bouncers & security', route: '/bouncers/dashboard' },
+    'emcee': { targetModule: 'emcee', route: '/emcee/dashboard' },
+    'event host / emcee': { targetModule: 'emcee', route: '/emcee/dashboard' },
+    'event host/emcee': { targetModule: 'emcee', route: '/emcee/dashboard' },
+    'event host and emcee': { targetModule: 'emcee', route: '/emcee/dashboard' },
+    'panthal & decorations': { targetModule: 'panthal & decorations', route: '/panthal/dashboard' },
+    'panthal and decorations': { targetModule: 'panthal & decorations', route: '/panthal/dashboard' },
+    'event professionals': { targetModule: 'event professionals', route: '/eventprofessionals/dashboard' }
   };
 
   // Utility function to dispatch module events
@@ -567,7 +578,7 @@ export default function Header() {
   };
 
   const handleModuleClick = (module) => {
-    const moduleName = (module.title || '').toLowerCase();
+    const moduleName = (module.title || '').toLowerCase().trim();
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
@@ -611,7 +622,7 @@ export default function Header() {
   };
 
   const handleSecondaryModuleClick = (module) => {
-    const moduleName = (module.title || '').toLowerCase();
+    const moduleName = (module.title || '').toLowerCase().trim();
     const moduleId = module.moduleId;
     const moduleDbId = module._id;
 
@@ -688,7 +699,7 @@ export default function Header() {
         </Grid>
       ) : (
         moduleList.map((item) => (
-          <Grid item xs={6} sm={4} md={3} key={item.moduleId}>
+          <Grid item xs={6} sm={4} md={3} key={item.moduleId} sx={{ display: 'flex' }}>
             <Paper
               elevation={0}
               onClick={() => handleClick(item)}
@@ -702,9 +713,9 @@ export default function Header() {
                 border: '1px solid #e8e8e8',
                 cursor: 'pointer',
                 transition: 'all 0.2s ease',
-                aspectRatio: '1 / 1',
                 width: '100%',
-                p: 2.5,
+                height: '160px', // Fixed height for consistency
+                p: 2,
                 '&:hover': {
                   bgcolor: '#f8f9fa',
                   transform: 'translateY(-2px)',
@@ -724,7 +735,8 @@ export default function Header() {
                   justifyContent: 'center',
                   mb: 1.5,
                   border: '2px solid #eee',
-                  background: '#fff'
+                  background: '#fff',
+                  flexShrink: 0
                 }}
               >
                 <img
@@ -748,7 +760,13 @@ export default function Header() {
                   fontWeight: 500,
                   color: '#333',
                   fontSize: '0.875rem',
-                  lineHeight: 1.4
+                  lineHeight: 1.2,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  maxHeight: '2.4em'
                 }}
               >
                 {item.title || 'Untitled'}
@@ -894,17 +912,19 @@ export default function Header() {
               transformOrigin={{ vertical: 'top', horizontal: 'right' }}
               PaperProps={{
                 sx: {
-                  mt: 1.5,
-                  minWidth: 650,
-                  maxWidth: 750,
-                  maxHeight: '80vh',
+                  width: downMD ? '95vw' : 750,
+                  maxWidth: '100%',
+                  maxHeight: '85vh',
                   overflowY: 'auto',
                   borderRadius: 3,
-                  boxShadow: '0 8px 32px rgba(0,0,0,0.12)',
-                  right: 0,
-                  left: 'auto',
+                  boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                  position: 'fixed !important',
+                  right: '25px !important',
+                  top: '80px !important',
+                  left: 'auto !important',
+                  transform: 'translateX(0) !important',
                   '&::-webkit-scrollbar': {
-                    width: '8px'
+                    width: '6px'
                   },
                   '&::-webkit-scrollbar-track': {
                     background: '#f1f1f1',

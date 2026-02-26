@@ -195,6 +195,48 @@ const FlouristCoupon = Loadable(lazy(() => import('../Flourist&stage/flouriststa
 const Flouristprovider = ProviderList;
 
 
+const Lightdashboard = Loadable(lazy(() => import('../Light&Sounds/dashboard')));
+const Lightaddprovider = Loadable(lazy(() => import('../Light&Sounds/AddProvider')));
+const Lightcategory = Loadable(lazy(() => import('../Light&Sounds/Category')));
+const LightList = Loadable(lazy(() => import('../Light&Sounds/lightlist')));
+const LightCoupon = Loadable(lazy(() => import('../Light&Sounds/lightcoupon')));
+const Lightprovider = ProviderList;
+
+
+const Bouncerdashboard = Loadable(lazy(() => import('../Bouncers&Security/dashboard')));
+const Bounceraddprovider = Loadable(lazy(() => import('../Bouncers&Security/AddProvider')));
+const Bouncercategory = Loadable(lazy(() => import('../Bouncers&Security/Category')));
+const BouncerListComp = Loadable(lazy(() => import('../Bouncers&Security/bouncerlist')));
+const BouncerCouponComp = Loadable(lazy(() => import('../Bouncers&Security/bouncercoupon')));
+const Bouncerprovider = ProviderList;
+
+
+const Emceedashboard = Loadable(lazy(() => import('../Emcee/dashboard')));
+const Emceeaddprovider = Loadable(lazy(() => import('../Emcee/AddProvider')));
+const Emceecategory = Loadable(lazy(() => import('../Emcee/Category')));
+const EmceeListComp = Loadable(lazy(() => import('../Emcee/emceelist')));
+const EmceeCouponComp = Loadable(lazy(() => import('../Emcee/emceecoupon')));
+const Emceeprovider = ProviderList;
+
+
+// Panthal & Decorations
+const Panthaldashboard = Loadable(lazy(() => import('../Panthal&Decorations/dashboard')));
+const Panthaladdprovider = Loadable(lazy(() => import('../Panthal&Decorations/AddProvider')));
+const Panthalcategory = Loadable(lazy(() => import('../Panthal&Decorations/Category')));
+const PanthalListComp = Loadable(lazy(() => import('../Panthal&Decorations/panthallist')));
+const PanthalCouponComp = Loadable(lazy(() => import('../Panthal&Decorations/panthalcoupon')));
+const Panthalprovider = ProviderList;
+
+
+// Event Professionals
+const Professionaldashboard = Loadable(lazy(() => import('../EventProfessionals/dashboard')));
+const Professionaladdprovider = Loadable(lazy(() => import('../EventProfessionals/AddProvider')));
+const Professionalcategory = Loadable(lazy(() => import('../EventProfessionals/Category')));
+const ProfessionalListComp = Loadable(lazy(() => import('../EventProfessionals/professionallist')));
+const ProfessionalCouponComp = Loadable(lazy(() => import('../EventProfessionals/professionalcoupon')));
+const Professionalprovider = ProviderList;
+
+
 import ProtectedRoute from './ProtectedRoute';
 
 const MainRoutes = {
@@ -417,6 +459,66 @@ const MainRoutes = {
     { path: 'florist/floristList', element: <FlouristList /> },
     { path: 'florist/floristprovider', element: <Flouristprovider /> },
     { path: 'florist/coupons', element: <FlouristCoupon /> },
+
+
+    // ===============================
+    // Light & Sounds Routes
+    // ===============================
+    { path: 'lights/dashboard', element: <Lightdashboard /> },
+    { path: 'lights/AddProvider', element: <Lightaddprovider /> },
+    { path: 'lights/AddProvider/:id', element: <Lightaddprovider /> },
+    { path: 'lights/category', element: <Lightcategory /> },
+    { path: 'lights/lightList', element: <LightList /> },
+    { path: 'lights/lightprovider', element: <Lightprovider /> },
+    { path: 'lights/coupons', element: <LightCoupon /> },
+
+
+    // ===============================
+    // Bouncers & Security Routes
+    // ===============================
+    { path: 'bouncers/dashboard', element: <Bouncerdashboard /> },
+    { path: 'bouncers/AddProvider', element: <Bounceraddprovider /> },
+    { path: 'bouncers/AddProvider/:id', element: <Bounceraddprovider /> },
+    { path: 'bouncers/category', element: <Bouncercategory /> },
+    { path: 'bouncers/bouncerList', element: <BouncerListComp /> },
+    { path: 'bouncers/bouncerprovider', element: <Bouncerprovider /> },
+    { path: 'bouncers/coupons', element: <BouncerCouponComp /> },
+
+
+    // ===============================
+    // Emcee Routes
+    // ===============================
+    { path: 'emcee/dashboard', element: <Emceedashboard /> },
+    { path: 'emcee/AddProvider', element: <Emceeaddprovider /> },
+    { path: 'emcee/AddProvider/:id', element: <Emceeaddprovider /> },
+    { path: 'emcee/category', element: <Emceecategory /> },
+    { path: 'emcee/emceeList', element: <EmceeListComp /> },
+    { path: 'emcee/emceeprovider', element: <Emceeprovider /> },
+    { path: 'emcee/coupons', element: <EmceeCouponComp /> },
+
+
+    // ===============================
+    // Panthal & Decorations Routes
+    // ===============================
+    { path: 'panthal/dashboard', element: <Panthaldashboard /> },
+    { path: 'panthal/AddProvider', element: <Panthaladdprovider /> },
+    { path: 'panthal/AddProvider/:id', element: <Panthaladdprovider /> },
+    { path: 'panthal/category', element: <Panthalcategory /> },
+    { path: 'panthal/panthalList', element: <PanthalListComp /> },
+    { path: 'panthal/panthalprovider', element: <Panthalprovider /> },
+    { path: 'panthal/coupons', element: <PanthalCouponComp /> },
+
+
+    // ===============================
+    // Event Professionals Routes
+    // ===============================
+    { path: 'eventprofessionals/dashboard', element: <Professionaldashboard /> },
+    { path: 'eventprofessionals/AddProvider', element: <Professionaladdprovider /> },
+    { path: 'eventprofessionals/AddProvider/:id', element: <Professionaladdprovider /> },
+    { path: 'eventprofessionals/category', element: <Professionalcategory /> },
+    { path: 'eventprofessionals/professionalList', element: <ProfessionalListComp /> },
+    { path: 'eventprofessionals/professionalprovider', element: <Professionalprovider /> },
+    { path: 'eventprofessionals/coupons', element: <ProfessionalCouponComp /> },
   ]
 };
 

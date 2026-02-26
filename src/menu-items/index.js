@@ -66,6 +66,10 @@ import FloristProvidermanagement from './florist&stage/floristprovidermanagement
 import floristsections from './florist&stage/floristsections';
 import floristmanagement from './florist&stage/floristmanagement';
 import floristdashboard from './florist&stage/floristdashboard';
+import lightmanagement from './light&sounds/lightmanagement';
+import lightsections from './light&sounds/lightsections';
+import lightdashboard from './light&sounds/lightdashboard';
+import LightProvidermanagement from './light&sounds/lightprovidermanagement';
 import mehandidashboard from './mehandi/mehandidashboard';
 import invitationdashboard from './invitation&management/invitationdashboard';
 import cateringdashboard from './catering/dashboard';
@@ -75,6 +79,22 @@ import cakedashboard from './cakes/dashboard';
 import ornamentsdashboard from './ornaments/dashboard';
 import boutiquedashboard from './boutique/dashboard';
 import rentaldashboard from './CRM/rentaldashboard';
+import bouncerdashboard from './bouncers&security/bouncerdashboard';
+import bouncermanagement from './bouncers&security/bouncermanagement';
+import bouncersections from './bouncers&security/bouncersections';
+import BouncerProvidermanagement from './bouncers&security/bouncerprovidermanagement';
+import emceedashboard from './emcee/emceedashboard';
+import emceemanagement from './emcee/emceemanagement';
+import emceesections from './emcee/emceesections';
+import EmceeProvidermanagement from './emcee/emceeprovidermanagement';
+import panthaldashboard from './panthal&decorations/panthaldashboard';
+import panthalmanagement from './panthal&decorations/panthalmanagement';
+import panthalsections from './panthal&decorations/panthalsections';
+import PanthalProvidermanagement from './panthal&decorations/panthalprovidermanagement';
+import professionaldashboard from './eventprofessionals/professionaldashboard';
+import professionalmanagement from './eventprofessionals/professionalmanagement';
+import professionalsections from './eventprofessionals/professionalsections';
+import ProfessionalProvidermanagement from './eventprofessionals/professionalprovidermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
@@ -122,6 +142,36 @@ const moduleMenuItems = {
   floriststage: {
     items: [floristdashboard, floristmanagement, floristsections, FloristProvidermanagement]
   },
+  lightsounds: {
+    items: [lightdashboard, lightmanagement, lightsections, LightProvidermanagement]
+  },
+  bouncerssecurity: {
+    items: [bouncerdashboard, bouncermanagement, bouncersections, BouncerProvidermanagement]
+  },
+  emcee: {
+    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+  },
+  eventhostemcee: {
+    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+  },
+  'eventhost/emcee': {
+    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+  },
+  bouncersandsecurity: {
+    items: [bouncerdashboard, bouncermanagement, bouncersections, BouncerProvidermanagement]
+  },
+  panthaldecorations: {
+    items: [panthaldashboard, panthalmanagement, panthalsections, PanthalProvidermanagement]
+  },
+  'panthal&decorations': {
+    items: [panthaldashboard, panthalmanagement, panthalsections, PanthalProvidermanagement]
+  },
+  eventprofessionals: {
+    items: [professionaldashboard, professionalmanagement, professionalsections, ProfessionalProvidermanagement]
+  },
+  'eventprofessionals': {
+    items: [professionaldashboard, professionalmanagement, professionalsections, ProfessionalProvidermanagement]
+  },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
     items: [zonemanagement, pincodemanagement, modulemanagement, subscriptionmanagement, kycmanagement, vendorregistrations]
@@ -149,6 +199,7 @@ export const getCurrentModule = () => {
     .toLowerCase()
     .replace(/\s+/g, '')  // remove spaces
     .replace(/&/g, '')    // remove &
+    .replace(/\//g, '')   // remove /
     .trim();
 };
 
