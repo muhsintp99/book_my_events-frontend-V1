@@ -136,7 +136,7 @@ function ProviderDetailsView() {
     ];
 
     const filteredPackages = packages?.filter(pkg => {
-        const name = pkg.name || pkg.packageTitle || pkg.title || '';
+        const name = pkg.name || pkg.packageTitle || pkg.title || pkg.packageName || '';
         return name.toLowerCase().includes(searchTerm.toLowerCase());
     }) || [];
 
@@ -477,7 +477,7 @@ function ProviderDetailsView() {
                             {filteredPackages.length > 0 ? (
                                 <Grid container spacing={2}>
                                     {filteredPackages.map((pkg, index) => {
-                                        let packageImageRaw = pkg.thumbnail || pkg.featuredImage || pkg.images?.[0] || pkg.gallery?.[0] || pkg.galleryImages?.[0];
+                                        let packageImageRaw = pkg.thumbnail || pkg.image || pkg.featuredImage || pkg.images?.[0] || pkg.gallery?.[0] || pkg.galleryImages?.[0];
 
                                         // Fix for Transport module missing /uploads/vehicles/ prefix
                                         const isTransport = vendorProfile?.module?.title === 'Transport' || vendorProfile?.module?.slug === 'transport';
@@ -486,6 +486,12 @@ function ProviderDetailsView() {
                                         }
 
                                         const packageImage = getImageUrl(packageImageRaw);
+
+                                        // Robust price calculation
+                                        const price = pkg.packagePrice ||
+                                            pkg.pricing?.basePrice ||
+                                            pkg.buyPricing?.totalPrice ||
+                                            pkg.rentalPricing?.totalPrice;
                                         return (
                                             <Grid item xs={12} sm={6} md={4} key={index}>
                                                 <Card
@@ -518,11 +524,11 @@ function ProviderDetailsView() {
                                                             sx={{ mb: 1, height: 20, fontSize: '0.7rem' }}
                                                         />
                                                         <Typography variant="subtitle2" fontWeight={700} gutterBottom noWrap>
-                                                            {pkg.name || pkg.packageTitle || pkg.title || 'Package'}
+                                                            {pkg.name || pkg.packageTitle || pkg.title || pkg.packageName || 'Package'}
                                                         </Typography>
-                                                        {pkg.pricing?.basePrice && (
+                                                        {price !== undefined && price !== null && (
                                                             <Typography variant="h6" color="primary" fontWeight={800}>
-                                                                AED {pkg.pricing.basePrice}
+                                                                AED {price}
                                                             </Typography>
                                                         )}
                                                         {pkg.isActive !== undefined && (
