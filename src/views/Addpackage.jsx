@@ -63,6 +63,7 @@ export default function AddPackage() {
 
   const [modules, setModules] = useState([]);
   const [moduleId, setModuleId] = useState('');
+  const [moduleModel, setModuleModel] = useState('Module');
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [price, setPrice] = useState('');
@@ -103,25 +104,41 @@ export default function AddPackage() {
   // FETCH MODULES
   // --------------------------------------------------
   useEffect(() => {
-    const fetchModules = async () => {
+    const fetchAllModules = async () => {
       setLoading(true);
       try {
-        const res = await axios.get(`${API}/api/modules`);
-        setModules(res.data.modules || res.data || []);
+        const [mainRes, secondaryRes] = await Promise.all([
+          axios.get(`${API}/api/modules`),
+          axios.get(`${API}/api/secondary-modules`)
+        ]);
+
+        const mainModules = (mainRes.data.modules || mainRes.data || []).map(m => ({
+          ...m,
+          displayName: m.title || m.name,
+          type: 'Module'
+        }));
+
+        const secondaryModules = (secondaryRes.data.modules || secondaryRes.data || []).map(m => ({
+          ...m,
+          displayName: `(Secondary) ${m.title || m.name}`,
+          type: 'SecondaryModule'
+        }));
+
+        setModules([...mainModules, ...secondaryModules]);
       } catch (err) {
-        console.error(err);
+        console.error("Error fetching modules:", err);
       } finally {
         setLoading(false);
       }
     };
-    fetchModules();
+    fetchAllModules();
   }, []);
 
   // --------------------------------------------------
-  // EDIT MODE — LOAD PLAN
+  // EDIT MODE — LOAD PLAN (wait for modules to be loaded)
   // --------------------------------------------------
   useEffect(() => {
-    if (!isEdit) return;
+    if (!isEdit || modules.length === 0) return;
 
     const fetchPlan = async () => {
       try {
@@ -129,7 +146,23 @@ export default function AddPackage() {
         if (res.data.success) {
           const p = res.data.plan;
 
-          setModuleId(p.moduleId?._id || '');
+          // Handle moduleId — it can be a populated object or a raw string
+          let resolvedModuleId = '';
+          if (p.moduleId && typeof p.moduleId === 'object') {
+            resolvedModuleId = p.moduleId._id || '';
+          } else if (p.moduleId) {
+            resolvedModuleId = p.moduleId;
+          }
+
+          setModuleId(resolvedModuleId);
+          setModuleModel(p.moduleModel || 'Module');
+
+          // If the module exists in our list, ensure moduleModel matches
+          const matchedModule = modules.find(m => m._id === resolvedModuleId);
+          if (matchedModule) {
+            setModuleModel(matchedModule.type);
+          }
+
           setName(p.name || '');
           setDescription(p.description || '');
           setDurationInDays(p.durationInDays ?? 365);
@@ -155,7 +188,7 @@ export default function AddPackage() {
       }
     };
     fetchPlan();
-  }, [id, isEdit]);
+  }, [id, isEdit, modules]);
 
   // ---------------------------------------------
   // BENEFIT FUNCTIONS
@@ -219,6 +252,7 @@ export default function AddPackage() {
 
     const payload = {
       moduleId,
+      moduleModel,
       name: name.trim(),
       description: description.trim(),
       price: Number(price),
@@ -320,10 +354,19 @@ export default function AddPackage() {
               <Typography variant="h5" fontWeight={700} color="primary">Select Module</Typography>
               <FormControl fullWidth>
                 <InputLabel>Select Module</InputLabel>
-                <Select value={moduleId} label="Select Module" onChange={(e) => setModuleId(e.target.value)}>
+                <Select
+                  value={moduleId}
+                  label="Select Module"
+                  onChange={(e) => {
+                    const selectedId = e.target.value;
+                    setModuleId(selectedId);
+                    const mod = modules.find(m => m._id === selectedId);
+                    if (mod) setModuleModel(mod.type);
+                  }}
+                >
                   <MenuItem value=""><em>Select a module</em></MenuItem>
                   {modules.map((m) => (
-                    <MenuItem key={m._id} value={m._id}>{m.title || m.name}</MenuItem>
+                    <MenuItem key={m._id} value={m._id}>{m.displayName || m.title || m.name}</MenuItem>
                   ))}
                 </Select>
               </FormControl>
@@ -335,7 +378,7 @@ export default function AddPackage() {
             <Box>
               <Typography variant="h5" fontWeight={700} color="primary">Basic Information</Typography>
               <Stack spacing={4} mt={3}>
-                
+
                 <TextField
                   label="Package Name *"
                   value={name}

@@ -34,15 +34,27 @@ const SubscriptionList = () => {
       const data = await res.json();
 
       if (data.success) {
-        const mapped = data.plans.map(p => ({
-          id: p._id,
-          name: p.name,
-          module: p.moduleId?.title || 'Other',
-          price: `₹${p.price}`,
-          duration: `${p.durationInDays} Days`,
-          subscribers: p.subscriberCount || 0,
-          status: p.isActive,
-        }));
+        const mapped = data.plans.map(p => {
+          const mType = p.moduleModel || 'Module';
+          let mName = 'Other';
+
+          if (p.moduleId && typeof p.moduleId === 'object') {
+            mName = p.moduleId.title || p.moduleId.name || mName;
+          } else if (p.moduleId) {
+            mName = `Module (${String(p.moduleId).slice(-4)})`;
+          }
+
+          return {
+            id: p._id,
+            name: p.name,
+            module: mName,
+            moduleType: mType,
+            price: `₹${p.price}`,
+            duration: `${p.durationInDays} Days`,
+            subscribers: p.subscriberCount || 0,
+            status: p.isActive,
+          };
+        });
 
         setPackages(mapped);
       }
@@ -51,13 +63,20 @@ const SubscriptionList = () => {
     }
   };
 
-  // ===================== GROUP BY MODULE ======================
-  const groupedByModule = useMemo(() => {
-    return packages.reduce((acc, pkg) => {
-      if (!acc[pkg.module]) acc[pkg.module] = [];
-      acc[pkg.module].push(pkg);
-      return acc;
-    }, {});
+  // ===================== GROUP BY TYPE AND MODULE ======================
+  const groupedData = useMemo(() => {
+    const groups = {
+      main: {},
+      secondary: {}
+    };
+
+    packages.forEach(pkg => {
+      const type = pkg.moduleType === 'SecondaryModule' ? 'secondary' : 'main';
+      if (!groups[type][pkg.module]) groups[type][pkg.module] = [];
+      groups[type][pkg.module].push(pkg);
+    });
+
+    return groups;
   }, [packages]);
 
   // ===================== ACTIONS ======================
@@ -85,16 +104,20 @@ const SubscriptionList = () => {
   };
 
   // ===================== FILTER ======================
-  const filteredGroups = Object.entries(groupedByModule).reduce(
-    (acc, [module, list]) => {
-      const filtered = list.filter(pkg =>
-        pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
-      );
-      if (filtered.length) acc[module] = filtered;
-      return acc;
-    },
-    {}
-  );
+  const filteredGroups = useMemo(() => {
+    const result = { main: {}, secondary: {} };
+
+    ['main', 'secondary'].forEach(type => {
+      Object.entries(groupedData[type]).forEach(([module, list]) => {
+        const filtered = list.filter(pkg =>
+          pkg.name.toLowerCase().includes(searchQuery.toLowerCase())
+        );
+        if (filtered.length) result[type][module] = filtered;
+      });
+    });
+
+    return result;
+  }, [groupedData, searchQuery]);
 
   // ===================== EXPORT ======================
   const exportCSV = () => {
@@ -153,52 +176,115 @@ const SubscriptionList = () => {
         </Box>
       </Box>
 
-      {/* MODULE SECTIONS */}
-      {Object.entries(filteredGroups).map(([module, plans]) => (
-        <Box key={module} sx={{ mb: 5 }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {module}
+      {/* MAIN MODULE SECTIONS */}
+      {Object.keys(filteredGroups.main).length > 0 && (
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: '#1976d2', borderBottom: '2px solid #1976d2', pb: 1, display: 'inline-block' }}>
+            Main Module Packages
           </Typography>
+          {Object.entries(filteredGroups.main).map(([module, plans]) => (
+            <Box key={module} sx={{ mb: 5, pl: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#555' }}>
+                {module}
+              </Typography>
 
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>SI</TableCell>
-                <TableCell>Package Name</TableCell>
-                <TableCell>Pricing</TableCell>
-                <TableCell>Duration</TableCell>
-                <TableCell>Subscribers</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>SI</TableCell>
+                    <TableCell>Module</TableCell>
+                    <TableCell>Package Name</TableCell>
+                    <TableCell>Pricing</TableCell>
+                    <TableCell>Duration</TableCell>
+                    <TableCell>Subscribers</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
 
-            <TableBody>
-              {plans.map((pkg, i) => (
-                <TableRow key={pkg.id}>
-                  <TableCell>{i + 1}</TableCell>
-                  <TableCell>{pkg.name}</TableCell>
-                  <TableCell>{pkg.price}</TableCell>
-                  <TableCell>{pkg.duration}</TableCell>
-                  <TableCell>{pkg.subscribers}</TableCell>
-                  <TableCell>
-                    <Switch
-                      checked={pkg.status}
-                      onChange={() => handleToggleStatus(pkg.id)}
-                    />
-                  </TableCell>
-                  <TableCell>
-                    <IconButton onClick={() => handleEdit(pkg.id)}><EditIcon /></IconButton>
-                    <IconButton onClick={() => handleDelete(pkg.id)}><DeleteIcon /></IconButton>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+                <TableBody>
+                  {plans.map((pkg, i) => (
+                    <TableRow key={pkg.id}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{pkg.module}</TableCell>
+                      <TableCell>{pkg.name}</TableCell>
+                      <TableCell>{pkg.price}</TableCell>
+                      <TableCell>{pkg.duration}</TableCell>
+                      <TableCell>{pkg.subscribers}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={pkg.status}
+                          onChange={() => handleToggleStatus(pkg.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEdit(pkg.id)}><EditIcon /></IconButton>
+                        <IconButton onClick={() => handleDelete(pkg.id)}><DeleteIcon /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          ))}
         </Box>
-      ))}
+      )}
 
-      {Object.keys(filteredGroups).length === 0 && (
+      {/* SECONDARY MODULE SECTIONS */}
+      {Object.keys(filteredGroups.secondary).length > 0 && (
+        <Box sx={{ mb: 6 }}>
+          <Typography variant="h5" sx={{ mb: 3, fontWeight: 'bold', color: '#9c27b0', borderBottom: '2px solid #9c27b0', pb: 1, display: 'inline-block' }}>
+            Secondary Module Packages
+          </Typography>
+          {Object.entries(filteredGroups.secondary).map(([module, plans]) => (
+            <Box key={module} sx={{ mb: 5, pl: 2 }}>
+              <Typography variant="h6" sx={{ mb: 2, color: '#555' }}>
+                {module}
+              </Typography>
+
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>SI</TableCell>
+                    <TableCell>Module</TableCell>
+                    <TableCell>Package Name</TableCell>
+                    <TableCell>Pricing</TableCell>
+                    <TableCell>Duration</TableCell>
+                    <TableCell>Subscribers</TableCell>
+                    <TableCell>Status</TableCell>
+                    <TableCell>Actions</TableCell>
+                  </TableRow>
+                </TableHead>
+
+                <TableBody>
+                  {plans.map((pkg, i) => (
+                    <TableRow key={pkg.id}>
+                      <TableCell>{i + 1}</TableCell>
+                      <TableCell>{pkg.module}</TableCell>
+                      <TableCell>{pkg.name}</TableCell>
+                      <TableCell>{pkg.price}</TableCell>
+                      <TableCell>{pkg.duration}</TableCell>
+                      <TableCell>{pkg.subscribers}</TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={pkg.status}
+                          onChange={() => handleToggleStatus(pkg.id)}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEdit(pkg.id)}><EditIcon /></IconButton>
+                        <IconButton onClick={() => handleDelete(pkg.id)}><DeleteIcon /></IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </Box>
+          ))}
+        </Box>
+      )}
+
+      {Object.keys(filteredGroups.main).length === 0 && Object.keys(filteredGroups.secondary).length === 0 && (
         <Typography align="center">No packages found</Typography>
       )}
     </Box>
