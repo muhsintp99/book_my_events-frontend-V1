@@ -12,7 +12,9 @@ import {
   InputLabel,
   FormControl,
   FormControlLabel,
-  Checkbox
+  Checkbox,
+  Chip,
+  OutlinedInput
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { API_BASE_URL } from '../utils/apiImageUtils';
@@ -99,6 +101,26 @@ function AddAuditorium() {
     logo: null,
     coverImage: null
   });
+
+  const [selectedMultiZones, setSelectedMultiZones] = useState([]);
+
+  // Check if current module supports multi-zone
+  const isMultiZoneModule = () => {
+    if (!formData.module || !allModules.length) return false;
+    const mod = allModules.find((m) => m._id === formData.module);
+    if (!mod) return false;
+    const title = (mod.title || '').toLowerCase();
+    return title.includes('makeup') || title.includes('photography');
+  };
+
+  const handleMultiZoneChange = (event) => {
+    const value = event.target.value;
+    setSelectedMultiZones(typeof value === 'string' ? value.split(',') : value);
+  };
+
+  const handleRemoveMultiZone = (zoneIdToRemove) => {
+    setSelectedMultiZones((prev) => prev.filter((id) => id !== zoneIdToRemove));
+  };
 
   // API_BASE_URL is now imported from apiImageUtils
 
@@ -411,6 +433,12 @@ function AddAuditorium() {
       payload.append('ownerEmail', formData.ownerEmail);
       payload.append('module', formData.module);
       payload.append('zone', formData.zone);
+
+      // Send multi-zones for eligible modules
+      if (isMultiZoneModule() && selectedMultiZones.length > 0) {
+        const allZones = [formData.zone, ...selectedMultiZones.filter(z => z !== formData.zone)].filter(Boolean);
+        payload.append('zones', allZones.join(','));
+      }
       payload.append('status', formData.status);
       payload.append('reviewedBy', formData.reviewedBy);
       payload.append('reviewedAt', formData.reviewedAt);
@@ -582,6 +610,7 @@ function AddAuditorium() {
       approvedProvider: ''
     });
     setSelectedZone('');
+    setSelectedMultiZones([]);
     setLogoPreview(null);
     setCoverPreview(null);
     setFiles({ logo: null, coverImage: null });
@@ -769,6 +798,101 @@ function AddAuditorium() {
             <Alert severity="info">No zones available</Alert>
           )}
         </Box>
+
+        {/* Multi-Zone (only for Makeup, Photography, Catering) */}
+        {isMultiZoneModule() && zones.length > 0 && (
+          <Box sx={{
+            mb: 2,
+            p: 2.5,
+            borderRadius: 2,
+            background: 'linear-gradient(135deg, #667eea0a 0%, #764ba20a 100%)',
+            border: '1px solid #e0e7ff',
+            position: 'relative',
+            overflow: 'hidden',
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              height: '3px',
+              background: 'linear-gradient(90deg, #667eea, #764ba2)',
+              borderRadius: '2px 2px 0 0'
+            }
+          }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
+              <Typography variant="subtitle1" fontWeight="600" sx={{ color: '#4338ca' }}>
+                🌐 Additional Zones
+              </Typography>
+              <Chip
+                label={`${selectedMultiZones.length} selected`}
+                size="small"
+                sx={{
+                  bgcolor: selectedMultiZones.length > 0 ? '#667eea' : '#e0e7ff',
+                  color: selectedMultiZones.length > 0 ? '#fff' : '#4338ca',
+                  fontWeight: 600,
+                  fontSize: '0.7rem'
+                }}
+              />
+            </Box>
+            <Typography variant="caption" sx={{ color: '#6366f1', mb: 1.5, display: 'block' }}>
+              Select additional zones where this provider will be listed
+            </Typography>
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="multi-zone-label">Select Additional Zones</InputLabel>
+              <Select
+                labelId="multi-zone-label"
+                multiple
+                value={selectedMultiZones}
+                onChange={handleMultiZoneChange}
+                input={<OutlinedInput label="Select Additional Zones" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((zoneId) => {
+                      const zone = zones.find(z => z._id === zoneId);
+                      return (
+                        <Chip
+                          key={zoneId}
+                          label={zone ? zone.name : zoneId}
+                          size="small"
+                          onDelete={() => handleRemoveMultiZone(zoneId)}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          sx={{
+                            bgcolor: '#667eea',
+                            color: '#fff',
+                            fontWeight: 500,
+                            '& .MuiChip-deleteIcon': { color: '#fff', '&:hover': { color: '#fecaca' } }
+                          }}
+                        />
+                      );
+                    })}
+                  </Box>
+                )}
+                sx={{
+                  bgcolor: '#fff',
+                  '& .MuiOutlinedInput-notchedOutline': { borderColor: '#c7d2fe' },
+                  '&:hover .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' },
+                  '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: '#667eea' }
+                }}
+              >
+                {zones
+                  .filter(z => z._id !== selectedZone)
+                  .map((z) => (
+                    <MenuItem
+                      key={z._id}
+                      value={z._id}
+                      sx={{
+                        fontWeight: selectedMultiZones.includes(z._id) ? 600 : 400,
+                        bgcolor: selectedMultiZones.includes(z._id) ? '#eef2ff' : 'transparent'
+                      }}
+                    >
+                      {z.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
+          </Box>
+        )}
 
         {/* Address fields */}
         <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: 2, mb: 2 }}>
