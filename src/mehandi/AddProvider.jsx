@@ -293,7 +293,7 @@ function AddMehandi() {
 
       setIsFreeTrial(user.isFreeTrial || false);
       if (user.subscriptionPlan) setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
-      
+
       if (vendorProfile?.zones && Array.isArray(vendorProfile.zones)) {
         const multiZoneIds = vendorProfile.zones
           .map(z => z._id?.$oid || z._id || z)

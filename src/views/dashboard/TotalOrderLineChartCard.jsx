@@ -129,11 +129,11 @@ export default function TotalOrderLineChartCard({ isLoading }) {
                       <Grid>
                         {timeValue ? (
                           <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                            $108
+                            156
                           </Typography>
                         ) : (
                           <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                            $961
+                            1,280
                           </Typography>
                         )}
                       </Grid>

@@ -1,716 +1,413 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  AppBar,
-  Toolbar,
-  Typography,
-  Box,
-  Button,
-  Select,
-  MenuItem,
-  FormControl,
-  TextField,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Switch,
-  IconButton,
-  Stack,
-  Chip,
-  CircularProgress,
-  Alert,
-  Snackbar,
-  useTheme,
-} from "@mui/material";
-import { 
-  Visibility, 
-  Edit, 
-  Delete, 
-  Search, 
-  ToggleOn as ToggleOnIcon, 
-  ToggleOff as ToggleOffIcon 
-} from "@mui/icons-material";
-import { useNavigate } from "react-router-dom";
+  Typography, Box, Button, Select, MenuItem, FormControl,
+  TextField, Table, TableBody, TableCell, TableContainer, TableHead, TableRow,
+  Paper, Switch, IconButton, Stack, Chip, CircularProgress, Divider, Avatar,
+  Tooltip, Collapse, Grid, Snackbar, Alert, InputAdornment
+} from '@mui/material';
+import {
+  VisibilityOutlined, Edit, Delete, Close, Search as SearchIcon, Star,
+  Refresh, CheckCircle, Apartment, LocationOn, MeetingRoom, FilterList,
+  GetApp, Add, Storefront, People, CurrencyRupee, Security, Wifi, LocalParking, 
+  Restaurant, TheaterComedy, AccessibilityNew
+} from '@mui/icons-material';
+import { useNavigate } from 'react-router-dom';
+
+/* ============ Premium Red Luxe Theme ============ */
+const themeColors = {
+  primary: '#2D3436',
+  accent: '#E15B64',
+  accentLight: '#FFF8F9',
+  success: '#00B894',
+  warning: '#FDCB6E',
+  danger: '#D63031',
+  background: '#F9FAFB',
+  border: '#E2E8F0',
+  textMain: '#2D3436',
+  textSecondary: '#636E72',
+  white: '#FFFFFF',
+  gradientPrimary: 'linear-gradient(135deg, #E15B64 0%, #FD7272 100%)',
+  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+};
+
+const HeaderStat = ({ label, value, icon, color, gradient }) => (
+  <Box sx={{
+    bgcolor: 'white', borderRadius: '18px', py: 2.2, px: 2.8,
+    display: 'flex', alignItems: 'center', gap: 2.5, flex: 1, minWidth: '220px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+    border: '1px solid', borderColor: 'rgba(0,0,0,0.04)',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
+  }}>
+    <Box sx={{
+      width: 52, height: 52, borderRadius: '15px', background: gradient || `${color}15`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: gradient ? '#FFFFFF' : color,
+      boxShadow: gradient ? '0 6px 15px rgba(225, 91, 100, 0.25)' : 'none'
+    }}>
+      {React.cloneElement(icon, { sx: { fontSize: 26 } })}
+    </Box>
+    <Box>
+      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '1px', fontSize: '0.68rem' }}>
+        {label}
+      </Typography>
+      <Typography variant="h5" sx={{ fontWeight: 950, color: themeColors.textMain, lineHeight: 1.1, fontSize: '1.45rem' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
 
 export default function Venuelist() {
-  const theme = useTheme();
   const navigate = useNavigate();
-
-  // API Configuration
-  const API_BASE_URL = "http://localhost:5000/api"; // Replace with your production URL
-
-  // State Management
   const [venues, setVenues] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [openToast, setOpenToast] = useState(false);
-  const [toastMessage, setToastMessage] = useState("");
-  const [toastSeverity, setToastSeverity] = useState("success");
+  const [expandedVendors, setExpandedVendors] = useState({});
+  const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-  // Filters
-  const [filters, setFilters] = useState({
-    brand: "",
-    category: "",
-    rentalType: "",
-    search: "",
-    isActive: "",
-  });
-  const [pendingFilters, setPendingFilters] = useState({
-    brand: "",
-    category: "",
-    rentalType: "",
-    search: "",
-    isActive: "",
-  });
+  // Filter state
+  const [filters, setFilters] = useState({ search: "", rentalType: "", isActive: "" });
+  const [pendingFilters, setPendingFilters] = useState({ search: "", rentalType: "", isActive: "" });
 
-  // Pagination
-  const [pagination, setPagination] = useState({
-    currentPage: 1,
-    totalPages: 1,
-    totalItems: 0,
-    itemsPerPage: 10,
-  });
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
 
-  // Extract unique values for filters
-  const getUniqueBrands = () => {
-    return [...new Set(venues.map((v) => v.provider?.storeName || "Unknown"))];
-  };
+  const API_BASE_URL = "http://localhost:5000/api"; // Should match backend
 
-  const getUniqueCategories = () => {
-    return [...new Set(venues.map((v) => v.seatingArrangement || "Unknown"))];
-  };
+  const getFetchOptions = useCallback((method = 'GET', body = null) => {
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+    const opts = {
+      method,
+      headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
+      credentials: 'include', mode: 'cors',
+    };
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
+    if (body) opts.body = JSON.stringify(body);
+    return opts;
+  }, []);
 
-  const getUniqueRentalTypes = () => {
-    return [...new Set(venues.map((v) => v.rentalType || "Unknown"))];
-  };
-
-  // Fetch venues from API
-  const fetchVenues = async (page = 1, appliedFilters = filters) => {
-    setLoading(true);
-    setError(null);
-    
+  const fetchVenues = async () => {
     try {
-      // Build query parameters
+      setLoading(true);
+      setError(null);
       const params = new URLSearchParams({
-        page: page.toString(),
-        limit: pagination.itemsPerPage.toString(),
+        page: currentPage.toString(),
+        limit: itemsPerPage.toString(),
       });
+      if (filters.search.trim()) params.append('search', filters.search.trim());
+      if (filters.rentalType) params.append('rentalType', filters.rentalType);
+      if (filters.isActive !== "") params.append('isActive', filters.isActive);
 
-      // Add filters
-      if (appliedFilters.search) {
-        params.append("search", appliedFilters.search);
-      }
-      if (appliedFilters.isActive !== "") {
-        params.append("isActive", appliedFilters.isActive);
-      }
-      if (appliedFilters.rentalType) {
-        params.append("rentalType", appliedFilters.rentalType);
-      }
-      if (appliedFilters.brand) {
-        params.append("provider", appliedFilters.brand);
-      }
-      if (appliedFilters.category) {
-        params.append("seatingArrangement", appliedFilters.category);
-      }
-
-      const response = await fetch(`${API_BASE_URL}/venues?${params.toString()}`, {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
+      const res = await fetch(`${API_BASE_URL}/venues?${params}`, getFetchOptions());
+      const data = await res.json();
       if (data.success) {
-        const updatedVenues = data.data.map(venue => ({
-          ...venue,
-          thumbnail: venue.thumbnail ? `${API_BASE_URL}/${venue.thumbnail.replace(/^\//, '')}` : null,
-          images: venue.images ? venue.images.map(img => `${API_BASE_URL}/${img.replace(/^\//, '')}`) : []
-        }));
-        setVenues(updatedVenues);
-        setPagination({
-          currentPage: data.pagination?.currentPage || 1,
-          totalPages: Math.ceil(data.count / pagination.itemsPerPage) || 1,
-          totalItems: data.count || 0,
-          itemsPerPage: pagination.itemsPerPage,
+        const fetchedVenues = data.data || [];
+        setVenues(fetchedVenues);
+        setTotalItems(data.count || 0);
+        setTotalPages(Math.ceil((data.count || 0) / itemsPerPage));
+        
+        // Auto-expand vendors by default
+        const vendors = {};
+        fetchedVenues.forEach(v => {
+          const providerId = v.provider?._id || 'unassigned';
+          vendors[providerId] = true;
         });
-      } else {
-        throw new Error(data.message || "Failed to fetch venues");
+        setExpandedVendors(vendors);
       }
     } catch (err) {
-      console.error("Error fetching venues:", err);
       setError(err.message);
-      setToastMessage("Error fetching venues: " + err.message);
-      setToastSeverity("error");
-      setOpenToast(true);
     } finally {
       setLoading(false);
     }
   };
 
-  // Initial load
   useEffect(() => {
-    fetchVenues(1, filters);
-  }, []);
+    fetchVenues();
+  }, [currentPage, itemsPerPage, filters, getFetchOptions]);
 
-  // Filter handlers
-  const handleApplyFilters = () => {
-    setFilters(pendingFilters);
-    fetchVenues(1, pendingFilters);
+  const handleApplyFilters = () => { setFilters(pendingFilters); setCurrentPage(1); };
+  const handleReset = () => { setFilters({ search: "", rentalType: "", isActive: "" }); setPendingFilters({ search: "", rentalType: "", isActive: "" }); setCurrentPage(1); };
+
+  const handleToggleActive = async (venueId, currentActive) => {
+    try {
+      const res = await fetch(`${API_BASE_URL}/venues/${venueId}/status`, getFetchOptions('PATCH', { isActive: !currentActive }));
+      if (res.ok) {
+        setVenues(prev => prev.map(v => v._id === venueId ? { ...v, isActive: !currentActive } : v));
+        setNotification({ open: true, message: 'Status updated successfully', severity: 'success' });
+      }
+    } catch (err) { setNotification({ open: true, message: 'Update failed', severity: 'error' }); }
   };
 
-  const handleReset = () => {
-    const resetFilters = { brand: "", category: "", rentalType: "", search: "", isActive: "" };
-    setFilters(resetFilters);
-    setPendingFilters(resetFilters);
-    fetchVenues(1, resetFilters);
+  const handleDelete = async (venueId) => {
+    if (!window.confirm("Remove this venue from the system?")) return;
+    try {
+      const res = await fetch(`${API_BASE_URL}/venues/${venueId}`, getFetchOptions('DELETE'));
+      if (res.ok) {
+        setVenues(prev => prev.filter(v => v._id !== venueId));
+        setNotification({ open: true, message: 'Venue removed successfully', severity: 'success' });
+      }
+    } catch (err) { setNotification({ open: true, message: 'Delete failed', severity: 'error' }); }
   };
 
-  // Pagination handlers
-  const handlePageChange = (newPage) => {
-    fetchVenues(newPage, filters);
-  };
-
-  // Export functionality
-  const handleExport = () => {
-    const headers = [
-      "Sl,Venue Name,Address,Provider,Seating Arrangement,Rental Type,Price,Capacity,Status,Total Bookings,Tags,Facilities",
-    ];
-    const rows = venues.map((v, i) => {
-      const price = v.rentalType === "hourly" ? `$${v.hourlyPrice}/hr` :
-                   v.rentalType === "daily" ? `$${v.perDayPrice}/day` :
-                   v.rentalType === "distanceWise" ? `$${v.distanceWisePrice}/km` : "N/A";
-      const facilities = [
-        v.parkingAvailability ? "Parking" : "",
-        v.foodCateringAvailability ? "Catering" : "",
-        v.stageLightingAudio ? "Stage/Lighting" : "",
-        v.wheelchairAccessibility ? "Accessibility" : "",
-        v.securityArrangements ? "Security" : "",
-        v.wifiAvailability ? "Wi-Fi" : "",
-      ].filter(Boolean).join(", ");
-      const tags = Array.isArray(v.searchTags) ? v.searchTags.join(", ") : v.searchTags || "";
-      return `${i + 1},"${v.venueName}","${v.venueAddress}","${v.provider?.storeName || 'N/A'}","${v.seatingArrangement || 'N/A'}","${v.rentalType || 'N/A'}","${price}","${v.maxGuestsSeated || 'N/A'}","${v.isActive ? 'Active' : 'Inactive'}","${v.totalBookings || 0}","${tags}","${facilities}"`;
+  const vendorGroups = useMemo(() => {
+    const groups = {};
+    venues.forEach(v => {
+      const provider = v.provider;
+      const providerId = provider?._id || 'unassigned';
+      
+      let displayName = provider?.storeName || (provider?.firstName ? `${provider.firstName} ${provider.lastName || ''}`.trim() : null) || provider?.email || 'Independent Venue';
+      
+      if (!groups[providerId]) {
+        groups[providerId] = {
+          provider: provider || { _id: 'unassigned' },
+          displayName: displayName,
+          venues: []
+        };
+      }
+      groups[providerId].venues.push(v);
     });
-    const csv = headers.concat(rows).join("\n");
-    const blob = new Blob([csv], { type: "text/csv" });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(blob);
-    link.download = `venues-${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+    return Object.values(groups).sort((a,b) => b.venues.length - a.venues.length);
+  }, [venues]);
+
+  const stats = {
+    total: totalItems,
+    active: venues.filter(v => v.isActive).length,
+    bookings: venues.reduce((sum, v) => sum + (v.totalBookings || 0), 0),
+    vendors: vendorGroups.length,
   };
-
-  // Action handlers
-  const handleToggleStatus = async (venueId) => {
-    try {
-      const venue = venues.find(v => v._id === venueId);
-      if (!venue) return;
-
-      const response = await fetch(`${API_BASE_URL}/venues/${venueId}/status`, {
-        method: "PATCH",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({ isActive: !venue.isActive }),
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setVenues(prevVenues =>
-          prevVenues.map(v =>
-            v._id === venueId ? { ...v, isActive: !v.isActive } : v
-          )
-        );
-        
-        setToastMessage(`Venue ${data.data.isActive ? "activated" : "deactivated"} successfully`);
-        setToastSeverity("success");
-        setOpenToast(true);
-      } else {
-        throw new Error(data.message || "Failed to toggle status");
-      }
-    } catch (err) {
-      console.error("Error toggling venue status:", err);
-      setToastMessage("Error toggling venue status: " + err.message);
-      setToastSeverity("error");
-      setOpenToast(true);
-    }
-  };
-
-  const handleDeleteVenue = async (venueId) => {
-    if (!window.confirm("Are you sure you want to delete this venue?")) return;
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/venues/${venueId}`, {
-        method: "DELETE",
-        headers: {
-          "Authorization": `Bearer ${localStorage.getItem("token")}`,
-          "Content-Type": "application/json",
-        },
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        setVenues(prevVenues => prevVenues.filter(v => v._id !== venueId));
-        setToastMessage("Venue deleted successfully");
-        setToastSeverity("success");
-        setOpenToast(true);
-        // Update pagination if needed
-        if (venues.length === 1 && pagination.currentPage > 1) {
-          handlePageChange(pagination.currentPage - 1);
-        }
-      } else {
-        throw new Error(data.message || "Failed to delete venue");
-      }
-    } catch (err) {
-      console.error("Error deleting venue:", err);
-      setToastMessage("Error deleting venue: " + err.message);
-      setToastSeverity("error");
-      setOpenToast(true);
-    }
-  };
-
-  const handleViewVenue = (venueId) => {
-    navigate(`/venue-setup/view/${venueId}`);
-  };
-
-  const handleEditVenue = (venueId) => {
-    navigate(`/venue-setup/edit/${venueId}`);
-  };
-
-  // Toast handlers
-  const handleCloseToast = (event, reason) => {
-    if (reason === "clickaway") return;
-    setOpenToast(false);
-  };
-
-  // Loading state
-  if (loading) {
-    return (
-      <Box sx={{ 
-        bgcolor: "#fafafa", 
-        minHeight: "100vh", 
-        display: "flex", 
-        alignItems: "center", 
-        justifyContent: "center" 
-      }}>
-        <CircularProgress />
-        <Typography sx={{ ml: 2 }}>Loading venues...</Typography>
-      </Box>
-    );
-  }
-
-  // Error state
-  if (error && venues.length === 0) {
-    return (
-      <Box sx={{ bgcolor: "#fafafa", minHeight: "100vh", p: 2 }}>
-        <Paper sx={{ p: 4, textAlign: "center", maxWidth: 600, mx: "auto" }}>
-          <Alert severity="error" sx={{ mb: 2 }}>
-            {error}
-          </Alert>
-          <Button 
-            variant="contained" 
-            onClick={() => fetchVenues(1, filters)}
-            sx={{ bgcolor: "#2563eb" }}
-          >
-            Retry
-          </Button>
-        </Paper>
-      </Box>
-    );
-  }
 
   return (
-    <Box sx={{ bgcolor: "#fafafa", minHeight: "100vh", p: 2 }}>
-      {/* Navbar */}
-      <AppBar position="static" color="default" elevation={0}>
-        <Toolbar>
-          <Typography variant="h6" sx={{ flexGrow: 1, color: "#333" }}>
-            🏢 CityRide Venues
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: themeColors.background, color: themeColors.textMain }}>
+      {/* Premium Header */}
+      <Box sx={{ mb: 4, display: 'flex', flexDirection: { xs: 'column', md: 'row' }, justifyContent: 'space-between', alignItems: 'flex-end', gap: 3 }}>
+        <Box>
+          <Typography variant="h2" sx={{ fontWeight: 950, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-2px', fontSize: '3rem', lineHeight: 1 }}>
+            Venue Management
           </Typography>
-        </Toolbar>
-      </AppBar>
-
-      {/* Filters */}
-      <Paper sx={{ p: 2, mt: 2 }}>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <FormControl sx={{ minWidth: 180 }} size="small">
-            <Select
-              displayEmpty
-              value={pendingFilters.brand}
-              onChange={(e) =>
-                setPendingFilters({ ...pendingFilters, brand: e.target.value })
-              }
-            >
-              <MenuItem value="">All Providers</MenuItem>
-              {getUniqueBrands().map((b) => (
-                <MenuItem key={b} value={b}>
-                  {b}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 180 }} size="small">
-            <Select
-              displayEmpty
-              value={pendingFilters.category}
-              onChange={(e) =>
-                setPendingFilters({
-                  ...pendingFilters,
-                  category: e.target.value,
-                })
-              }
-            >
-              <MenuItem value="">All Arrangements</MenuItem>
-              {getUniqueCategories().map((c) => (
-                <MenuItem key={c} value={c}>
-                  {c}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 180 }} size="small">
-            <Select
-              displayEmpty
-              value={pendingFilters.rentalType}
-              onChange={(e) =>
-                setPendingFilters({ ...pendingFilters, rentalType: e.target.value })
-              }
-            >
-              <MenuItem value="">All Rental Types</MenuItem>
-              {getUniqueRentalTypes().map((t) => (
-                <MenuItem key={t} value={t}>
-                  {t.charAt(0).toUpperCase() + t.slice(1)}
-                </MenuItem>
-              ))}
-            </Select>
-          </FormControl>
-
-          <FormControl sx={{ minWidth: 150 }} size="small">
-            <Select
-              displayEmpty
-              value={pendingFilters.isActive}
-              onChange={(e) =>
-                setPendingFilters({ ...pendingFilters, isActive: e.target.value })
-              }
-            >
-              <MenuItem value="">All Status</MenuItem>
-              <MenuItem value="true">Active</MenuItem>
-              <MenuItem value="false">Inactive</MenuItem>
-            </Select>
-          </FormControl>
-
-          <Button variant="outlined" onClick={handleReset}>
-            Reset
-          </Button>
-          <Button
-            variant="contained"
-            sx={{ bgcolor: "#2563eb" }}
-            onClick={handleApplyFilters}
+          <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 700, mt: 1, fontSize: '0.95rem' }}>
+            Event spaces, luxury halls & outdoor venues registry
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={2.5}>
+          <Button 
+            variant="outlined" 
+            startIcon={<Refresh />} 
+            onClick={() => fetchVenues()} 
+            sx={{ borderRadius: '15px', textTransform: 'none', fontWeight: 800, px: 3, height: 48, borderColor: themeColors.border, color: themeColors.textMain, bgcolor: 'white' }}
           >
-            Filter
+            Refresh
+          </Button>
+          <Button 
+            variant="contained" 
+            disableElevation 
+            onClick={() => navigate("/venue-setup/create")} 
+            sx={{ borderRadius: '15px', textTransform: 'none', fontWeight: 900, px: 4, height: 48, background: themeColors.gradientPrimary, boxShadow: '0 8px 20px rgba(225, 91, 100, 0.25)', '&:hover': { opacity: 0.9, transform: 'translateY(-2px)' }, transition: 'all 0.3s ease' }}
+          >
+            <Add sx={{ mr: 1, fontSize: 24 }} /> New Venue
           </Button>
         </Stack>
-      </Paper>
+      </Box>
 
-      {/* Table */}
-      <Paper sx={{ p: 2, mt: 2 }}>
-        <Stack
-          direction="row"
-          justifyContent="space-between"
-          alignItems="center"
-          flexWrap="wrap"
-          spacing={2}
-          mb={2}
-        >
-          <Typography variant="h6" sx={{ fontWeight: 600 }}>
-            Total Venues{" "}
-            <Chip
-              label={pagination.totalItems}
-              color="success"
-              size="small"
-              sx={{ ml: 1 }}
-            />
-          </Typography>
-          <Stack direction="row" spacing={1} flexWrap="wrap">
+      {/* Stats Dashboard */}
+      <Box sx={{ display: 'flex', gap: 2.5, mb: 5, flexWrap: 'wrap' }}>
+        <HeaderStat label="Total Spaces" value={stats.total} icon={<Apartment />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
+        <HeaderStat label="Active Venues" value={stats.active} icon={<CheckCircle />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
+        <HeaderStat label="Total Bookings" value={stats.bookings} icon={<MeetingRoom />} color={themeColors.warning} />
+        <HeaderStat label="Active Vendors" value={stats.vendors} icon={<Storefront />} color={themeColors.primary} />
+      </Box>
+
+      {/* Advanced Filters */}
+      <Paper elevation={0} sx={{ p: 3, mb: 4, borderRadius: '24px', border: '1px solid', borderColor: themeColors.border, bgcolor: 'white', boxShadow: '0 2px 10px rgba(0,0,0,0.02)' }}>
+        <Grid container spacing={3} alignItems="center">
+          <Grid item xs={12} md={5}>
             <TextField
-              size="small"
-              placeholder="Search by venue name or address"
+              placeholder="Search by venue name, address or tags..."
+              fullWidth size="medium"
               value={pendingFilters.search}
-              onChange={(e) =>
-                setPendingFilters({ ...pendingFilters, search: e.target.value })
-              }
-              InputProps={{
-                endAdornment: <Search fontSize="small" />,
+              onChange={e => setPendingFilters({ ...pendingFilters, search: e.target.value })}
+              sx={{ '& .MuiOutlinedInput-root': { borderRadius: '14px', bgcolor: themeColors.background, fontWeight: 600 } }}
+              InputProps={{ 
+                startAdornment: <InputAdornment position="start"><SearchIcon sx={{ color: themeColors.textSecondary }} /></InputAdornment>
               }}
-              sx={{ minWidth: 200 }}
             />
-            <Button variant="outlined" onClick={handleExport}>
-              Export CSV
-            </Button>
-            <Button
-              variant="contained"
-              sx={{ bgcolor: "#2563eb" }}
-              onClick={() => navigate("/venue-setup/create")}
-            >
-              New Venue
-            </Button>
-          </Stack>
-        </Stack>
-
-        {/* Pagination Info */}
-        {venues.length > 0 && (
-          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-            Showing {((pagination.currentPage - 1) * pagination.itemsPerPage) + 1} to{" "}
-            {Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} of{" "}
-            {pagination.totalItems} venues
-          </Typography>
-        )}
-
-        <TableContainer sx={{ maxHeight: 600 }}>
-          <Table stickyHeader>
-            <TableHead sx={{ bgcolor: "#f9fafb" }}>
-              <TableRow>
-                <TableCell>Sl</TableCell>
-                <TableCell>Venue Info</TableCell>
-                <TableCell>Address</TableCell>
-                <TableCell>Provider</TableCell>
-                <TableCell>Arrangement</TableCell>
-                <TableCell>Rental Type</TableCell>
-                <TableCell>Price</TableCell>
-                <TableCell>Capacity</TableCell>
-                <TableCell>Bookings</TableCell>
-                <TableCell>Facilities</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {venues.map((v, i) => {
-                const price = v.rentalType === "hourly" ? `$${v.hourlyPrice}/hr` :
-                             v.rentalType === "daily" ? `$${v.perDayPrice}/day` :
-                             v.rentalType === "distanceWise" ? `$${v.distanceWisePrice}/km` : "N/A";
-                
-                const startIndex = (pagination.currentPage - 1) * pagination.itemsPerPage;
-                const slNumber = startIndex + i + 1;
-
-                return (
-                  <TableRow key={v._id} hover>
-                    <TableCell>{slNumber}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.5}>
-                        <Typography
-                          variant="body2"
-                          sx={{ fontWeight: 600, color: "#2563eb" }}
-                        >
-                          {v.venueName}
-                        </Typography>
-                        {Array.isArray(v.searchTags) && v.searchTags.length > 0 && (
-                          <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                            {v.searchTags.slice(0, 3).map((tag, idx) => (
-                              <Chip
-                                key={idx}
-                                label={tag.trim()}
-                                size="small"
-                                variant="outlined"
-                                sx={{ fontSize: "0.65rem" }}
-                              />
-                            ))}
-                            {v.searchTags.length > 3 && (
-                              <Chip
-                                label={`+${v.searchTags.length - 3}`}
-                                size="small"
-                                sx={{ fontSize: "0.65rem" }}
-                              />
-                            )}
-                          </Stack>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell sx={{ maxWidth: 150 }}>
-                      <Typography variant="body2" sx={{ fontSize: "0.875rem" }}>
-                        {v.venueAddress.length > 50 
-                          ? `${v.venueAddress.substring(0, 50)}...` 
-                          : v.venueAddress
-                        }
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {v.provider?.storeName || "N/A"}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={v.seatingArrangement || "N/A"}
-                        size="small"
-                        variant="outlined"
-                        color="primary"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        label={v.rentalType ? v.rentalType.charAt(0).toUpperCase() + v.rentalType.slice(1) : "N/A"}
-                        size="small"
-                        color="secondary"
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontWeight: 600, color: "#059669" }}>
-                        {price}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {v.maxGuestsSeated || "N/A"} seats
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" color="primary">
-                        {v.totalBookings || 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.5} flexWrap="wrap">
-                        {v.parkingAvailability && (
-                          <Chip label="P" size="small" color="success" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                        {v.foodCateringAvailability && (
-                          <Chip label="F" size="small" color="warning" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                        {v.wifiAvailability && (
-                          <Chip label="W" size="small" color="info" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                        {v.wheelchairAccessibility && (
-                          <Chip label="A" size="small" color="primary" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                        {v.stageLightingAudio && (
-                          <Chip label="S" size="small" color="secondary" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                        {v.securityArrangements && (
-                          <Chip label="Sec" size="small" color="error" variant="outlined" sx={{ fontSize: "0.65rem" }} />
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={v.isActive || false}
-                        onChange={() => handleToggleStatus(v._id)}
-                        color="primary"
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1}>
-                        <IconButton 
-                          size="small" 
-                          sx={{ color: "#2563eb" }}
-                          onClick={() => handleViewVenue(v._id)}
-                        >
-                          <Visibility fontSize="small" />
-                        </IconButton>
-                        <IconButton 
-                          size="small" 
-                          sx={{ color: "#065f46" }}
-                          onClick={() => handleEditVenue(v._id)}
-                        >
-                          <Edit fontSize="small" />
-                        </IconButton>
-                        <IconButton
-                          size="small"
-                          sx={{ color: "#dc2626" }}
-                          onClick={() => handleDeleteVenue(v._id)}
-                        >
-                          <Delete fontSize="small" />
-                        </IconButton>
-                      </Stack>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-              {venues.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={12} align="center" sx={{ py: 4 }}>
-                    <Stack spacing={2} alignItems="center">
-                      <Typography variant="h6" color="text.secondary">
-                        No venues found
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {filters.search && `No venues match "${filters.search}"`}
-                        {!filters.search && "Create your first venue to get started"}
-                      </Typography>
-                      <Button
-                        variant="contained"
-                        sx={{ bgcolor: "#2563eb" }}
-                        onClick={() => navigate("/venue-setup/create")}
-                      >
-                        Create New Venue
-                      </Button>
-                    </Stack>
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        {/* Pagination */}
-        {pagination.totalPages > 1 && (
-          <Stack
-            direction="row"
-            justifyContent="space-between"
-            alignItems="center"
-            sx={{ mt: 3, pt: 2, borderTop: "1px solid #e5e7eb" }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              Page {pagination.currentPage} of {pagination.totalPages}
-            </Typography>
-            <Stack direction="row" spacing={1}>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={pagination.currentPage === 1}
-                onClick={() => handlePageChange(pagination.currentPage - 1)}
+          </Grid>
+          <Grid item xs={12} md={2.5}>
+            <FormControl fullWidth>
+              <Select
+                displayEmpty value={pendingFilters.rentalType}
+                onChange={e => setPendingFilters({ ...pendingFilters, rentalType: e.target.value })}
+                sx={{ borderRadius: '14px', bgcolor: themeColors.background, fontWeight: 700 }}
               >
-                Previous
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                disabled={pagination.currentPage === pagination.totalPages}
-                onClick={() => handlePageChange(pagination.currentPage + 1)}
+                <MenuItem value="">All Rental Types</MenuItem>
+                <MenuItem value="hourly">Hourly</MenuItem>
+                <MenuItem value="daily">Daily</MenuItem>
+                <MenuItem value="distanceWise">Distance Wise</MenuItem>
+              </Select>
+            </FormControl>
+          </Grid>
+          <Grid item xs={12} md={4.5}>
+            <Stack direction="row" spacing={1.5} justifyContent="flex-end">
+              <Button onClick={handleReset} sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'none' }}>Clear</Button>
+              <Button 
+                variant="contained" 
+                onClick={handleApplyFilters} 
+                sx={{ bgcolor: themeColors.primary, borderRadius: '14px', px: 4, py: 1.2, textTransform: 'none', fontWeight: 900, '&:hover': { bgcolor: '#000' } }}
               >
-                Next
+                Apply Filters
               </Button>
             </Stack>
-          </Stack>
-        )}
+          </Grid>
+        </Grid>
       </Paper>
 
-      {/* Toast Notification */}
-      <Snackbar
-        open={openToast}
-        autoHideDuration={4000}
-        onClose={handleCloseToast}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          onClose={handleCloseToast}
-          severity={toastSeverity}
-          sx={{ width: "100%" }}
-          variant="filled"
-        >
-          {toastMessage}
-        </Alert>
+      {loading ? (
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', py: 15 }}>
+          <CircularProgress size={60} thickness={4} sx={{ color: themeColors.accent, mb: 2 }} />
+          <Typography variant="h6" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>Loading venues...</Typography>
+        </Box>
+      ) : (
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3.5 }}>
+          {vendorGroups.length > 0 ? (
+            vendorGroups.map((group) => {
+              const providerId = group.provider?._id || 'unassigned';
+              const isExpanded = expandedVendors[providerId];
+              const vendorName = group.displayName;
+
+              return (
+                <Paper key={providerId} elevation={0} sx={{
+                  borderRadius: '28px', overflow: 'hidden', border: '1px solid',
+                  borderColor: isExpanded ? themeColors.accent + '40' : themeColors.border,
+                  boxShadow: isExpanded ? '0 15px 45px rgba(225,91,100,0.08)' : 'none',
+                  transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)', bgcolor: 'white'
+                }}>
+                  <Box onClick={() => setExpandedVendors(p => ({ ...p, [providerId]: !isExpanded }))} sx={{
+                    p: 3, display: 'flex', alignItems: 'center', gap: 3, cursor: 'pointer',
+                    bgcolor: isExpanded ? themeColors.accentLight : 'white',
+                  }}>
+                    <Avatar sx={{ 
+                      width: 54, height: 54, fontSize: '1.3rem', fontWeight: 900, 
+                      background: themeColors.gradientPrimary, color: 'white', 
+                      border: '4px solid white', boxShadow: '0 6px 12px rgba(0,0,0,0.1)' 
+                    }}>
+                      {vendorName ? vendorName[0].toUpperCase() : 'V'}
+                    </Avatar>
+                    <Box sx={{ flex: 1 }}>
+                      <Typography sx={{ fontWeight: 950, color: themeColors.textMain, fontSize: '1.25rem', letterSpacing: '-0.5px' }}>{vendorName}</Typography>
+                      <Typography variant="body1" sx={{ color: themeColors.textSecondary, fontWeight: 700, fontSize: '0.85rem', display: 'flex', alignItems: 'center' }}>
+                        <Storefront sx={{ fontSize: 14, mr: 0.6, color: themeColors.accent }} /> {group.provider?.email || 'Registered Partner'}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ textAlign: 'right', px: 2 }}>
+                      <Typography sx={{ fontWeight: 950, color: themeColors.textSecondary, fontSize: '0.75rem', letterSpacing: '1px' }}>{group.venues.length.toString().padStart(2, '0')} VENUES</Typography>
+                      <Chip label="PARTNER VENDOR" size="small" sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.6, height: 24, fontSize: '0.65rem', borderRadius: '8px' }} />
+                    </Box>
+                  </Box>
+
+                  <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                    <Box sx={{ px: 4, pb: 4 }}>
+                      <Divider sx={{ mb: 3 }} />
+                      <TableContainer>
+                        <Table sx={{ minWidth: 900 }}>
+                          <TableHead>
+                            <TableRow sx={{ '& th': { borderBottom: '2px solid' + themeColors.border, py: 1.5, fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' } }}>
+                              <TableCell>Venue Details</TableCell>
+                              <TableCell>Seating & Capacity</TableCell>
+                              <TableCell>Facilities</TableCell>
+                              <TableCell>Pricing Scale</TableCell>
+                              <TableCell align="center">Active</TableCell>
+                              <TableCell align="right">Actions</TableCell>
+                            </TableRow>
+                          </TableHead>
+                          <TableBody>
+                            {group.venues.map((v) => (
+                              <TableRow key={v._id} sx={{ '& td': { py: 2.2 }, '&:hover': { bgcolor: '#F9FAFB' }, transition: 'background-color 0.2s' }}>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5 }}>
+                                    <Avatar 
+                                      variant="rounded"
+                                      src={v.thumbnail ? `${API_BASE_URL}/${v.thumbnail.replace(/^\//, '')}` : null}
+                                      sx={{ width: 90, height: 60, borderRadius: '12px', bgcolor: '#eee', boxShadow: '0 4px 10px rgba(0,0,0,0.05)', border: '2px solid white' }}
+                                    >
+                                      <Apartment sx={{ color: '#ccc' }} />
+                                    </Avatar>
+                                    <Box>
+                                      <Typography sx={{ fontWeight: 900, color: themeColors.accent, fontSize: '1.05rem', lineHeight: 1.2 }}>{v.venueName}</Typography>
+                                      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, display: 'flex', alignItems: 'center', mt: 0.3 }}>
+                                        <LocationOn sx={{ fontSize: 12, mr: 0.4 }} /> {v.venueAddress ? (v.venueAddress.length > 30 ? v.venueAddress.substring(0, 30) + '...' : v.venueAddress) : 'No address'}
+                                      </Typography>
+                                    </Box>
+                                  </Box>
+                                </TableCell>
+                                <TableCell>
+                                  <Chip label={v.seatingArrangement || 'Standard'} size="small" sx={{ height: 22, fontSize: '0.65rem', fontWeight: 900, mb: 0.8, bgcolor: themeColors.primary, color: 'white', borderRadius: '6px' }} />
+                                  <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.88rem', display: 'flex', alignItems: 'center' }}>
+                                    <People sx={{ fontSize: 14, mr: 0.8, color: themeColors.textSecondary }} /> {v.maxGuestsSeated || 0} Guests Capacity
+                                  </Typography>
+                                </TableCell>
+                                <TableCell>
+                                  <Stack direction="row" spacing={0.5} flexWrap="wrap">
+                                    {v.parkingAvailability && <Tooltip title="Parking"><LocalParking sx={{ fontSize: 16, color: themeColors.success }} /></Tooltip>}
+                                    {v.foodCateringAvailability && <Tooltip title="Catering"><Restaurant sx={{ fontSize: 16, color: themeColors.warning }} /></Tooltip>}
+                                    {v.wifiAvailability && <Tooltip title="Wi-Fi"><Wifi sx={{ fontSize: 16, color: '#3498db' }} /></Tooltip>}
+                                    {v.securityArrangements && <Tooltip title="Security"><Security sx={{ fontSize: 16, color: themeColors.danger }} /></Tooltip>}
+                                    {v.stageLightingAudio && <Tooltip title="Stage & AV"><TheaterComedy sx={{ fontSize: 16, color: '#9b59b6' }} /></Tooltip>}
+                                    {v.wheelchairAccessibility && <Tooltip title="Accessible"><AccessibilityNew sx={{ fontSize: 16, color: themeColors.success }} /></Tooltip>}
+                                  </Stack>
+                                </TableCell>
+                                <TableCell>
+                                  <Box sx={{ display: 'flex', flexDirection: 'column' }}>
+                                    <Typography sx={{ fontWeight: 950, color: themeColors.success, fontSize: '1.15rem' }}>
+                                      ₹{v.perDayPrice?.toLocaleString() || v.hourlyPrice?.toLocaleString() || '0'}
+                                    </Typography>
+                                    <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, fontSize: '0.65rem' }}>
+                                      Per {v.rentalType === 'hourly' ? 'Hour' : 'Event/Day'}
+                                    </Typography>
+                                  </Box>
+                                </TableCell>
+                                <TableCell align="center">
+                                  <Switch size="small" checked={v.isActive} onChange={() => handleToggleActive(v._id, v.isActive)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                                </TableCell>
+                                <TableCell align="right">
+                                  <Stack direction="row" spacing={0.8} justifyContent="flex-end">
+                                    <Tooltip title="View Property"><IconButton size="small" onClick={() => navigate(`/venue-setup/view/${v._id}`)} sx={{ color: themeColors.textSecondary, border: '1px solid #eee', bgcolor: 'white' }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                    <Tooltip title="Edit Details"><IconButton size="small" onClick={() => navigate(`/venue-setup/edit/${v._id}`)} sx={{ color: themeColors.primary, border: '1px solid #eee', bgcolor: 'white' }}><Edit sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                    <Tooltip title="Remove Venue"><IconButton size="small" onClick={() => handleDelete(v._id)} sx={{ color: themeColors.danger, border: '1px solid #eee', bgcolor: 'white' }}><Delete sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                  </Stack>
+                                </TableCell>
+                              </TableRow>
+                            ))}
+                          </TableBody>
+                        </Table>
+                      </TableContainer>
+                    </Box>
+                  </Collapse>
+                </Paper>
+              );
+            })
+          ) : (
+            <Paper elevation={0} sx={{ p: 10, textAlign: 'center', borderRadius: '30px', border: '1px dashed' + themeColors.border, bgcolor: 'white' }}>
+              <Apartment sx={{ fontSize: 60, color: themeColors.border, mb: 2 }} />
+              <Typography variant="h6" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>No venues found.</Typography>
+              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mt: 1 }}>Try adjusting your filters or add a new space.</Typography>
+            </Paper>
+          )}
+        </Box>
+      )}
+
+      {/* Pagination Footer */}
+      {totalPages > 1 && (
+        <Box sx={{ mt: 6, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 3 }}>
+          <Button disabled={currentPage === 1} onClick={() => setCurrentPage(p => p - 1)} variant="outlined" sx={{ borderRadius: '12px', fontWeight: 800, textTransform: 'none', px: 3 }}>Previous</Button>
+          <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.9rem' }}>{currentPage} of {totalPages}</Typography>
+          <Button disabled={currentPage === totalPages} onClick={() => setCurrentPage(p => p + 1)} variant="outlined" sx={{ borderRadius: '12px', fontWeight: 800, textTransform: 'none', px: 3 }}>Next</Button>
+        </Box>
+      )}
+
+      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 800, px: 3, py: 1.2 }}>{notification.message}</Alert>
       </Snackbar>
     </Box>
   );

@@ -553,7 +553,9 @@ export default function Header() {
   // Menu handlers
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
-  const handleSettingsClick = (event) => setSettingsAnchorEl(event.currentTarget);
+  const handleSettingsClick = (event) => {
+    handleSettingsNavigation('/settings/zone-setup');
+  };
   const handleSettingsClose = () => setSettingsAnchorEl(null);
 
   const handleAddModule = () => {
@@ -839,7 +841,6 @@ export default function Header() {
             variant="outlined"
             size="large"
             startIcon={<IconSettings size={20} />}
-            endIcon={<IconChevronDown size={16} />}
             sx={{
               textTransform: 'none',
               borderRadius: '50px',
@@ -848,38 +849,18 @@ export default function Header() {
               fontSize: '1rem',
               borderColor: '#e0e0e0',
               color: '#666',
-              '&:hover': { borderColor: '#ccc', bgcolor: '#f5f5f5' }
+              '&:hover': {
+                borderColor: '#EA4C46',
+                bgcolor: '#FFF5F6',
+                color: '#EA4C46'
+              }
             }}
             onClick={handleSettingsClick}
           >
             Settings
           </Button>
 
-          {/* Settings dropdown menu */}
-          <Menu
-            anchorEl={settingsAnchorEl}
-            open={settingsOpen}
-            onClose={handleSettingsClose}
-            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-            sx={{
-              mt: 1,
-              '& .MuiPaper-root': { minWidth: 200, borderRadius: 2, boxShadow: '0 4px 20px rgba(0,0,0,0.1)' }
-            }}
-          >
-            {settingsMenuItems.map((item) => (
-              <MenuItem
-                key={item.label}
-                onClick={() => handleSettingsNavigation(item.route)}
-                sx={{ py: 1.5, px: 2, '&:hover': { bgcolor: '#f5f5f5' } }}
-              >
-                <ListItemIcon sx={{ minWidth: 36, color: '#666' }}>{item.icon}</ListItemIcon>
-                <Typography variant="body2" sx={{ color: '#333' }}>
-                  {item.label}
-                </Typography>
-              </MenuItem>
-            ))}
-          </Menu>
+
 
           {/* Modules Dropdown and Notification */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>

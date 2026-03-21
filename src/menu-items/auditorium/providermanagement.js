@@ -10,12 +10,12 @@ const icons = {
 
 const Providermanagement = {
   id: 'auditorium-management',
-  title: 'ProviderManagement',
+  title: 'Venue Management',
   type: 'group',
   children: [
     {
       id: 'new-providers-request',
-      title: 'Providers List',
+      title: 'Venue Provider List',
       type: 'item',
       url: '/auditorium/provider',
       icon: icons.IconBuildingSkyscraper,
@@ -23,7 +23,7 @@ const Providermanagement = {
     },
     {
       id: 'auditoriumadd',
-      title: 'Add Providers',
+      title: 'Add Venue Provider',
       type: 'item',
       url: '/auditorium/AddProvider',
       icon: icons.IconSettings,
@@ -31,7 +31,7 @@ const Providermanagement = {
     },
     {
       id: 'Auditorium List',
-      title: 'Auditorium List',
+      title: 'Venue List',
       type: 'item',
       url: '/auditorium/auditoriumlist',
       icon: icons.IconTools,

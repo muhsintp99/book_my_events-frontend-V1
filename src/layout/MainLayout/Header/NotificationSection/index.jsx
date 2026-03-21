@@ -28,25 +28,18 @@ import { IconBell } from '@tabler/icons-react';
 
 // notification status options
 const status = [
-  {
-    value: 'all',
-    label: 'All Notification'
-  },
-  {
-    value: 'new',
-    label: 'New'
-  },
-  {
-    value: 'unread',
-    label: 'Unread'
-  },
-  {
-    value: 'other',
-    label: 'Other'
-  }
+  { value: 'all', label: 'All Notification' },
+  { value: 'new', label: 'New' },
+  { value: 'unread', label: 'Unread' },
+  { value: 'other', label: 'Other' }
 ];
 
-// ==============================|| NOTIFICATION ||============================== //
+const themeColors = {
+  primary: '#2D3436',
+  accent: '#EA4C46',
+  accentLight: '#FFF5F6',
+  gradientPrimary: 'linear-gradient(135deg, #FF6B6B 0%, #EA4C46 100%)',
+};
 
 export default function NotificationSection() {
   const theme = useTheme();
@@ -54,21 +47,16 @@ export default function NotificationSection() {
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState('');
-
-  /**
-   * anchorRef is used on different componets and specifying one type leads to other components throwing an error
-   * */
   const anchorRef = useRef(null);
 
-  const handleToggle = () => {
-    setOpen((prevOpen) => !prevOpen);
+  const handleToggle = () => setOpen((prevOpen) => !prevOpen);
+  const handleClose = (event) => {
+    if (anchorRef.current && anchorRef.current.contains(event.target)) return;
+    setOpen(false);
   };
 
-  const handleClose = (event) => {
-    if (anchorRef.current && anchorRef.current.contains(event.target)) {
-      return;
-    }
-    setOpen(false);
+  const handleChange = (event) => {
+    event?.target.value && setValue(event?.target.value);
   };
 
   const prevOpen = useRef(open);
@@ -79,24 +67,21 @@ export default function NotificationSection() {
     prevOpen.current = open;
   }, [open]);
 
-  const handleChange = (event) => {
-    event?.target.value && setValue(event?.target.value);
-  };
-
   return (
     <>
-      <Box sx={{ ml: 4 }}> {/* Increased margin-left from 2 to 4 for more gap */}
+      <Box sx={{ ml: 2 }}>
         <Avatar
           variant="rounded"
           sx={{
             ...theme.typography.commonAvatar,
             ...theme.typography.mediumAvatar,
-            transition: 'all .2s ease-in-out',
-            bgcolor: 'secondary.light',
-            color: 'secondary.dark',
-            '&[aria-controls="menu-list-grow"],&:hover': {
-              bgcolor: 'secondary.dark',
-              color: 'secondary.light'
+            transition: 'all .3s ease-in-out',
+            bgcolor: open ? themeColors.accent : 'secondary.light',
+            color: open ? 'white' : 'secondary.dark',
+            '&:hover': {
+              bgcolor: themeColors.accent,
+              color: 'white',
+              transform: 'scale(1.1)'
             }
           }}
           ref={anchorRef}
@@ -115,49 +100,52 @@ export default function NotificationSection() {
         role={undefined}
         transition
         disablePortal
-        modifiers={[
-          {
-            name: 'offset',
-            options: {
-              offset: [downMD ? 5 : 0, 20]
-            }
-          }
-        ]}
+        modifiers={[{ name: 'offset', options: { offset: [downMD ? 5 : 0, 20] } }]}
+        sx={{ zIndex: 1301 }}
       >
         {({ TransitionProps }) => (
           <ClickAwayListener onClickAway={handleClose}>
             <Transitions position={downMD ? 'top' : 'top-right'} in={open} {...TransitionProps}>
-              <Paper>
+              <Paper sx={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.15)' }}>
                 {open && (
                   <MainCard border={false} elevation={16} content={false} boxShadow shadow={theme.shadows[16]}>
-                    <Grid container direction="column" spacing={2}>
-                      <Grid size={12}>
-                        <Grid container sx={{ alignItems: 'center', justifyContent: 'space-between', pt: 2, px: 2 }}>
-                          <Grid>
-                            <Stack direction="row" spacing={2}>
-                              <Typography variant="subtitle1">All Notification</Typography>
-                              <Chip size="small" label="01" sx={{ color: 'background.default', bgcolor: 'warning.dark' }} />
+                    <Grid container direction="column" spacing={2} sx={{ width: downMD ? '100vw' : 360 }}>
+                      <Grid item xs={12}>
+                        <Box sx={{ p: 2.5, pb: 1.5 }}>
+                          <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                            <Stack direction="row" spacing={1.5} alignItems="center">
+                              <Typography variant="h4" sx={{ fontWeight: 800 }}>Notifications</Typography>
+                              <Chip size="small" label="05" sx={{ color: 'white', bgcolor: themeColors.accent, fontWeight: 900, borderRadius: '8px' }} />
                             </Stack>
-                          </Grid>
-                          <Grid>
-                            <Typography component={Link} to="#" variant="subtitle2" color="primary">
-                              Mark as all read
+                            <Typography 
+                              component={Link} 
+                              to="#" 
+                              variant="subtitle2" 
+                              sx={{ 
+                                color: themeColors.accent, 
+                                textDecoration: 'none', 
+                                fontWeight: 700,
+                                '&:hover': { textDecoration: 'underline' }
+                              }}
+                            >
+                              Mark all as read
                             </Typography>
-                          </Grid>
-                        </Grid>
+                          </Stack>
+                        </Box>
                       </Grid>
-                      <Grid size={12}>
+                      <Grid item xs={12}>
                         <Box
                           sx={{
                             height: '100%',
-                            maxHeight: 'calc(100vh - 205px)',
+                            maxHeight: 'calc(100vh - 250px)',
                             overflowX: 'hidden',
-                            '&::-webkit-scrollbar': { width: 5 }
+                            '&::-webkit-scrollbar': { width: 4 },
+                            '&::-webkit-scrollbar-thumb': { background: '#E0E0E0', borderRadius: 4 }
                           }}
                         >
                           <Grid container direction="column" spacing={2}>
-                            <Grid size={12}>
-                              <Box sx={{ px: 2, pt: 0.25 }}>
+                            <Grid item xs={12}>
+                              <Box sx={{ px: 2.5, pt: 0.5, mb: 2 }}>
                                 <TextField
                                   id="outlined-select-currency-native"
                                   select
@@ -165,6 +153,12 @@ export default function NotificationSection() {
                                   value={value}
                                   onChange={handleChange}
                                   slotProps={{ select: { native: true } }}
+                                  sx={{
+                                    '& .MuiOutlinedInput-root': {
+                                      borderRadius: '12px',
+                                      bgcolor: '#F9FAFB'
+                                    }
+                                  }}
                                 >
                                   {status.map((option) => (
                                     <option key={option.value} value={option.value}>
@@ -174,17 +168,24 @@ export default function NotificationSection() {
                                 </TextField>
                               </Box>
                             </Grid>
-                            <Grid size={12} sx={{ p: 0 }}>
-                              <Divider sx={{ my: 0 }} />
-                            </Grid>
                           </Grid>
                           <NotificationList />
                         </Box>
                       </Grid>
                     </Grid>
-                    <CardActions sx={{ p: 1.25, justifyContent: 'center' }}>
-                      <Button size="small" disableElevation>
-                        View All
+                    <Divider sx={{ mt: 1 }} />
+                    <CardActions sx={{ p: 1.5, justifyContent: 'center' }}>
+                      <Button 
+                        size="medium" 
+                        fullWidth 
+                        sx={{ 
+                          color: themeColors.accent, 
+                          fontWeight: 800, 
+                          borderRadius: '12px',
+                          '&:hover': { bgcolor: themeColors.accentLight }
+                        }}
+                      >
+                        View All Activities
                       </Button>
                     </CardActions>
                   </MainCard>

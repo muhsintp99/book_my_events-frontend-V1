@@ -4,7 +4,9 @@ import {
   IconUserCheck,
   IconUsers,
   IconUpload,
-  IconDownload
+  IconDownload,
+  IconCar,
+  IconList
 } from '@tabler/icons-react';
 
 // constants
@@ -13,7 +15,9 @@ const icons = {
   IconUserCheck,
   IconUsers,
   IconUpload,
-  IconDownload
+  IconDownload,
+  IconCar,
+  IconList
 };
 
 // ==============================|| DASHBOARD FULL MENU GROUP ||============================== //
@@ -45,6 +49,14 @@ const Providermgt = {
       type: 'item',
       url: '/settings/kyc-verification',
       icon: icons.IconUserCheck,
+      breadcrumbs: false
+    },
+    {
+      id: 'vehicle-list',
+      title: 'List Vehicles',
+      type: 'item',
+      url: '/vehicles/list',
+      icon: icons.IconList,
       breadcrumbs: false
     },
     {

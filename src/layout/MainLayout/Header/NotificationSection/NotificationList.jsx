@@ -15,21 +15,46 @@ import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
 
 // assets
-import { IconBrandTelegram, IconBuildingStore, IconMailbox, IconPhoto } from '@tabler/icons-react';
-import User1 from 'assets/images/users/user-round.svg';
+import { 
+  IconBrandTelegram, 
+  IconBuildingStore, 
+  IconMailbox, 
+  IconPhoto, 
+  IconCheck, 
+  IconClock,
+  IconRocket,
+  IconAlertCircle,
+  IconCircleCheck
+} from '@tabler/icons-react';
 
-function ListItemWrapper({ children }) {
+const themeColors = {
+  accent: '#EA4C46',
+  accentLight: '#FFF5F6',
+  success: '#10B981',
+  indigo: '#4F46E5',
+  warning: '#F59E0B',
+  info: '#3B82F6'
+};
+
+function ListItemWrapper({ children, isUnread = false }) {
   const theme = useTheme();
 
   return (
     <Box
       sx={{
-        p: 2,
+        p: 2.5,
         borderBottom: '1px solid',
-        borderColor: 'divider',
+        borderColor: '#F3F4F6',
+        mx: 1,
+        borderRadius: '16px',
+        mb: 0.5,
         cursor: 'pointer',
+        transition: 'all 0.3s ease',
+        background: isUnread ? '#FFF8F8' : 'transparent',
         '&:hover': {
-          bgcolor: alpha(theme.palette.grey[200], 0.3)
+          bgcolor: '#F9FAFB',
+          transform: 'translateX(5px)',
+          '& .MuiTypography-subtitle1': { color: themeColors.accent }
         }
       }}
     >
@@ -44,138 +69,196 @@ export default function NotificationList() {
   const containerSX = { pl: 7 };
 
   return (
-    <List sx={{ width: '100%', maxWidth: { xs: 300, md: 330 }, py: 0 }}>
-      <ListItemWrapper>
+    <List sx={{ width: '100%', py: 0 }}>
+      {/* 1. SYSTEM UPDATE NOTIFICATION */}
+      <ListItemWrapper isUnread={true}>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption">2 min ago</Typography>
+            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
+              <IconClock size={12} color="#9CA3AF" />
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>Just now</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
-            <Avatar alt="John Doe" src={User1} />
+            <Avatar
+              sx={{
+                color: themeColors.accent,
+                bgcolor: themeColors.accentLight,
+                borderRadius: '12px',
+                border: `1.5px solid ${themeColors.accent}`
+              }}
+            >
+              <IconRocket stroke={2} size="22px" />
+            </Avatar>
           </ListItemAvatar>
-          <ListItemText primary="John Doe" />
+          <ListItemText 
+            primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>System Update: V2.1.1 Live</Typography>} 
+          />
         </ListItem>
-        <Stack spacing={2} sx={containerSX}>
-          <Typography variant="subtitle2">It is a long established fact that a reader will be distracted</Typography>
+        <Stack spacing={1.5} sx={containerSX}>
+          <Typography variant="body2" sx={{ color: '#4B5563', lineHeight: 1.5 }}>
+            Book My Event version 2.1.1 is now active. Explore the new "Global Administration Console" and improved vendor dashboard designs.
+          </Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Chip label="Unread" color="error" size="small" sx={{ width: 'min-content' }} />
-            <Chip label="New" color="warning" size="small" sx={{ width: 'min-content' }} />
+            <Chip 
+              label="System" 
+              size="small" 
+              sx={{ 
+                height: 20, 
+                bgcolor: '#FEE2E2', 
+                color: '#EF4444', 
+                fontWeight: 900, 
+                fontSize: '0.65rem' 
+              }} 
+            />
+            <Chip 
+              label="New Features" 
+              size="small" 
+              sx={{ 
+                height: 20, 
+                bgcolor: themeColors.accentLight, 
+                color: themeColors.accent, 
+                fontWeight: 900, 
+                fontSize: '0.65rem' 
+              }} 
+            />
           </Stack>
         </Stack>
       </ListItemWrapper>
+
+      {/* 2. KYC VERIFICATION */}
       <ListItemWrapper>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption">2 min ago</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>45 min ago</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
             <Avatar
               sx={{
-                color: 'success.dark',
-                bgcolor: 'success.light'
+                color: themeColors.success,
+                bgcolor: `${themeColors.success}15`,
+                borderRadius: '12px'
               }}
             >
-              <IconBuildingStore stroke={1.5} size="20px" />
+              <IconCircleCheck stroke={2.5} size="22px" />
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1">Store Verification Done</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Vendor KYC Approved</Typography>} />
         </ListItem>
-        <Stack spacing={2} sx={containerSX}>
-          <Typography variant="subtitle2">We have successfully received your request.</Typography>
-          <Chip label="Unread" color="error" size="small" sx={{ width: 'min-content' }} />
+        <Stack spacing={1} sx={containerSX}>
+          <Typography variant="body2" sx={{ color: '#4B5563' }}>
+            A new vendor "Royal Floralists" has completed their KYC. Documentation verified successfully.
+          </Typography>
+          <Chip 
+            icon={<IconCheck size={14} color={themeColors.success}/> }
+            label="Verified" 
+            size="small" 
+            sx={{ 
+              width: 'min-content', 
+              bgcolor: `${themeColors.success}10`, 
+              color: themeColors.success,
+              fontWeight: 900
+            }} 
+          />
         </Stack>
       </ListItemWrapper>
-      <ListItemWrapper>
+
+      {/* 3. NEW BOOKING ACTION */}
+      <ListItemWrapper isUnread={true}>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption">2 min ago</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>2 hrs ago</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
             <Avatar
               sx={{
-                color: 'primary.dark',
-                bgcolor: 'primary.light'
+                color: themeColors.info,
+                bgcolor: `${themeColors.info}15`,
+                borderRadius: '12px'
               }}
             >
-              <IconMailbox stroke={1.5} size="20px" />
+              <IconBuildingStore stroke={2} size="22px" />
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1">Check Your Mail.</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Booking Received</Typography>} />
         </ListItem>
         <Stack spacing={2} sx={containerSX}>
-          <Typography variant="subtitle2">All done! Now check your inbox as you&apos;re in for a sweet treat!</Typography>
-          <Button variant="contained" endIcon={<IconBrandTelegram stroke={1.5} size={20} />} sx={{ width: 'min-content' }}>
-            Mail
+          <Typography variant="body2" sx={{ color: '#4B5563' }}>
+            Booking ID #BME-10294: Premium Stage Decoration for Kochi Wedding Event.
+          </Typography>
+          <Button 
+            variant="contained" 
+            size="small"
+            sx={{ 
+                width: 'min-content', 
+                bgcolor: themeColors.accent, 
+                borderRadius: '8px',
+                fontWeight: 800,
+                textTransform: 'none',
+                boxShadow: '0 4px 12px rgba(234, 76, 70, 0.2)',
+                '&:hover': { bgcolor: themeColors.accent }
+            }}
+          >
+            Review Booking
           </Button>
         </Stack>
       </ListItemWrapper>
+
+      {/* 4. PERFORMANCE ALERT */}
       <ListItemWrapper>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption">2 min ago</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>5 hrs ago</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
-            <Avatar alt="John Doe" src={User1} />
+            <Avatar
+              sx={{
+                color: themeColors.warning,
+                bgcolor: `${themeColors.warning}15`,
+                borderRadius: '12px'
+              }}
+            >
+              <IconAlertCircle stroke={2.5} size="22px" />
+            </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1">John Doe</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Server Alert: High Load</Typography>} />
         </ListItem>
-        <Stack spacing={2} sx={containerSX}>
-          <Typography component="span" variant="subtitle2">
-            Uploaded two file on &nbsp;
-            <Typography component="span" variant="h6">
-              21 Jan 2020
-            </Typography>
+        <Stack spacing={1} sx={containerSX}>
+          <Typography variant="body2" sx={{ color: '#4B5563' }}>
+            We noticed a sudden spike in traffic for the "Mehandi Artist" module. Auto-scaling is active.
           </Typography>
-          <Card sx={{ bgcolor: 'secondary.light' }}>
-            <Stack direction="row" spacing={2} sx={{ p: 2.5 }}>
-              <IconPhoto stroke={1.5} size="20px" />
-              <Typography variant="subtitle1">demo.jpg</Typography>
-            </Stack>
-          </Card>
-        </Stack>
-      </ListItemWrapper>
-      <ListItemWrapper>
-        <ListItem
-          alignItems="center"
-          disablePadding
-          secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption">2 min ago</Typography>
-            </Stack>
-          }
-        >
-          <ListItemAvatar>
-            <Avatar alt="John Doe" src={User1} />
-          </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1">John Doe</Typography>} />
-        </ListItem>
-        <Stack spacing={2} sx={containerSX}>
-          <Typography variant="subtitle2">It is a long established fact that a reader will be distracted</Typography>
-          <Chip label="Confirmation of Account." color="success" size="small" sx={{ width: 'min-content' }} />
+          <Chip 
+              label="Maintenance" 
+              size="small" 
+              sx={{ 
+                width: 'min-content', 
+                bgcolor: '#FFF7ED', 
+                color: themeColors.warning,
+                fontWeight: 900
+              }} 
+            />
         </Stack>
       </ListItemWrapper>
     </List>
   );
 }
 
-ListItemWrapper.propTypes = { children: PropTypes.node };
+NotificationList.propTypes = { children: PropTypes.node };

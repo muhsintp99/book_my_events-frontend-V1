@@ -177,7 +177,7 @@ export default function TotalIncomeDarkCard({ isLoading }) {
                   }}
                   primary={
                     <Typography variant="h4" sx={{ color: '#ffffff' }}>
-                      $203k
+                      ₹12.5L
                     </Typography>
                   }
                   secondary={

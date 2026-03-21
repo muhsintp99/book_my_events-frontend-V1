@@ -1,582 +1,362 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  TableContainer,
-  Switch,
-  IconButton,
-  Box,
-  MenuItem,
-  TextField,
-  InputAdornment,
-  Button,
-  Menu,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Chip,
-  Grid,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select
+  Table, TableBody, TableCell, TableHead, TableRow, Paper, TableContainer,
+  Switch, IconButton, Box, TextField, Button,
+  Dialog, DialogContent, DialogTitle,
+  Typography, Snackbar, Alert, CircularProgress, Chip, Divider,
+  Avatar, Tooltip, Collapse, Grid
 } from '@mui/material';
 import {
-  VisibilityOutlined,
-  Edit,
-  Delete,
-  Download,
-  People,
-  Phone,
-  Email,
-  Category as CategoryIcon,
-  Add as AddIcon,
-  CloudUpload,
-  AttachMoney,
+  VisibilityOutlined, Edit, Delete, Close, 
+  Search as SearchIcon, Star, 
+  ViewList, Refresh, CheckCircle, Storefront,
+  ColorLens, AutoAwesome, HistoryEdu
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
-import { getAllVendors, formatVendorsForList } from '../api/providerApi';
+import { API_BASE_URL } from '../utils/apiImageUtils';
+
+/* ============ Premium Red Luxe Theme ============ */
+const themeColors = {
+  primary: '#2D3436',
+  accent: '#E15B64',
+  accentLight: '#FFF8F9',
+  success: '#00B894',
+  warning: '#FDCB6E',
+  danger: '#D63031',
+  background: '#F9FAFB',
+  border: '#E2E8F0',
+  textMain: '#2D3436',
+  textSecondary: '#636E72',
+  white: '#FFFFFF',
+  gradientPrimary: 'linear-gradient(135deg, #E15B64 0%, #FD7272 100%)',
+  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+};
+
+const HeaderStat = ({ label, value, icon, color, gradient }) => (
+  <Box sx={{
+    bgcolor: 'white', borderRadius: '18px', py: 2.0, px: 2.8,
+    display: 'flex', alignItems: 'center', gap: 2.4, flex: 1, minWidth: '200px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+    border: '1px solid', borderColor: 'rgba(0,0,0,0.04)',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
+  }}>
+    <Box sx={{
+      width: 48, height: 48, borderRadius: '14px', background: gradient || `${color}15`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: gradient ? '#FFFFFF' : color,
+      boxShadow: gradient ? '0 4px 10px rgba(225, 91, 100, 0.2)' : 'none'
+    }}>
+      {React.cloneElement(icon, { sx: { fontSize: 24 } })}
+    </Box>
+    <Box>
+      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '0.7rem' }}>
+        {label}
+      </Typography>
+      <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.textMain, lineHeight: 1.1, fontSize: '1.35rem' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
 
 const MehandiList = () => {
   const navigate = useNavigate();
 
-  /* ---------- State ---------- */
-  const [mehandis, setMehandis] = useState([]);
-  const [allMehandis, setAllMehandis] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [allPackages, setAllPackages] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [mehandiToDelete, setMehandiToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-
-  const [anchorEl, setAnchorEl] = useState(null);
-  const openMenu = Boolean(anchorEl);
-
-  // View Dialog
+  const [expandedVendors, setExpandedVendors] = useState({});
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedMehandi, setSelectedMehandi] = useState(null);
 
-  // Edit Dialog
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editingMehandi, setEditingMehandi] = useState(null);
-  const [editFormData, setEditFormData] = useState({});
-  const [saveLoading, setSaveLoading] = useState(false);
-
-  // Add Dialog
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [addFormData, setAddFormData] = useState({
-    packageName: '',
-    description: '',
-    packagePrice: 0,
-    advanceBookingAmount: 0,
-    category: '',
-    provider: '',
-    isActive: true
-  });
-  const [providers, setProviders] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [imageFile, setImageFile] = useState(null);
-  const [imagePreview, setImagePreview] = useState(null);
-  const [dependenciesLoading, setDependenciesLoading] = useState(false);
-
-  /* ---------- API ---------- */
   const API_URL = `${API_BASE_URL}/mehandi`;
 
-  const getToken = () => {
-    try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
-    catch { return null; }
-  };
-
   const getFetchOptions = (method = 'GET', body = null) => {
-    const token = getToken();
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const opts = {
       method,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      credentials: 'include',
-      mode: 'cors',
+      credentials: 'include', mode: 'cors',
     };
-    if (token) opts.headers.Authorization = `Bearer ${token}`;
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
     return opts;
   };
 
-  const makeAPICall = async (url, options, retries = 2) => {
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timeout);
-        if (!res.ok) {
-          const txt = await res.text();
-          throw new Error(`HTTP ${res.status}: ${txt}`);
-        }
-        return await res.json();
-      } catch (e) {
-        if (i === retries) throw e;
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-  };
-
-  /* ---------- Mapping ---------- */
-  const mapMehandi = (c, idx) => ({
-    id: idx + 1,
-    _id: c._id,
-    packageId: c.packageId,
-    title: c.packageName || 'Untitled',
-    description: c.description || '',
-    price: c.packagePrice ?? 0,
-    advanceBookingAmount: c.advanceBookingAmount ?? 0,
-    providerName:
-      c.provider?.firstName && c.provider?.lastName
-        ? `${c.provider.firstName} ${c.provider.lastName}`
-        : c.provider?.firstName || '—',
-    providerEmail: c.provider?.email || '',
-    isActive: c.isActive ?? false,
-    isTopPick: c.isTopPick ?? false,
-    image: c.image || '',
-    rawMehandi: c,
-  });
-
-  /* ---------- Fetch ---------- */
-  const fetchMehandis = async (topPicks = false) => {
+  const fetchPackages = async (topPicks = false) => {
     try {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const data = await makeAPICall(url, getFetchOptions());
+      const res = await fetch(url, getFetchOptions());
+      const data = await res.json();
       if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((c, i) => mapMehandi(c, i));
-        setAllMehandis(mapped);
-        setMehandis(mapped);
+        const mapped = data.data.map((m, idx) => ({
+          _id: m._id, id: idx + 1,
+          title: m.packageName || 'Untitled',
+          description: m.description || '',
+          price: m.packagePrice ?? 0,
+          advance: m.advanceBookingAmount ?? 0,
+          providerId: m.provider?._id || m.provider?.id || 'unknown',
+          providerName: m.provider?.firstName && m.provider?.lastName ? `${m.provider.firstName} ${m.provider.lastName}` : (m.provider?.firstName || m.provider?.name || '—'),
+          providerEmail: m.provider?.email || '', providerPhone: m.provider?.phone || '',
+          isTopPick: m.isTopPick ?? false, isActive: m.isActive ?? false,
+          rawPackage: m,
+        }));
+        setAllPackages(mapped); setPackages(mapped);
+        
+        // Expand all vendors by default
+        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
+        const allExpanded = {};
+        uniqueVendors.forEach(id => { allExpanded[id] = true; });
+        setExpandedVendors(allExpanded);
       }
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  const fetchDependencies = async () => {
-    try {
-      setDependenciesLoading(true);
-      const [vData, cData] = await Promise.all([
-        getAllVendors(),
-        fetch(`${API_BASE_URL}/categories`).then(r => r.json())
-      ]);
+  useEffect(() => { fetchPackages(); }, []);
 
-      if (vData?.success) {
-        const formatted = formatVendorsForList(vData.data);
-        setProviders(formatted.filter(v => (v.module || '').toLowerCase().includes('mehandi')));
-      }
-
-      if (cData) {
-        const cats = Array.isArray(cData) ? cData : cData.data || [];
-        setCategories(cats.filter(c => (c.module?.title || '').toLowerCase().includes('mehandi')));
-      }
-    } catch (e) {
-      console.error('Error fetching dependencies:', e);
-    } finally {
-      setDependenciesLoading(false);
-    }
-  };
-
-  const handleAddClick = () => {
-    fetchDependencies();
-    setOpenAddDialog(true);
-  };
-
-  useEffect(() => { fetchMehandis(); }, []);
-
-  /* ---------- Toggles ---------- */
-  const handleTopPickToggle = useCallback(async (_id) => {
-    const key = `${_id}-topPick`;
-    if (toggleLoading[key]) return;
-    const item = mehandis.find(c => c._id === _id);
-    if (!item) return;
-    const newVal = !item.isTopPick;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
-    } catch (e) {
-      setMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [mehandis, toggleLoading, API_URL]);
-
-  const handleStatusToggle = useCallback(async (_id) => {
-    const key = `${_id}-status`;
-    if (toggleLoading[key]) return;
-    const item = mehandis.find(c => c._id === _id);
-    if (!item) return;
-    const newVal = !item.isActive;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
-    } catch (e) {
-      setMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [mehandis, toggleLoading, API_URL]);
-
-  /* ---------- Delete ---------- */
-  const handleDeleteClick = item => { setMehandiToDelete(item); setOpenDeleteDialog(true); };
-  const handleDeleteConfirm = async () => {
-    try {
-      await makeAPICall(`${API_URL}/${mehandiToDelete._id}`, getFetchOptions('DELETE'));
-      setMehandis(p => p.filter(c => c._id !== mehandiToDelete._id));
-      setNotification({ open: true, message: `${mehandiToDelete.title} deleted`, severity: 'success' });
-    } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setOpenDeleteDialog(false); setMehandiToDelete(null);
-    }
-  };
-
-  /* ---------- Search & Filtering ---------- */
-  const filteredResult = mehandis.filter(c =>
+  const filtered = packages.filter((c) =>
     `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  /* ---------- Export ---------- */
-  const exportCSV = () => {
-    const headers = ['Sl', 'Package Name', 'Provider', 'Price', 'Advance Amount', 'Status'];
-    const rows = filteredResult.map(c => [
-      c.id, `"${c.title}"`, `"${c.providerName}"`, c.price, c.advanceBookingAmount, c.isActive ? 'Active' : 'Inactive'
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `mehandi_packages_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
-    setAnchorEl(null);
-  };
-
-  const exportExcel = () => {
-    const headers = ['Sl', 'Package Name', 'Provider', 'Price', 'Advance Amount', 'Status'];
-    const html = `<table border="1"><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>${filteredResult.map(c => `<tr><td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.price}</td><td>${c.advanceBookingAmount}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td></tr>`).join('')}</table>`;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const link = document.createElement('a');
-    link.href = URL.createObjectURL(blob);
-    link.download = `mehandi_packages_${new Date().toISOString().split('T')[0]}.xls`;
-    link.click();
-    setAnchorEl(null);
-  };
-
-  /* ---------- View & Edit ---------- */
-  const handleView = item => { setSelectedMehandi(item.rawMehandi); setOpenViewDialog(true); };
-
-  const handleEdit = item => {
-    const r = item.rawMehandi;
-    setEditingMehandi(item);
-    setEditFormData({
-      packageName: r.packageName || '',
-      description: r.description || '',
-      packagePrice: r.packagePrice || 0,
-      advanceBookingAmount: r.advanceBookingAmount || 0,
-    });
-    setOpenEditDialog(true);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      setSaveLoading(true);
-      const data = await makeAPICall(`${API_URL}/${editingMehandi._id}`, getFetchOptions('PUT', editFormData));
-      if (data.success) {
-        setNotification({ open: true, message: 'Updated successfully', severity: 'success' });
-        fetchMehandis();
-        setOpenEditDialog(false);
+  const vendorGroups = useMemo(() => {
+    const groups = {};
+    filtered.forEach((pkg) => {
+      const key = pkg.providerId;
+      if (!groups[key]) {
+        groups[key] = {
+          providerId: key, providerName: pkg.providerName,
+          providerEmail: pkg.providerEmail, providerPhone: pkg.providerPhone,
+          packages: [],
+        };
       }
-    } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
+      groups[key].packages.push(pkg);
+    });
+    return Object.values(groups).sort((a, b) => b.packages.length - a.packages.length);
+  }, [filtered]);
 
-  /* ---------- Add Logic ---------- */
-  const handleImageChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
+  const toggleVendor = (vendorId) => setExpandedVendors(p => ({ ...p, [vendorId]: !p[vendorId] }));
 
-  const handleSubmitAdd = async () => {
-    if (!addFormData.packageName || !addFormData.provider || !addFormData.category) {
-      setNotification({ open: true, message: 'Please fill name, provider and category', severity: 'warning' });
-      return;
-    }
+  const handleStatusUpdate = async (_id, type) => {
+    const valKey = type === 'topPick' ? 'isTopPick' : 'isActive';
+    const endpoint = type === 'topPick' ? 'toggle-top-pick' : 'toggle-active';
+    const key = `${_id}-${type}`;
+    if (toggleLoading[key]) return;
+
+    setToggleLoading(p => ({ ...p, [key]: true }));
+    setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
     try {
-      setSaveLoading(true);
-      const formData = new FormData();
-      Object.entries(addFormData).forEach(([k, v]) => formData.append(k, v));
-      
-      // Get Mehandi Module ID
-      const moduleRes = await fetch(`${API_BASE_URL}/modules`).then(r => r.json());
-      const mod = (moduleRes.data || moduleRes).find(m => m.title.toLowerCase().includes('mehandi'));
-      if (mod) formData.append('secondaryModule', mod._id);
-      
-      if (imageFile) formData.append('image', imageFile);
-
-      const res = await fetch(API_URL, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${getToken()}` },
-        body: formData
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Add failed');
-
-      setNotification({ open: true, message: 'Package added!', severity: 'success' });
-      setOpenAddDialog(false);
-      fetchMehandis();
-      // Reset form
-      setAddFormData({ packageName: '', description: '', packagePrice: 0, advanceBookingAmount: 0, category: '', provider: '', isActive: true });
-      setImageFile(null); setImagePreview(null);
+      const res = await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
+      if (!res.ok) throw new Error('Failed');
     } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
+      setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
+      setNotification({ open: true, message: 'Update failed', severity: 'error' });
+    } finally { setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; }); }
   };
 
-  /* ---------- Render ---------- */
+  const handleView = (pkg) => { setSelectedMehandi(pkg.rawPackage); setOpenViewDialog(true); };
+
   const stats = {
-    total: allMehandis.length,
-    active: allMehandis.filter(c => c.isActive).length,
-    inactive: allMehandis.filter(c => !c.isActive).length,
-    topPick: allMehandis.filter(c => c.isTopPick).length,
+    total: allPackages.length,
+    active: allPackages.filter(c => c.isActive).length,
+    topPick: allPackages.filter(c => c.isTopPick).length,
+    vendors: [...new Set(allPackages.map(c => c.providerId))].length,
   };
 
   return (
-    <TableContainer component={Paper} sx={{ p: 2 }}>
-      {/* Stats Table */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', mb: 2, gap: 1 }}>
-        <Stack direction="row" spacing={1}>
-          <Chip label={`Total: ${stats.total}`} color="primary" variant="outlined" />
-          <Chip label={`Active: ${stats.active}`} color="success" variant="outlined" />
-          <Chip label={`Inactive: ${stats.inactive}`} color="default" variant="outlined" />
-          <Chip label={`Top-Pick: ${stats.topPick}`} color="secondary" variant="outlined" />
-        </Stack>
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" color="success" size="small" startIcon={<AddIcon />} onClick={handleAddClick}>
-            Add Package
-          </Button>
-          <Button variant="contained" color="secondary" size="small" onClick={() => fetchMehandis(true)} disabled={loading}>
-            Top-Picks
-          </Button>
-        </Stack>
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: themeColors.background, color: themeColors.textMain }}>
+      {/* Red Premium Header */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h3" sx={{ fontWeight: 900, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.1px', fontSize: '2.3rem' }}>
+            BookMyEvent Mehandi
+          </Typography>
+          <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 600, mt: 0.2, fontSize: '0.88rem' }}>
+            Traditional artists & henna management.
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button variant="outlined" startIcon={<Refresh fontSize="small" />} onClick={() => fetchPackages()} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.2, height: 42, fontSize: '0.82rem', borderColor: themeColors.border, color: themeColors.textSecondary }}>Refresh</Button>
+          <Button variant="contained" disableElevation onClick={() => fetchPackages(true)} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.5, height: 42, fontSize: '0.82rem', background: themeColors.gradientPrimary, '&:hover': { opacity: 0.9 } }}>Top Picks</Button>
+        </Box>
       </Box>
 
-      {/* Search & Export */}
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
-        <TextField
-          placeholder="Search Package / Provider..."
-          size="small"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          sx={{ minWidth: 250 }}
-        />
-        <Button variant="outlined" size="small" endIcon={<Download />} onClick={e => setAnchorEl(e.currentTarget)}>Export</Button>
-        <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={exportExcel}>Excel</MenuItem>
-          <MenuItem onClick={exportCSV}>CSV</MenuItem>
-        </Menu>
+      {/* Stats */}
+      <Box sx={{ display: 'flex', gap: 2.5, mb: 4, flexWrap: 'wrap' }}>
+        <HeaderStat label="Henna Designs" value={stats.total} icon={<AutoAwesome />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
+        <HeaderStat label="Active" value={stats.active} icon={<CheckCircle />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
+        <HeaderStat label="Top Picks" value={stats.topPick} icon={<Star />} color={themeColors.warning} />
+        <HeaderStat label="Artists" value={stats.vendors} icon={<Storefront />} color={themeColors.primary} />
       </Box>
 
-      {/* Table */}
-      {loading ? (
-        <Box sx={{ p: 5, textAlign: 'center' }}><CircularProgress /><Typography>Loading packages...</Typography></Box>
-      ) : (
-        <Table stickyHeader size="small">
-          <TableHead>
-            <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-              <TableCell>Sl</TableCell>
-              <TableCell>Package Name</TableCell>
-              <TableCell>Price (₹)</TableCell>
-              <TableCell>Advance (₹)</TableCell>
-              <TableCell>Provider</TableCell>
-              <TableCell>Top-Pick</TableCell>
-              <TableCell>Status</TableCell>
-              <TableCell>Actions</TableCell>
-            </TableRow>
-          </TableHead>
-          <TableBody>
-            {filteredResult.length === 0 ? (
-              <TableRow><TableCell colSpan={8} align="center">No packages found</TableCell></TableRow>
-            ) : (
-              filteredResult.map(c => {
-                const topKey = `${c._id}-topPick`;
-                const statKey = `${c._id}-status`;
-                return (
-                  <TableRow key={c._id}>
-                    <TableCell>{c.id}</TableCell>
-                    <TableCell sx={{ fontWeight: 'bold' }}>{c.title}</TableCell>
-                    <TableCell>{c.price}</TableCell>
-                    <TableCell>{c.advanceBookingAmount}</TableCell>
-                    <TableCell>{c.providerName}</TableCell>
-                    <TableCell>
-                      <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
-                    </TableCell>
-                    <TableCell>
-                      <Switch size="small" checked={c.isActive} onChange={() => handleStatusToggle(c._id)} disabled={toggleLoading[statKey]} />
-                    </TableCell>
-                    <TableCell>
-                      <IconButton size="small" color="info" onClick={() => handleView(c)}><VisibilityOutlined /></IconButton>
-                      <IconButton size="small" color="primary" onClick={() => handleEdit(c)}><Edit /></IconButton>
-                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)}><Delete /></IconButton>
-                    </TableCell>
-                  </TableRow>
-                );
-              })
-            )}
-          </TableBody>
-        </Table>
-      )}
+      {/* Filter */}
+      <Paper elevation={0} sx={{ p: 1.8, mb: 3.5, borderRadius: '18px', border: '1px solid', borderColor: themeColors.border, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'white' }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            placeholder="Search artists or styles..."
+            size="small"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1, fontSize: 18 }} /> }}
+            sx={{ width: 350, '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: themeColors.background, fontSize: '0.82rem' } }}
+          />
+        </Box>
+        <Button 
+          variant="text" 
+          onClick={() => {
+            const anyVisible = Object.values(expandedVendors).some(v => v);
+            if (anyVisible) setExpandedVendors({});
+            else {
+              const all = {};
+              [...new Set(filtered.map(f => f.providerId))].forEach(id => { all[id] = true; });
+              setExpandedVendors(all);
+            }
+          }} 
+          sx={{ fontWeight: 800, color: themeColors.textSecondary, textTransform: 'none', fontSize: '0.78rem' }}
+        >
+          {Object.values(expandedVendors).some(v => v) ? 'Collapse Studios' : 'View All Artists'}
+        </Button>
+      </Paper>
 
-      {/* ---------- VIEW DIALOG ---------- */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Package Details</DialogTitle>
-        <DialogContent dividers>
+      {/* Vendor Groups */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {vendorGroups.map((vendor) => {
+          const isExpanded = expandedVendors[vendor.providerId];
+          const activeCount = vendor.packages.filter(p => p.isActive).length;
+
+          return (
+            <Paper key={vendor.providerId} elevation={0} sx={{
+              borderRadius: '24px', overflow: 'hidden', border: '1px solid',
+              borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
+              boxShadow: isExpanded ? '0 12px 30px rgba(225,91,100,0.06)' : 'none',
+              transition: 'all 0.4s ease', bgcolor: 'white'
+            }}>
+              <Box onClick={() => toggleVendor(vendor.providerId)} sx={{
+                p: 2.5, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'pointer',
+                bgcolor: isExpanded ? themeColors.accentLight : 'white',
+              }}>
+                <Avatar sx={{ 
+                  width: 44, height: 44, fontSize: '1.1rem', fontWeight: 900, 
+                  background: themeColors.gradientPrimary, color: 'white', 
+                  border: '3px solid white', boxShadow: '0 4px 8px rgba(0,0,0,0.08)' 
+                }}>
+                  {vendor.providerName[0].toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textMain, fontSize: '1.12rem' }}>{vendor.providerName}</Typography>
+                  <Typography variant="body1" sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.82rem' }}>
+                    {vendor.providerEmail} • {vendor.providerPhone}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right', px: 1.5 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>{vendor.packages.length} DESIGNS</Typography>
+                  <Chip label={`${activeCount} ACTIVE`} size="small" sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }} />
+                </Box>
+              </Box>
+
+              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Box sx={{ px: 3.5, pb: 2.5 }}>
+                  <Divider sx={{ mb: 2.5 }} />
+                  <TableContainer>
+                    <Table size="medium">
+                      <TableHead>
+                        <TableRow sx={{ '& th': { borderBottom: '2px solid' + themeColors.border, py: 1.2 } }}>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>DESIGN NAME</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>PRICE (INR)</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">TOP PICK</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">STATUS</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">ACTIONS</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {vendor.packages.map((pkg) => (
+                          <TableRow key={pkg._id} sx={{ '& td': { py: 1.6 }, '&:hover': { bgcolor: '#F9FAFB' } }}>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>{pkg.title}</Typography>
+                              <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                <Chip label="Henna Art" size="small" icon={<ColorLens sx={{ fontSize: '10px !important' }} />} sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#fff1f2', color: '#e11d48' }} />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>₹{pkg.price.toLocaleString()}</Typography>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontSize: '0.65rem' }}>Advance: ₹{pkg.advance.toLocaleString()}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isTopPick} onChange={() => handleStatusUpdate(pkg._id, 'topPick')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isActive} onChange={() => handleStatusUpdate(pkg._id, 'status')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.6 }}>
+                                <Tooltip title="View Detailed Info"><IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}><Edit sx={{ fontSize: 18 }} /></IconButton>
+                                <IconButton size="small" sx={{ color: themeColors.danger }}><Delete sx={{ fontSize: 18 }} /></IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              </Collapse>
+            </Paper>
+          );
+        })}
+      </Box>
+
+      {/* View Dialog */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
+          <Typography sx={{ fontWeight: 900, fontSize: '1.2rem' }}>Design Details</Typography>
+          <IconButton onClick={() => setOpenViewDialog(false)}><Close /></IconButton>
+        </DialogTitle>
+        <DialogContent sx={{ pb: 4 }}>
           {selectedMehandi && (
-            <Grid container spacing={2}>
-              <Grid item xs={12} sx={{ textAlign: 'center' }}>
-                <Box component="img" src={getApiImageUrl(selectedMehandi.image)} sx={{ width: '100%', maxHeight: 250, objectFit: 'contain', borderRadius: 1 }} />
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, color: themeColors.accent }}>{selectedMehandi.packageName}</Typography>
+              <Typography sx={{ color: themeColors.textSecondary, mb: 3, lineHeight: 1.6, fontSize: '0.9rem' }}>{selectedMehandi.description}</Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>PACKAGE PRICE</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.success }}>₹{selectedMehandi.packagePrice.toLocaleString()}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>ADVANCE</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: themeColors.primary }}>
+                      ₹{selectedMehandi.advanceBookingAmount.toLocaleString()}
+                    </Typography>
+                  </Paper>
+                </Grid>
               </Grid>
-              <Grid item xs={12}>
-                <Typography variant="h6">{selectedMehandi.packageName}</Typography>
-                <Typography variant="body2" color="textSecondary" paragraph>{selectedMehandi.description || 'No description provided.'}</Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2">Price: ₹{selectedMehandi.packagePrice}</Typography>
-                <Typography variant="subtitle2">Advance: ₹{selectedMehandi.advanceBookingAmount}</Typography>
-                <Divider sx={{ my: 1 }} />
-                <Typography variant="subtitle2">Provider: {selectedMehandi.provider?.firstName} {selectedMehandi.provider?.lastName}</Typography>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><Email fontSize="inherit" /> {selectedMehandi.provider?.email}</Typography>
-                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><Phone fontSize="inherit" /> {selectedMehandi.provider?.phone}</Typography>
-              </Grid>
-            </Grid>
+
+              <Divider sx={{ my: 3 }} />
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Included Services:</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {(selectedMehandi.services || []).map((s, i) => (
+                  <Chip key={i} label={typeof s === 'string' ? s : s.title} size="small" sx={{ fontWeight: 700 }} />
+                ))}
+              </Box>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
-        </DialogActions>
       </Dialog>
 
-      {/* ---------- EDIT DIALOG ---------- */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Edit Package</DialogTitle>
-        <DialogContent dividers>
-          <Grid container spacing={2} sx={{ mt: 1 }}>
-            <Grid item xs={12}>
-              <TextField fullWidth label="Package Name" value={editFormData.packageName || ''} onChange={e => setEditFormData({ ...editFormData, packageName: e.target.value })} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth label="Price (₹)" type="number" value={editFormData.packagePrice || 0} onChange={e => setEditFormData({ ...editFormData, packagePrice: Number(e.target.value) })} />
-            </Grid>
-            <Grid item xs={6}>
-              <TextField fullWidth label="Advance (₹)" type="number" value={editFormData.advanceBookingAmount || 0} onChange={e => setEditFormData({ ...editFormData, advanceBookingAmount: Number(e.target.value) })} />
-            </Grid>
-            <Grid item xs={12}>
-              <TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData({ ...editFormData, description: e.target.value })} />
-            </Grid>
-          </Grid>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" disabled={saveLoading}>{saveLoading ? 'Saving...' : 'Save'}</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- ADD DIALOG ---------- */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
-        <DialogTitle>Add New Package</DialogTitle>
-        <DialogContent dividers>
-          {dependenciesLoading ? (
-            <CircularProgress />
-          ) : (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Package Name" value={addFormData.packageName} onChange={e => setAddFormData({ ...addFormData, packageName: e.target.value })} />
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Provider</InputLabel>
-                  <Select value={addFormData.provider} label="Provider" onChange={e => setAddFormData({ ...addFormData, provider: e.target.value })}>
-                    {providers.map(p => <MenuItem key={p.vendorId} value={p.vendorId}>{p.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12}>
-                <FormControl fullWidth>
-                  <InputLabel>Category</InputLabel>
-                  <Select value={addFormData.category} label="Category" onChange={e => setAddFormData({ ...addFormData, category: e.target.value })}>
-                    {categories.map(c => <MenuItem key={c._id} value={c._id}>{c.title}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={6}>
-                <TextField fullWidth label="Price (₹)" type="number" value={addFormData.packagePrice} onChange={e => setAddFormData({ ...addFormData, packagePrice: Number(e.target.value) })} />
-              </Grid>
-              <Grid item xs={6}>
-                <TextField fullWidth label="Advance (₹)" type="number" value={addFormData.advanceBookingAmount} onChange={e => setAddFormData({ ...addFormData, advanceBookingAmount: Number(e.target.value) })} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Description" multiline rows={2} value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} />
-              </Grid>
-              <Grid item xs={12}>
-                <Button variant="outlined" component="label" fullWidth startIcon={<CloudUpload />}>
-                  {imageFile ? imageFile.name : 'Upload Image'}
-                  <input type="file" hidden accept="image/*" onChange={handleImageChange} />
-                </Button>
-                {imagePreview && <Box component="img" src={imagePreview} sx={{ mt: 1, height: 100, borderRadius: 1 }} />}
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
-          <Button onClick={handleSubmitAdd} variant="contained" disabled={saveLoading}>Add</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- DELETE DIALOG ---------- */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle>Delete Package?</DialogTitle>
-        <DialogContent><DialogContentText>Are you sure you want to delete <strong>{mehandiToDelete?.title}</strong>?</DialogContentText></DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
-          <Button onClick={handleDeleteConfirm} color="error" variant="contained">Delete</Button>
-        </DialogActions>
-      </Dialog>
-
-      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification({ ...notification, open: false })}>
-        <Alert severity={notification.severity} variant="filled">{notification.message}</Alert>
+      <Snackbar open={notification.open} autoHideDuration={3000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 700, fontSize: '0.82rem' }}>{notification.message}</Alert>
       </Snackbar>
-    </TableContainer>
+    </Box>
   );
 };
 

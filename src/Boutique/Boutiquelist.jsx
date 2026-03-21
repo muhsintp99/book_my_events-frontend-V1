@@ -1,739 +1,371 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  TableContainer,
-  Switch,
-  IconButton,
-  Box,
-  MenuItem,
-  TextField,
-  InputAdornment,
-  Button,
-  Menu,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Chip,
-  Divider,
-  Grid,
-  Tabs,
-  Tab,
-  Autocomplete,
-  List,
-  ListItem,
-  ListItemText,
-  Stack,
-  FormControl,
-  InputLabel,
-  Select
+  Table, TableBody, TableCell, TableHead, TableRow, Paper, TableContainer,
+  Switch, IconButton, Box, TextField, Button,
+  Dialog, DialogContent, DialogTitle,
+  Typography, Snackbar, Alert, CircularProgress, Chip, Divider,
+  Avatar, Tooltip, Collapse, Grid
 } from '@mui/material';
 import {
-  VisibilityOutlined,
-  Edit,
-  Delete,
-  Download,
-  Save,
-  Close,
-  Diamond,
-  AttachMoney,
-  Tag,
-  People,
-  Web,
-  Phone,
-  Email,
-  Category as CategoryIcon,
-  Add as AddIcon,
-  CloudUpload,
-
+  VisibilityOutlined, Edit, Delete, Close, 
+  Search as SearchIcon, Star, 
+  ViewList, Refresh, CheckCircle, Storefront,
+  Style, ShoppingBag, EventAvailable
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
-import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
-import { getAllVendors, formatVendorsForList } from '../api/providerApi';
+import { API_BASE_URL } from '../utils/apiImageUtils';
 
-const BoutiqueList = () => {
+/* ============ Premium Red Luxe Theme ============ */
+const themeColors = {
+  primary: '#2D3436',
+  accent: '#E15B64',
+  accentLight: '#FFF8F9',
+  success: '#00B894',
+  warning: '#FDCB6E',
+  danger: '#D63031',
+  background: '#F9FAFB',
+  border: '#E2E8F0',
+  textMain: '#2D3436',
+  textSecondary: '#636E72',
+  white: '#FFFFFF',
+  gradientPrimary: 'linear-gradient(135deg, #E15B64 0%, #FD7272 100%)',
+  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+};
+
+const HeaderStat = ({ label, value, icon, color, gradient }) => (
+  <Box sx={{
+    bgcolor: 'white', borderRadius: '18px', py: 2.0, px: 2.8,
+    display: 'flex', alignItems: 'center', gap: 2.4, flex: 1, minWidth: '200px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+    border: '1px solid', borderColor: 'rgba(0,0,0,0.04)',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
+  }}>
+    <Box sx={{
+      width: 48, height: 48, borderRadius: '14px', background: gradient || `${color}15`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: gradient ? '#FFFFFF' : color,
+      boxShadow: gradient ? '0 4px 10px rgba(225, 91, 100, 0.2)' : 'none'
+    }}>
+      {React.cloneElement(icon, { sx: { fontSize: 24 } })}
+    </Box>
+    <Box>
+      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '0.7rem' }}>
+        {label}
+      </Typography>
+      <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.textMain, lineHeight: 1.1, fontSize: '1.35rem' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
+
+const Boutiquelist = () => {
   const navigate = useNavigate();
 
-  /* ---------- State ---------- */
-  const [boutiques, setBoutiques] = useState([]);
-  const [allBoutiques, setAllBoutiques] = useState([]);
+  const [packages, setPackages] = useState([]);
+  const [allPackages, setAllPackages] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [boutiqueToDelete, setBoutiqueToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-
-  const [anchorEl, setAnchorEl] = useState(null);
-  const openMenu = Boolean(anchorEl);
-
-  // View Dialog
+  const [expandedVendors, setExpandedVendors] = useState({});
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedBoutique, setSelectedBoutique] = useState(null);
 
-  // Edit Dialog
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editingBoutique, setEditingBoutique] = useState(null);
-  const [editFormData, setEditFormData] = useState({});
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [currentTab, setCurrentTab] = useState(0);
-
-  // Add Dialog
-  const [openAddDialog, setOpenAddDialog] = useState(false);
-  const [addFormData, setAddFormData] = useState({
-    name: '',
-    description: '',
-    unit: '',
-    weight: 1,
-    material: '',
-    buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
-    availabilityMode: 'purchase',
-    category: '',
-    subCategory: '',
-    provider: '',
-    isActive: true
-  });
-  const [providers, setProviders] = useState([]);
-  const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const [thumbnail, setThumbnail] = useState(null);
-  const [galleryImages, setGalleryImages] = useState([]);
-  const [thumbnailPreview, setThumbnailPreview] = useState(null);
-  const [dependenciesLoading, setDependenciesLoading] = useState(false);
-
-  /* ---------- API ---------- */
-  // API_BASE_URL is now imported from apiImageUtils
   const API_URL = `${API_BASE_URL}/boutiques`;
 
-  const getToken = () => {
-    try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
-    catch { return null; }
-  };
-
   const getFetchOptions = (method = 'GET', body = null) => {
-    const token = getToken();
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const opts = {
       method,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      credentials: 'include',
-      mode: 'cors',
+      credentials: 'include', mode: 'cors',
     };
-    if (token) opts.headers.Authorization = `Bearer ${token}`;
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
     return opts;
   };
 
-  const makeAPICall = async (url, options, retries = 2) => {
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timeout);
-        if (!res.ok) {
-          const txt = await res.text();
-          if (res.status === 401) throw new Error('Authentication required');
-          if (res.status === 403) throw new Error('Forbidden');
-          if (res.status === 404) throw new Error('Not found');
-          if (res.status >= 500) throw new Error('Server error');
-          throw new Error(`HTTP ${res.status}: ${txt}`);
-        }
-        return await res.json();
-      } catch (e) {
-        if (i === retries) throw e;
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-  };
-
-  /* ---------- Currency ---------- */
-  const AED_TO_INR = 22.8; // 1 AED ≈ 22.8 INR
-  const toINR = (aed) => Math.round(aed * AED_TO_INR);
-
-  /* ---------- Mapping ---------- */
-  const mapBoutique = (c, idx) => ({
-    id: idx + 1,
-    _id: c._id,
-    boutiqueId: c.boutiqueId,
-    title: c.name || 'Untitled',
-    description: c.description || '',
-    unit: c.unit || '',
-    weight: c.weight ?? 0,
-    material: c.material || '',
-    price: c.buyPricing?.totalPrice ?? 0,
-    providerName:
-      c.provider?.firstName && c.provider?.lastName
-        ? `${c.provider.firstName} ${c.provider.lastName}`
-        : c.provider?.firstName || '—',
-    providerEmail: c.provider?.email || '',
-    isActive: c.isActive ?? false,
-    thumbnail: c.thumbnail || '',
-    galleryImages: c.galleryImages || [],
-    availabilityMode: c.availabilityMode || 'purchase',
-    buyPricing: c.buyPricing || {},
-    rentalPricing: c.rentalPricing || {},
-    stock: c.stock || {},
-    shipping: c.shipping || {},
-    occasions: c.occasions || [],
-    features: c.features || {},
-    tags: c.tags || [],
-    rawBoutique: c,
-  });
-
-  /* ---------- Fetch ---------- */
-  const fetchBoutiques = async (topPicks = false) => {
+  const fetchPackages = async (topPicks = false) => {
     try {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const data = await makeAPICall(url, getFetchOptions());
+      const res = await fetch(url, getFetchOptions());
+      const data = await res.json();
       if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((c, i) => mapBoutique(c, i));
-        setAllBoutiques(mapped);
-        setBoutiques(mapped);
+        const mapped = data.data.map((b, idx) => ({
+          _id: b._id, id: idx + 1,
+          title: b.name || 'Untitled',
+          description: b.description || '',
+          price: b.availabilityMode === 'rental' ? (b.rentalPricing?.totalPrice || 0) : (b.buyPricing?.totalPrice || 0),
+          mode: b.availabilityMode || 'purchase',
+          providerId: b.provider?._id || b.provider?.id || 'unknown',
+          providerName: b.provider?.firstName && b.provider?.lastName ? `${b.provider.firstName} ${b.provider.lastName}` : (b.provider?.firstName || b.provider?.name || '—'),
+          providerEmail: b.provider?.email || '', providerPhone: b.provider?.phone || '',
+          isTopPick: b.isTopPick ?? false, isActive: b.isActive ?? false,
+          rawPackage: b,
+        }));
+        setAllPackages(mapped); setPackages(mapped);
+        
+        // Expand all vendors by default
+        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
+        const allExpanded = {};
+        uniqueVendors.forEach(id => { allExpanded[id] = true; });
+        setExpandedVendors(allExpanded);
       }
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
-  /* ---------- Fetch Dependencies ---------- */
-  const fetchDependencies = async () => {
-    try {
-      setDependenciesLoading(true);
-      const [vData, cData] = await Promise.all([
-        getAllVendors(),
-        fetch(`${API_BASE_URL}/categories`).then(r => r.json())
-      ]);
+  useEffect(() => { fetchPackages(); }, []);
 
-      if (vData?.success) {
-        const formatted = formatVendorsForList(vData.data);
-        // Filter for Ornaments module vendors if possible, but for now show all who might be relevant
-        setProviders(formatted.filter(v => (v.module || '').toLowerCase().includes('ornament')));
-      }
-
-      if (cData) {
-        const cats = Array.isArray(cData) ? cData : cData.data || [];
-        // Filter for Ornaments module categories
-        setCategories(cats.filter(c => {
-          const modTitle = c.module?.title || '';
-          return modTitle.toLowerCase().includes('ornament');
-        }));
-      }
-    } catch (e) {
-      console.error('Error fetching dependencies:', e);
-    } finally {
-      setDependenciesLoading(false);
-    }
-  };
-
-  const handleAddClick = () => {
-    fetchDependencies();
-    setOpenAddDialog(true);
-  };    useEffect(() => { fetchBoutiques(); }, []);
-
-  /* ---------- Toggles ---------- */
-  const handleTopPickToggle = useCallback(async (_id) => {
-    const key = `${_id}-topPick`;
-    if (toggleLoading[key]) return;
-    const item = boutiques.find(c => c._id === _id);
-    if (!item) return;
-    const newVal = !item.isTopPick;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
-    } catch (e) {
-      setBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [boutiques, toggleLoading]);
-
-  const handleStatusToggle = useCallback(async (_id) => {
-    const key = `${_id}-status`;
-    if (toggleLoading[key]) return;
-    const item = boutiques.find(c => c._id === _id);
-    if (!item) return;
-    const newVal = !item.isActive;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
-    } catch (e) {
-      setBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [boutiques, toggleLoading]);
-
-  /* ---------- Delete ---------- */
-  const handleDeleteClick = item => { setBoutiqueToDelete(item); setOpenDeleteDialog(true); };
-  const handleDeleteConfirm = async () => {
-    try {
-      await makeAPICall(`${API_URL}/${boutiqueToDelete._id}`, getFetchOptions('DELETE'));
-      setBoutiques(p => p.filter(c => c._id !== boutiqueToDelete._id));
-      setAllBoutiques(p => p.filter(c => c._id !== boutiqueToDelete._id));
-      setNotification({ open: true, message: `${boutiqueToDelete.title} deleted`, severity: 'success' });
-    } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setOpenDeleteDialog(false); setBoutiqueToDelete(null);
-    }
-  };
-
-  /* ---------- Export (INR) ---------- */
-  /* ---------- Export (INR) ---------- */
-  const filteredResult = boutiques.filter(c =>
+  const filtered = packages.filter((c) =>
     `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const exportCSV = () => {
-    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const rows = filteredResult.map(c => [
-      c.id, `"${c.title}"`, `"${c.providerName}"`, `"${c.providerEmail}"`, c.availabilityMode, toINR(c.price),
-      c.weight, c.isActive ? 'Active' : 'Inactive'
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `boutiques_${new Date().toISOString().split('T')[0]}.csv`; a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'CSV exported', severity: 'success' });
-  };
-
-  const exportExcel = () => {
-    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filteredResult.map(c => `<tr>
-      <td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.availabilityMode}</td><td>${toINR(c.price)}</td>
-      <td>${c.weight}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
-    </tr>`).join('')}</tbody></table>`;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `boutiques_${new Date().toISOString().split('T')[0]}.xls`; a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'Excel exported', severity: 'success' });
-  };
-
-  /* ---------- View ---------- */
-  const handleView = item => {
-    setSelectedBoutique(item.rawBoutique);
-    setOpenViewDialog(true);
-  };
-
-  /* ---------- Edit ---------- */
-  const handleEdit = item => {
-    const r = item.rawBoutique;
-    setEditingBoutique(item);
-    setEditFormData({
-      name: r.name || '',
-      description: r.description || '',
-      unit: r.unit || '',
-      weight: r.weight || 0,
-      material: r.material || '',
-      buyPricing: r.buyPricing || {},
-      rentalPricing: r.rentalPricing || {},
-      stock: r.stock || {},
-      shipping: r.shipping || {},
-    });
-    setCurrentTab(0);
-    setOpenEditDialog(true);
-  };
-
-  const handleSaveEdit = async () => {
-    try {
-      setSaveLoading(true);
-      const payload = { ...editFormData };
-      const data = await makeAPICall(`${API_BASE_URL}/boutiques/${editingBoutique._id}`, getFetchOptions('PUT', payload));
-      if (data.success) {
-        const updated = mapBoutique(data.data, editingBoutique.id - 1);
-        setBoutiques(p => p.map(x => x._id === editingBoutique._id ? updated : x));
-        setAllBoutiques(p => p.map(x => x._id === editingBoutique._id ? updated : x));
-        setNotification({ open: true, message: 'Boutique updated', severity: 'success' });
-        setOpenEditDialog(false);
+  const vendorGroups = useMemo(() => {
+    const groups = {};
+    filtered.forEach((pkg) => {
+      const key = pkg.providerId;
+      if (!groups[key]) {
+        groups[key] = {
+          providerId: key, providerName: pkg.providerName,
+          providerEmail: pkg.providerEmail, providerPhone: pkg.providerPhone,
+          packages: [],
+        };
       }
-    } catch (e) {
-      setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
+      groups[key].packages.push(pkg);
+    });
+    return Object.values(groups).sort((a, b) => b.packages.length - a.packages.length);
+  }, [filtered]);
 
-  /* ---------- Add Logic ---------- */
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setThumbnail(file);
-      setThumbnailPreview(URL.createObjectURL(file));
-    }
-  };
+  const toggleVendor = (vendorId) => setExpandedVendors(p => ({ ...p, [vendorId]: !p[vendorId] }));
 
-  const handleGalleryChange = (e) => {
-    const files = Array.from(e.target.files);
-    setGalleryImages(prev => [...prev, ...files]);
-  };
+  const handleStatusUpdate = async (_id, type) => {
+    const valKey = type === 'topPick' ? 'isTopPick' : 'isActive';
+    const endpoint = type === 'topPick' ? 'toggle-top-pick' : 'toggle-active';
+    const key = `${_id}-${type}`;
+    if (toggleLoading[key]) return;
 
-  const handleSubmitAdd = async () => {
-    if (!addFormData.name || !addFormData.category || !addFormData.provider || !thumbnail) {
-      setNotification({ open: true, message: 'Please fill name, category, provider and thumbnail', severity: 'warning' });
-      return;
-    }
-
+    setToggleLoading(p => ({ ...p, [key]: true }));
+    setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
     try {
-      setSaveLoading(true);
-      const formData = new FormData();
-      formData.append('name', addFormData.name);
-      formData.append('description', addFormData.description);
-      formData.append('unit', addFormData.unit);
-      formData.append('weight', addFormData.weight);
-      formData.append('material', addFormData.material);
-      formData.append('availabilityMode', addFormData.availabilityMode);
-      formData.append('category', addFormData.category);
-      formData.append('subCategory', addFormData.subCategory);
-      formData.append('provider', addFormData.provider);
-      formData.append('isActive', addFormData.isActive);
-      formData.append('buyPricing', JSON.stringify(addFormData.buyPricing));
-
-      // Get Ornament Module ID
-      const moduleRes = await fetch(`${API_BASE_URL}/modules`).then(r => r.json());
-      const ornamentModule = (moduleRes.data || moduleRes).find(m => m.title.toLowerCase().includes('ornament'));
-      if (ornamentModule) formData.append('module', ornamentModule._id);
-
-      formData.append('thumbnail', thumbnail);
-      galleryImages.forEach(img => formData.append('galleryImages', img));
-
-      const token = getToken();
-      const res = await fetch(`${API_BASE_URL}/ornaments`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to add');
-
-      setNotification({ open: true, message: 'Ornament added successfully!', severity: 'success' });
-      setOpenAddDialog(false);
-
-      // Reset form
-      setAddFormData({
-        name: '', description: '', unit: '', weight: 1, material: '',
-        buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
-        availabilityMode: 'purchase', category: '', subCategory: '', provider: '', isActive: true
-      });
-      setThumbnail(null); setThumbnailPreview(null); setGalleryImages([]);
-
-      fetchOrnaments();
+      const res = await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
+      if (!res.ok) throw new Error('Failed');
     } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
+      setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
+      setNotification({ open: true, message: 'Update failed', severity: 'error' });
+    } finally { setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; }); }
   };
 
+  const handleView = (pkg) => { setSelectedBoutique(pkg.rawPackage); setOpenViewDialog(true); };
 
-
-  /* ---------- Stats ---------- */
   const stats = {
-    total: allBoutiques.length,
-    active: allBoutiques.filter(c => c.isActive).length,
-    inactive: allBoutiques.filter(c => !c.isActive).length,
-    topPick: allBoutiques.filter(c => c.isTopPick).length,
+    total: allPackages.length,
+    active: allPackages.filter(c => c.isActive).length,
+    topPick: allPackages.filter(c => c.isTopPick).length,
+    vendors: [...new Set(allPackages.map(c => c.providerId))].length,
   };
 
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: themeColors.background, color: themeColors.textMain }}>
+      {/* Red Premium Header */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h3" sx={{ fontWeight: 900, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.1px', fontSize: '2.3rem' }}>
+            BookMyEvent Boutique
+          </Typography>
+          <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 600, mt: 0.2, fontSize: '0.88rem' }}>
+            Fashion partners & couture management.
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button variant="outlined" startIcon={<Refresh fontSize="small" />} onClick={() => fetchPackages()} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.2, height: 42, fontSize: '0.82rem', borderColor: themeColors.border, color: themeColors.textSecondary }}>Refresh</Button>
+          <Button variant="contained" disableElevation onClick={() => fetchPackages(true)} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.5, height: 42, fontSize: '0.82rem', background: themeColors.gradientPrimary, '&:hover': { opacity: 0.9 } }}>Top Picks</Button>
+        </Box>
+      </Box>
+
       {/* Stats */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', p: 2, bgcolor: '#f5f5f5', gap: 1 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total: {stats.total}</Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active: {stats.active}</Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive: {stats.inactive}</Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Top-Pick: {stats.topPick}</Box>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button variant="contained" color="success" size="small" startIcon={<AddIcon />} onClick={handleAddClick}>
-            Add Boutique
-          </Button>
-          <Button variant="contained" color="secondary" size="small" onClick={() => fetchBoutiques(true)} disabled={loading}>
-            {loading ? 'Loading...' : 'Fetch Top-Picks'}
-          </Button>
-        </Stack>
+      <Box sx={{ display: 'flex', gap: 2.5, mb: 4, flexWrap: 'wrap' }}>
+        <HeaderStat label="Designs" value={stats.total} icon={<Style />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
+        <HeaderStat label="Active" value={stats.active} icon={<CheckCircle />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
+        <HeaderStat label="Top Picks" value={stats.topPick} icon={<Star />} color={themeColors.warning} />
+        <HeaderStat label="Fashion Houses" value={stats.vendors} icon={<Storefront />} color={themeColors.primary} />
       </Box>
 
-      {/* Search & Export */}
-      <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: '#f5f5f5' }}>
-        <TextField
-          placeholder="Search Package / Provider"
-          size="small"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          InputProps={{ startAdornment: <InputAdornment position="start">Search</InputAdornment> }}
-          sx={{ bgcolor: 'white', minWidth: 220 }}
-        />
-        <Button variant="contained" color="primary" size="small" endIcon={<Download />} onClick={e => setAnchorEl(e.currentTarget)}>
-          Export
+      {/* Filter */}
+      <Paper elevation={0} sx={{ p: 1.8, mb: 3.5, borderRadius: '18px', border: '1px solid', borderColor: themeColors.border, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'white' }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            placeholder="Search designers or collections..."
+            size="small"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1, fontSize: 18 }} /> }}
+            sx={{ width: 350, '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: themeColors.background, fontSize: '0.82rem' } }}
+          />
+        </Box>
+        <Button 
+          variant="text" 
+          onClick={() => {
+            const anyVisible = Object.values(expandedVendors).some(v => v);
+            if (anyVisible) setExpandedVendors({});
+            else {
+              const all = {};
+              [...new Set(filtered.map(f => f.providerId))].forEach(id => { all[id] = true; });
+              setExpandedVendors(all);
+            }
+          }} 
+          sx={{ fontWeight: 800, color: themeColors.textSecondary, textTransform: 'none', fontSize: '0.78rem' }}
+        >
+          {Object.values(expandedVendors).some(v => v) ? 'Collapse Studios' : 'View All Couture'}
         </Button>
-        <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={exportExcel}>Excel</MenuItem>
-          <MenuItem onClick={exportCSV}>CSV</MenuItem>
-        </Menu>
+      </Paper>
+
+      {/* Vendor Groups */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {vendorGroups.map((vendor) => {
+          const isExpanded = expandedVendors[vendor.providerId];
+          const activeCount = vendor.packages.filter(p => p.isActive).length;
+
+          return (
+            <Paper key={vendor.providerId} elevation={0} sx={{
+              borderRadius: '24px', overflow: 'hidden', border: '1px solid',
+              borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
+              boxShadow: isExpanded ? '0 12px 30px rgba(225,91,100,0.06)' : 'none',
+              transition: 'all 0.4s ease', bgcolor: 'white'
+            }}>
+              <Box onClick={() => toggleVendor(vendor.providerId)} sx={{
+                p: 2.5, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'pointer',
+                bgcolor: isExpanded ? themeColors.accentLight : 'white',
+              }}>
+                <Avatar sx={{ 
+                  width: 44, height: 44, fontSize: '1.1rem', fontWeight: 900, 
+                  background: themeColors.gradientPrimary, color: 'white', 
+                  border: '3px solid white', boxShadow: '0 4px 8px rgba(0,0,0,0.08)' 
+                }}>
+                  {vendor.providerName[0].toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textMain, fontSize: '1.12rem' }}>{vendor.providerName}</Typography>
+                  <Typography variant="body1" sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.82rem' }}>
+                    {vendor.providerEmail} • {vendor.providerPhone}
+                  </Typography>
+                </Box>
+                <Box sx={{ textAlign: 'right', px: 1.5 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>{vendor.packages.length} COUTURE</Typography>
+                  <Chip label={`${activeCount} ACTIVE`} size="small" sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }} />
+                </Box>
+              </Box>
+
+              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Box sx={{ px: 3.5, pb: 2.5 }}>
+                  <Divider sx={{ mb: 2.5 }} />
+                  <TableContainer>
+                    <Table size="medium">
+                      <TableHead>
+                        <TableRow sx={{ '& th': { borderBottom: '2px solid' + themeColors.border, py: 1.2 } }}>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>DESIGN INFO</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>PRICE (INR)</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">TOP PICK</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">STATUS</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">ACTIONS</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {vendor.packages.map((pkg) => (
+                          <TableRow key={pkg._id} sx={{ '& td': { py: 1.6 }, '&:hover': { bgcolor: '#F9FAFB' } }}>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>{pkg.title}</Typography>
+                              <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                <Chip 
+                                  label={pkg.mode === 'rental' ? 'Rental' : 'Purchase'} 
+                                  size="small" 
+                                  icon={pkg.mode === 'rental' ? <EventAvailable sx={{ fontSize: '10px !important' }} /> : <ShoppingBag sx={{ fontSize: '10px !important' }} />} 
+                                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: pkg.mode === 'rental' ? '#f0f9ff' : '#f5f3ff', color: pkg.mode === 'rental' ? '#0369a1' : '#6d28d9' }} 
+                                />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>₹{pkg.price.toLocaleString()}</Typography>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontSize: '0.65rem' }}>{pkg.mode === 'rental' ? 'per booking' : 'fixed price'}</Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isTopPick} onChange={() => handleStatusUpdate(pkg._id, 'topPick')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isActive} onChange={() => handleStatusUpdate(pkg._id, 'status')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.6 }}>
+                                <Tooltip title="View Detailed Info"><IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}><Edit sx={{ fontSize: 18 }} /></IconButton>
+                                <IconButton size="small" sx={{ color: themeColors.danger }}><Delete sx={{ fontSize: 18 }} /></IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              </Collapse>
+            </Paper>
+          );
+        })}
       </Box>
 
-      {/* Table */}
-      {loading ? (
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading boutiques...</Typography>
-        </Box>
-      ) : (
-        <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                <TableCell>Sl</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Material</TableCell>
-                <TableCell>Weight</TableCell>
-                <TableCell>Price (INR)</TableCell>
-                <TableCell>Provider</TableCell>
-                <TableCell>Availability</TableCell>
-                <TableCell>Top-Pick</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredResult.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No boutiques found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filteredResult.map(c => {
-                  const topKey = `${c._id}-topPick`;
-                  const statKey = `${c._id}-status`;
-                  return (
-                    <TableRow key={c._id} hover>
-                      <TableCell>{c.id}</TableCell>
-                      <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</TableCell>
-                      <TableCell>{c.material}</TableCell>
-                      <TableCell>{c.weight}g</TableCell>
-                      <TableCell>{toINR(c.price)}</TableCell>
-                      <TableCell>{c.providerName}</TableCell>
-                      <TableCell>{c.availabilityMode}</TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
-                        {toggleLoading[topKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isActive} onChange={() => handleStatusToggle(c._id)} disabled={toggleLoading[statKey]} />
-                        {toggleLoading[statKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton size="small" color="info" onClick={() => handleView(c)} title="View"><VisibilityOutlined /></IconButton>
-                        <IconButton size="small" color="primary" onClick={() => handleEdit(c)} title="Edit"><Edit /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)} title="Delete"><Delete /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Box>
-      )}
-
-      {/* ---------- VIEW DIALOG (INR) ---------- */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedBoutique?.name || 'Boutique Details'}</Typography>
+      {/* View Dialog */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
+          <Typography sx={{ fontWeight: 900, fontSize: '1.2rem' }}>Design Details</Typography>
+          <IconButton onClick={() => setOpenViewDialog(false)}><Close /></IconButton>
         </DialogTitle>
-        <DialogContent dividers>
+        <DialogContent sx={{ pb: 4 }}>
           {selectedBoutique && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><CategoryIcon fontSize="small" /> Name</Typography>
-                <Typography paragraph>{selectedBoutique.name}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Material</Typography>
-                <Typography paragraph>{selectedBoutique.material || '—'}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedBoutique.buyPricing?.totalPrice || 0)}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Weight</Typography>
-                <Typography>{selectedBoutique.weight}g</Typography>
-              </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedBoutique.provider?.firstName} {selectedBoutique.provider?.lastName}</Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedBoutique.provider?.phone || '—'}
-                </Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedBoutique.provider?.email || '—'}
-                </Typography>
-              </Grid>
-
-              {selectedBoutique.description && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedBoutique.description}</Typography>
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, color: themeColors.accent }}>{selectedBoutique.name}</Typography>
+              <Typography sx={{ color: themeColors.textSecondary, mb: 3, lineHeight: 1.6, fontSize: '0.9rem' }}>{selectedBoutique.description}</Typography>
+              
+              <Grid container spacing={2}>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>PRICE</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.success }}>
+                      ₹{selectedBoutique.availabilityMode === 'rental' ? selectedBoutique.rentalPricing?.totalPrice?.toLocaleString() : selectedBoutique.buyPricing?.totalPrice?.toLocaleString()}
+                    </Typography>
+                  </Paper>
                 </Grid>
-              )}
-            </Grid>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>MODE</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: themeColors.primary, textTransform: 'uppercase' }}>
+                      {selectedBoutique.availabilityMode}
+                    </Typography>
+                  </Paper>
+                </Grid>
+              </Grid>
+
+              <Divider sx={{ my: 3 }} />
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Material & Collections:</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {selectedBoutique.material && <Chip label={selectedBoutique.material} size="small" sx={{ fontWeight: 700 }} />}
+                {(selectedBoutique.collections || []).map((c, i) => (
+                  <Chip key={i} label={c} size="small" sx={{ fontWeight: 700 }} />
+                ))}
+              </Box>
+            </Box>
           )}
         </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawBoutique: selectedBoutique }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
-        </DialogActions>
       </Dialog>
 
-      {/* ---------- EDIT DIALOG ---------- */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">Edit Boutique: {editingBoutique?.title}</Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {editingBoutique && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Name" value={editFormData.name || ''} onChange={e => setEditFormData(p => ({ ...p, name: e.target.value }))} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Material" value={editFormData.material || ''} onChange={e => setEditFormData(p => ({ ...p, material: e.target.value }))} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Weight (g)" type="number" value={editFormData.weight || 0} onChange={e => setEditFormData(p => ({ ...p, weight: Number(e.target.value) }))} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} />
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)} disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={saveLoading}>
-            {saveLoading ? <CircularProgress size={24} /> : 'Save Changes'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- ADD DIALOG ---------- */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'success.main', color: 'white' }}>
-          <Typography variant="h6">Add New Boutique</Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {dependenciesLoading ? (
-            <Box sx={{ textAlign: 'center', p: 3 }}><CircularProgress /><Typography>Loading providers and categories...</Typography></Box>
-          ) : (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth required label="Name" value={addFormData.name} onChange={e => setAddFormData({ ...addFormData, name: e.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Provider</InputLabel>
-                  <Select value={addFormData.provider} label="Provider" onChange={e => setAddFormData({ ...addFormData, provider: e.target.value })}>
-                    {providers.map(v => <MenuItem key={v.vendorId} value={v.vendorId}>{v.name} ({v.email})</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Category</InputLabel>
-                  <Select value={addFormData.category} label="Category" onChange={e => setAddFormData({ ...addFormData, category: e.target.value })}>
-                    {categories.filter(c => !c.parentCategory).map(c => <MenuItem key={c._id} value={c._id}>{c.title || c.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Availability Mode</InputLabel>
-                  <Select value={addFormData.availabilityMode} label="Availability Mode" onChange={e => setAddFormData({ ...addFormData, availabilityMode: e.target.value })}>
-                    <MenuItem value="purchase">Purchase</MenuItem>
-                    <MenuItem value="rental">Rental</MenuItem>
-                    <MenuItem value="all">All</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Material" value={addFormData.material} onChange={e => setAddFormData({ ...addFormData, material: e.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Weight (g)" type="number" value={addFormData.weight} onChange={e => setAddFormData({ ...addFormData, weight: Number(e.target.value) })} />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Unit Price (AED)" type="number" value={addFormData.buyPricing.unitPrice} onChange={e => setAddFormData({ ...addFormData, buyPricing: { ...addFormData.buyPricing, unitPrice: Number(e.target.value) } })} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Description" multiline rows={3} value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <Button variant="outlined" component="label" fullWidth startIcon={<CloudUpload />}>
-                  {thumbnail ? thumbnail.name : 'Upload Thumbnail *'}
-                  <input type="file" hidden accept="image/*" onChange={handleThumbnailChange} />
-                </Button>
-                {thumbnailPreview && <Box sx={{ mt: 1 }}><img src={thumbnailPreview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'cover' }} /></Box>}
-              </Grid>
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)} disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSubmitAdd} variant="contained" color="success" disabled={saveLoading || dependenciesLoading}>
-            {saveLoading ? <CircularProgress size={24} /> : 'Add Boutique'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- DELETE DIALOG ---------- */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{boutiqueToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- SNACKBAR ---------- */}
-      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert onClose={() => setNotification(p => ({ ...p, open: false }))} severity={notification.severity} variant="filled">
-          {notification.message}
-        </Alert>
+      <Snackbar open={notification.open} autoHideDuration={3000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 700, fontSize: '0.82rem' }}>{notification.message}</Alert>
       </Snackbar>
-    </TableContainer>
+    </Box>
   );
 };
 
-export default BoutiqueList;
+export default Boutiquelist;

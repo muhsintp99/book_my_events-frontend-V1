@@ -1,626 +1,364 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableRow,
-  Paper,
-  TableContainer,
-  Switch,
-  IconButton,
-  Box,
-  MenuItem,
-  TextField,
-  InputAdornment,
-  Button,
-  Menu,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogContentText,
-  DialogTitle,
-  Typography,
-  Snackbar,
-  Alert,
-  CircularProgress,
-  Chip,
-  Divider,
-  Grid,
-  Tabs,
-  Tab,
-  Autocomplete,
-  List,
-  ListItem,
-  ListItemText,
+  Table, TableBody, TableCell, TableHead, TableRow, Paper, TableContainer,
+  Switch, IconButton, Box, TextField, Button,
+  Dialog, DialogContent, DialogTitle,
+  Typography, Snackbar, Alert, CircularProgress, Chip, Divider,
+  Avatar, Tooltip, Collapse, Grid
 } from '@mui/material';
 import {
-  VisibilityOutlined,
-  Edit,
-  Delete,
-  Download,
-  Save,
-  Close,
-  Restaurant,
-  AttachMoney,
-  Tag,
-  People,
-  Web,
-  Phone,
-  Email,
-  Category,
+  VisibilityOutlined, Edit, Delete, Close, 
+  Search as SearchIcon, Star, 
+  ViewList, Refresh, CheckCircle, Storefront,
+  Cake, RestaurantMenu
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
 
-const CakeList = () => {
+/* ============ Premium Red Luxe Theme ============ */
+const themeColors = {
+  primary: '#2D3436',
+  accent: '#E15B64',
+  accentLight: '#FFF8F9',
+  success: '#00B894',
+  warning: '#FDCB6E',
+  danger: '#D63031',
+  background: '#F9FAFB',
+  border: '#E2E8F0',
+  textMain: '#2D3436',
+  textSecondary: '#636E72',
+  white: '#FFFFFF',
+  gradientPrimary: 'linear-gradient(135deg, #E15B64 0%, #FD7272 100%)',
+  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+};
+
+const HeaderStat = ({ label, value, icon, color, gradient }) => (
+  <Box sx={{
+    bgcolor: 'white', borderRadius: '18px', py: 2.0, px: 2.8,
+    display: 'flex', alignItems: 'center', gap: 2.4, flex: 1, minWidth: '200px',
+    boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+    border: '1px solid', borderColor: 'rgba(0,0,0,0.04)',
+    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+    '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
+  }}>
+    <Box sx={{
+      width: 48, height: 48, borderRadius: '14px', background: gradient || `${color}15`,
+      display: 'flex', alignItems: 'center', justifyContent: 'center', color: gradient ? '#FFFFFF' : color,
+      boxShadow: gradient ? '0 4px 10px rgba(225, 91, 100, 0.2)' : 'none'
+    }}>
+      {React.cloneElement(icon, { sx: { fontSize: 24 } })}
+    </Box>
+    <Box>
+      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '0.7rem' }}>
+        {label}
+      </Typography>
+      <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.textMain, lineHeight: 1.1, fontSize: '1.35rem' }}>
+        {value}
+      </Typography>
+    </Box>
+  </Box>
+);
+
+const Cakelist = () => {
   const navigate = useNavigate();
 
-  /* ---------- State ---------- */
   const [cakes, setCakes] = useState([]);
   const [allCakes, setAllCakes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [cakeToDelete, setCakeToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
-
-  const [anchorEl, setAnchorEl] = useState(null);
-  const openMenu = Boolean(anchorEl);
-
-  // View Dialog
+  const [expandedVendors, setExpandedVendors] = useState({});
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedCake, setSelectedCake] = useState(null);
 
-  // Edit Dialog
-  const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editingCake, setEditingCake] = useState(null);
-  const [editFormData, setEditFormData] = useState({});
-  const [saveLoading, setSaveLoading] = useState(false);
-  const [currentTab, setCurrentTab] = useState(0);
-
-  /* ---------- API ---------- */
   const API_URL = `${API_BASE_URL}/cakes`;
 
-  const getToken = () => {
-    try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
-    catch { return null; }
-  };
-
   const getFetchOptions = (method = 'GET', body = null) => {
-    const token = getToken();
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const opts = {
       method,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      credentials: 'include',
-      mode: 'cors',
+      credentials: 'include', mode: 'cors',
     };
-    if (token) opts.headers.Authorization = `Bearer ${token}`;
+    if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
     return opts;
   };
 
-  const makeAPICall = async (url, options, retries = 2) => {
-    for (let i = 0; i <= retries; i++) {
-      try {
-        const controller = new AbortController();
-        const timeout = setTimeout(() => controller.abort(), 10000);
-        const res = await fetch(url, { ...options, signal: controller.signal });
-        clearTimeout(timeout);
-        if (!res.ok) {
-          const txt = await res.text();
-          if (res.status === 401) throw new Error('Authentication required');
-          if (res.status === 403) throw new Error('Forbidden');
-          if (res.status === 404) throw new Error('Not found');
-          if (res.status >= 500) throw new Error('Server error');
-          throw new Error(`HTTP ${res.status}: ${txt}`);
-        }
-        return await res.json();
-      } catch (e) {
-        if (i === retries) throw e;
-        await new Promise(r => setTimeout(r, 1000));
-      }
-    }
-  };
-
-  /* ---------- Currency ---------- */
-  const AED_TO_INR = 22.8; // 1 AED ≈ 22.8 INR
-  const toINR = (aed) => Math.round(aed * AED_TO_INR);
-
-  /* ---------- Mapping ---------- */
-  const mapCake = (c, idx) => ({
-    id: idx + 1,
-    _id: c._id,
-    cakeId: c.cakeId,
-    title: c.title || 'Untitled',
-    subtitle: c.subtitle || '',
-    description: c.description || '',
-    cakeType: c.cakeType || '',
-    price: c.price ?? 0,
-    providerName:
-      c.provider?.firstName && c.provider?.lastName
-        ? `${c.provider.firstName} ${c.provider.lastName}`
-        : c.provider?.firstName || '—',
-    providerEmail: c.provider?.email || '',
-    includes: (c.includes || [])
-      .map(inc => `${inc.title}: ${inc.items.join(', ')}`)
-      .join(' | '),
-    isTopPick: c.isTopPick ?? false,
-    isActive: c.isActive ?? false,
-    thumbnail: c.thumbnail || '',
-    searchTags: c.searchTags || [],
-    faqs: c.faqs || [],
-    rawCake: c,
-  });
-
-  /* ---------- Fetch ---------- */
   const fetchCakes = async (topPicks = false) => {
     try {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const data = await makeAPICall(url, getFetchOptions());
+      const res = await fetch(url, getFetchOptions());
+      const data = await res.json();
       if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((c, i) => mapCake(c, i));
-        setAllCakes(mapped);
-        setCakes(mapped);
+        const mapped = data.data.map((c, idx) => ({
+          _id: c._id, id: idx + 1,
+          title: c.name || 'Untitled',
+          description: c.shortDescription || '',
+          basePrice: c.basePrice ?? 0,
+          finalPrice: c.finalPrice ?? 0,
+          itemType: c.itemType || 'Eggless',
+          providerId: c.provider?._id || c.provider?.id || 'unknown',
+          providerName: c.provider?.firstName && c.provider?.lastName ? `${c.provider.firstName} ${c.provider.lastName}` : (c.provider?.firstName || c.provider?.name || '—'),
+          providerEmail: c.provider?.email || '', providerPhone: c.provider?.phone || '',
+          isTopPick: c.isTopPick ?? false, isActive: c.isActive ?? false,
+          rawPackage: c,
+        }));
+        setAllCakes(mapped); setCakes(mapped);
+        
+        // Expand all vendors by default
+        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
+        const allExpanded = {};
+        uniqueVendors.forEach(id => { allExpanded[id] = true; });
+        setExpandedVendors(allExpanded);
       }
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
-    } finally {
-      setLoading(false);
-    }
+    } finally { setLoading(false); }
   };
 
   useEffect(() => { fetchCakes(); }, []);
 
-  /* ---------- Toggles ---------- */
-  const handleTopPickToggle = useCallback(async (_id) => {
-    const key = `${_id}-topPick`;
-    if (toggleLoading[key]) return;
-    const cat = cakes.find(c => c._id === _id);
-    if (!cat) return;
-    const newVal = !cat.isTopPick;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
-    } catch (e) {
-      setCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [cakes, toggleLoading]);
-
-  const handleStatusToggle = useCallback(async (_id) => {
-    const key = `${_id}-status`;
-    if (toggleLoading[key]) return;
-    const cat = cakes.find(c => c._id === _id);
-    if (!cat) return;
-    const newVal = !cat.isActive;
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setCakes(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllCakes(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    try {
-      const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
-      if (!res.success) throw new Error(res.message || 'Failed');
-      setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
-    } catch (e) {
-      setCakes(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllCakes(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
-    }
-  }, [cakes, toggleLoading]);
-
-  /* ---------- Delete ---------- */
-  const handleDeleteClick = cat => { setCakeToDelete(cat); setOpenDeleteDialog(true); };
-  const handleDeleteConfirm = async () => {
-    try {
-      await makeAPICall(`${API_URL}/${cakeToDelete._id}`, getFetchOptions('DELETE'));
-      setCakes(p => p.filter(c => c._id !== cakeToDelete._id));
-      setAllCakes(p => p.filter(c => c._id !== cakeToDelete._id));
-      setNotification({ open: true, message: `${cakeToDelete.title} deleted`, severity: 'success' });
-    } catch (e) {
-      setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally {
-      setOpenDeleteDialog(false); setCakeToDelete(null);
-    }
-  };
-
-  /* ---------- Export (INR) ---------- */
-  const filtered = cakes.filter(c =>
-    `${c.title} ${c.subtitle} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  const filtered = cakes.filter((c) =>
+    `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const exportCSV = () => {
-    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
-    const rows = filtered.map(c => [
-      c.id, `"${c.title}"`, `"${c.subtitle}"`, c.cakeType, toINR(c.price),
-      `"${c.providerName}"`, `"${c.providerEmail}"`, `"${c.includes}"`,
-      c.isTopPick ? 'Yes' : 'No', c.isActive ? 'Active' : 'Inactive'
-    ]);
-    const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `cake_${new Date().toISOString().split('T')[0]}.csv`; a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'CSV exported', severity: 'success' });
-  };
-
-  const exportExcel = () => {
-    const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
-    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
-      <td>${c.id}</td><td>${c.title}</td><td>${c.subtitle}</td><td>${c.cakeType}</td><td>${toINR(c.price)}</td>
-      <td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.includes}</td>
-      <td>${c.isTopPick ? 'Yes' : 'No'}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
-    </tr>`).join('')}</tbody></table>`;
-    const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `cake_${new Date().toISOString().split('T')[0]}.xls`; a.click();
-    setAnchorEl(null);
-    setNotification({ open: true, message: 'Excel exported', severity: 'success' });
-  };
-
-  /* ---------- View ---------- */
-  const handleView = cat => {
-    setSelectedCake(cat.rawCake);
-    setOpenViewDialog(true);
-  };
-
-  /* ---------- Edit ---------- */
-  const handleEdit = cat => {
-    const r = cat.rawCake;
-    setEditingCake(cat);
-    setEditFormData({
-      title: r.title || '',
-      subtitle: r.subtitle || '',
-      description: r.description || '',
-      cakeType: r.cakeType || '',
-      price: r.price || 0,
-      includes: r.includes || [],
-      searchTags: r.searchTags || [],
-      faqs: r.faqs || [],
-      thumbnail: r.thumbnail || '',
+  const vendorGroups = useMemo(() => {
+    const groups = {};
+    filtered.forEach((pkg) => {
+      const key = pkg.providerId;
+      if (!groups[key]) {
+        groups[key] = {
+          providerId: key, providerName: pkg.providerName,
+          providerEmail: pkg.providerEmail, providerPhone: pkg.providerPhone,
+          packages: [],
+        };
+      }
+      groups[key].packages.push(pkg);
     });
-    setCurrentTab(0);
-    setOpenEditDialog(true);
-  };
+    return Object.values(groups).sort((a, b) => b.packages.length - a.packages.length);
+  }, [filtered]);
 
-  const handleSaveEdit = async () => {
+  const toggleVendor = (vendorId) => setExpandedVendors(p => ({ ...p, [vendorId]: !p[vendorId] }));
+
+  const handleStatusUpdate = async (_id, type) => {
+    const valKey = type === 'topPick' ? 'isTopPick' : 'isActive';
+    const endpoint = type === 'topPick' ? 'toggle-top-pick' : 'toggle-active';
+    const key = `${_id}-${type}`;
+    if (toggleLoading[key]) return;
+
+    setToggleLoading(p => ({ ...p, [key]: true }));
+    setCakes(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
     try {
-      setSaveLoading(true);
-      const payload = { ...editFormData };
-      if (payload.includes) {
-        payload.includes = payload.includes.filter(inc => inc.title && inc.items?.length);
-      }
-      const data = await makeAPICall(`${API_URL}/${editingCake._id}`, getFetchOptions('PUT', payload));
-      if (data.success) {
-        const updated = mapCake(data.data, editingCake.id - 1);
-        setCakes(p => p.map(x => x._id === editingCake._id ? updated : x));
-        setAllCakes(p => p.map(x => x._id === editingCake._id ? updated : x));
-        setNotification({ open: true, message: 'Cake updated', severity: 'success' });
-        setOpenEditDialog(false);
-      }
+      const res = await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
+      if (!res.ok) throw new Error('Failed');
     } catch (e) {
-      setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
+      setCakes(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
+      setNotification({ open: true, message: 'Update failed', severity: 'error' });
+    } finally { setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; }); }
   };
 
-  const handleIncludeChange = (idx, field, val) => {
-    setEditFormData(p => ({
-      ...p,
-      includes: p.includes.map((inc, i) => i === idx ? { ...inc, [field]: val } : inc)
-    }));
-  };
-  const addInclude = () => setEditFormData(p => ({ ...p, includes: [...(p.includes || []), { title: '', items: [] }] }));
-  const removeInclude = idx => setEditFormData(p => ({ ...p, includes: p.includes.filter((_, i) => i !== idx) }));
+  const handleView = (pkg) => { setSelectedCake(pkg.rawPackage); setOpenViewDialog(true); };
 
-  /* ---------- Stats ---------- */
   const stats = {
     total: allCakes.length,
     active: allCakes.filter(c => c.isActive).length,
-    inactive: allCakes.filter(c => !c.isActive).length,
     topPick: allCakes.filter(c => c.isTopPick).length,
+    vendors: [...new Set(allCakes.map(c => c.providerId))].length,
   };
 
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+    <Box sx={{ p: 4, minHeight: '100vh', bgcolor: themeColors.background, color: themeColors.textMain }}>
+      {/* Red Premium Header */}
+      <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <Box>
+          <Typography variant="h3" sx={{ fontWeight: 900, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.1px', fontSize: '2.3rem' }}>
+            BookMyEvent Cakes
+          </Typography>
+          <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 600, mt: 0.2, fontSize: '0.88rem' }}>
+            Confectionery partners & treat management.
+          </Typography>
+        </Box>
+        <Box sx={{ display: 'flex', gap: 1.5 }}>
+          <Button variant="outlined" startIcon={<Refresh fontSize="small" />} onClick={() => fetchCakes()} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.2, height: 42, fontSize: '0.82rem', borderColor: themeColors.border, color: themeColors.textSecondary }}>Refresh</Button>
+          <Button variant="contained" disableElevation onClick={() => fetchCakes(true)} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.5, height: 42, fontSize: '0.82rem', background: themeColors.gradientPrimary, '&:hover': { opacity: 0.9 } }}>Top Picks</Button>
+        </Box>
+      </Box>
+
       {/* Stats */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', p: 2, bgcolor: '#f5f5f5', gap: 1 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total: {stats.total}</Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active: {stats.active}</Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive: {stats.inactive}</Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Top-Pick: {stats.topPick}</Box>
-        </Box>
-        <Button variant="contained" color="secondary" size="small" onClick={() => fetchCakes(true)} disabled={loading}>
-          {loading ? 'Loading...' : 'Fetch Top-Picks'}
-        </Button>
+      <Box sx={{ display: 'flex', gap: 2.5, mb: 4, flexWrap: 'wrap' }}>
+        <HeaderStat label="Confections" value={stats.total} icon={<Cake />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
+        <HeaderStat label="Active" value={stats.active} icon={<CheckCircle />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
+        <HeaderStat label="Top Picks" value={stats.topPick} icon={<Star />} color={themeColors.warning} />
+        <HeaderStat label="Bake Studios" value={stats.vendors} icon={<Storefront />} color={themeColors.primary} />
       </Box>
 
-      {/* Search & Export */}
-      <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: '#f5f5f5' }}>
-        <TextField
-          placeholder="Search Package / Provider"
-          size="small"
-          value={searchTerm}
-          onChange={e => setSearchTerm(e.target.value)}
-          InputProps={{ startAdornment: <InputAdornment position="start">Search</InputAdornment> }}
-          sx={{ bgcolor: 'white', minWidth: 220 }}
-        />
-        <Button variant="contained" color="primary" size="small" endIcon={<Download />} onClick={e => setAnchorEl(e.currentTarget)}>
-          Export
+      {/* Filter */}
+      <Paper elevation={0} sx={{ p: 1.8, mb: 3.5, borderRadius: '18px', border: '1px solid', borderColor: themeColors.border, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'white' }}>
+        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+          <TextField
+            placeholder="Search bakeries or treats..."
+            size="small"
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+            InputProps={{ startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1, fontSize: 18 }} /> }}
+            sx={{ width: 350, '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: themeColors.background, fontSize: '0.82rem' } }}
+          />
+        </Box>
+        <Button 
+          variant="text" 
+          onClick={() => {
+            const anyVisible = Object.values(expandedVendors).some(v => v);
+            if (anyVisible) setExpandedVendors({});
+            else {
+              const all = {};
+              [...new Set(filtered.map(f => f.providerId))].forEach(id => { all[id] = true; });
+              setExpandedVendors(all);
+            }
+          }} 
+          sx={{ fontWeight: 800, color: themeColors.textSecondary, textTransform: 'none', fontSize: '0.78rem' }}
+        >
+          {Object.values(expandedVendors).some(v => v) ? 'Collapse Bakeries' : 'View All Treats'}
         </Button>
-        <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
-          <MenuItem onClick={exportExcel}>Excel</MenuItem>
-          <MenuItem onClick={exportCSV}>CSV</MenuItem>
-        </Menu>
-      </Box>
+      </Paper>
 
-      {/* Table */}
-      {loading ? (
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading cakes...</Typography>
-        </Box>
-      ) : (
-        <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                <TableCell>Sl</TableCell>
-                <TableCell>Package</TableCell>
-                <TableCell>Subtitle</TableCell>
-                <TableCell>Type</TableCell>
-                <TableCell>Price (INR)</TableCell>
-                <TableCell>Provider</TableCell>
-                <TableCell>Includes</TableCell>
-                <TableCell>Top-Pick</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No cake packages found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map(c => {
-                  const topKey = `${c._id}-topPick`;
-                  const statKey = `${c._id}-status`;
-                  return (
-                    <TableRow key={c._id} hover>
-                      <TableCell>{c.id}</TableCell>
-                      <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</TableCell>
-                      <TableCell>{c.subtitle}</TableCell>
-                      <TableCell>{c.cakeType}</TableCell>
-                      <TableCell>{toINR(c.price)}</TableCell>
-                      <TableCell>{c.providerName}</TableCell>
-                      <TableCell sx={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.includes}</TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
-                        {toggleLoading[topKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isActive} onChange={() => handleStatusToggle(c._id)} disabled={toggleLoading[statKey]} />
-                        {toggleLoading[statKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton size="small" color="info" onClick={() => handleView(c)} title="View"><VisibilityOutlined /></IconButton>
-                        <IconButton size="small" color="primary" onClick={() => handleEdit(c)} title="Edit"><Edit /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)} title="Delete"><Delete /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Box>
-      )}
+      {/* Vendor Groups */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
+        {vendorGroups.map((vendor) => {
+          const isExpanded = expandedVendors[vendor.providerId];
+          const activeCount = vendor.packages.filter(p => p.isActive).length;
 
-      {/* ---------- VIEW DIALOG (INR) ---------- */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedCake?.title}</Typography>
-        </DialogTitle>
-        <DialogContent dividers>
-          {selectedCake && (
-            <Grid container spacing={3}>
-              {/* Basic */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><Category fontSize="small" /> Package</Typography>
-                <Typography paragraph>{selectedCake.title}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Subtitle</Typography>
-                <Typography paragraph>{selectedCake.subtitle || '—'}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedCake.price)}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><Restaurant fontSize="small" /> Type</Typography>
-                <Typography>{selectedCake.cakeType || '—'}</Typography>
-              </Grid>
-
-              {/* Provider */}
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedCake.provider?.firstName} {selectedCake.provider?.lastName}</Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedCake.provider?.phone || '—'}
-                </Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedCake.provider?.email || '—'}
-                </Typography>
-                {selectedCake.provider?.website && (
-                  <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Web fontSize="small" /> <a href={selectedCake.provider.website} target="_blank" rel="noopener noreferrer">{selectedCake.provider.website}</a>
+          return (
+            <Paper key={vendor.providerId} elevation={0} sx={{
+              borderRadius: '24px', overflow: 'hidden', border: '1px solid',
+              borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
+              boxShadow: isExpanded ? '0 12px 30px rgba(225,91,100,0.06)' : 'none',
+              transition: 'all 0.4s ease', bgcolor: 'white'
+            }}>
+              <Box onClick={() => toggleVendor(vendor.providerId)} sx={{
+                p: 2.5, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'pointer',
+                bgcolor: isExpanded ? themeColors.accentLight : 'white',
+              }}>
+                <Avatar sx={{ 
+                  width: 44, height: 44, fontSize: '1.1rem', fontWeight: 900, 
+                  background: themeColors.gradientPrimary, color: 'white', 
+                  border: '3px solid white', boxShadow: '0 4px 8px rgba(0,0,0,0.08)' 
+                }}>
+                  {vendor.providerName[0].toUpperCase()}
+                </Avatar>
+                <Box sx={{ flex: 1 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textMain, fontSize: '1.12rem' }}>{vendor.providerName}</Typography>
+                  <Typography variant="body1" sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.82rem' }}>
+                    {vendor.providerEmail} • {vendor.providerPhone}
                   </Typography>
-                )}
-              </Grid>
+                </Box>
+                <Box sx={{ textAlign: 'right', px: 1.5 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>{vendor.packages.length} TREATS</Typography>
+                  <Chip label={`${activeCount} ACTIVE`} size="small" sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }} />
+                </Box>
+              </Box>
 
-              {/* Includes */}
-              <Grid item xs={12}>
-                <Divider sx={{ my: 2 }} />
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Includes</Typography>
-                <List dense>
-                  {selectedCake.includes?.map((inc, i) => (
-                    <ListItem key={i} disableGutters>
-                      <ListItemText primary={<strong>{inc.title}</strong>} secondary={inc.items.join(', ')} />
-                    </ListItem>
-                  ))}
-                </List>
-              </Grid>
+              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Box sx={{ px: 3.5, pb: 2.5 }}>
+                  <Divider sx={{ mb: 2.5 }} />
+                  <TableContainer>
+                    <Table size="medium">
+                      <TableHead>
+                        <TableRow sx={{ '& th': { borderBottom: '2px solid' + themeColors.border, py: 1.2 } }}>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>CONFECTION NAME</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>PRICE (INR)</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">TOP PICK</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">STATUS</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">ACTIONS</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {vendor.packages.map((pkg) => (
+                          <TableRow key={pkg._id} sx={{ '& td': { py: 1.6 }, '&:hover': { bgcolor: '#F9FAFB' } }}>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>{pkg.title}</Typography>
+                              <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
+                                <Chip label={pkg.itemType} size="small" icon={<RestaurantMenu sx={{ fontSize: '10px !important' }} />} sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: pkg.itemType === 'Eggless' ? '#f0fdf4' : '#fff7ed', color: pkg.itemType === 'Eggless' ? '#16a34a' : '#ea580c' }} />
+                              </Box>
+                            </TableCell>
+                            <TableCell>
+                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>₹{pkg.finalPrice.toLocaleString()}</Typography>
+                              {pkg.basePrice > pkg.finalPrice && <Typography sx={{ color: themeColors.textSecondary, textDecoration: 'line-through', fontSize: '0.75rem' }}>₹{pkg.basePrice.toLocaleString()}</Typography>}
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isTopPick} onChange={() => handleStatusUpdate(pkg._id, 'topPick')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }} />
+                            </TableCell>
+                            <TableCell align="center">
+                              <Switch size="small" checked={pkg.isActive} onChange={() => handleStatusUpdate(pkg._id, 'status')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.6 }}>
+                                <Tooltip title="View Detailed Info"><IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton></Tooltip>
+                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}><Edit sx={{ fontSize: 18 }} /></IconButton>
+                                <IconButton size="small" sx={{ color: themeColors.danger }}><Delete sx={{ fontSize: 18 }} /></IconButton>
+                              </Box>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </Box>
+              </Collapse>
+            </Paper>
+          );
+        })}
+      </Box>
 
-              {/* Tags */}
-              {selectedCake.searchTags?.length > 0 && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Search Tags</Typography>
-                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selectedCake.searchTags.map(t => <Chip key={t} label={t} size="small" variant="outlined" />)}
-                  </Box>
-                </Grid>
-              )}
-
-              {/* Description */}
-              {selectedCake.description && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedCake.description}</Typography>
-                </Grid>
-              )}
-
-              {/* FAQs */}
-              {selectedCake.faqs?.length > 0 && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>FAQs</Typography>
-                  <List dense>
-                    {selectedCake.faqs.map((q, i) => (
-                      <ListItem key={i}>
-                        <ListItemText primary={q.question} secondary={q.answer} />
-                      </ListItem>
-                    ))}
-                  </List>
-                </Grid>
-              )}
-            </Grid>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawCake: selectedCake }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- EDIT DIALOG (INR Helper) ---------- */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Edit Cake: {editingCake?.title}</Typography>
-          <IconButton size="small" onClick={() => setOpenEditDialog(false)} sx={{ color: 'white' }}><Close /></IconButton>
+      {/* View Dialog */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px' } }}>
+        <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
+          <Typography sx={{ fontWeight: 900, fontSize: '1.2rem' }}>Treat Details</Typography>
+          <IconButton onClick={() => setOpenViewDialog(false)}><Close /></IconButton>
         </DialogTitle>
-        <DialogContent dividers sx={{ p: 0 }}>
-          <Tabs value={currentTab} onChange={(e, v) => setCurrentTab(v)} sx={{ borderBottom: 1, borderColor: 'divider' }}>
-            <Tab label="Basic" />
-            <Tab label="Includes" />
-            <Tab label="Other" />
-          </Tabs>
-
-          <Box sx={{ p: 3 }}>
-            {/* Basic */}
-            {currentTab === 0 && (
+        <DialogContent sx={{ pb: 4 }}>
+          {selectedCake && (
+            <Box>
+              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, color: themeColors.accent }}>{selectedCake.name}</Typography>
+              <Typography sx={{ color: themeColors.textSecondary, mb: 3, lineHeight: 1.6, fontSize: '0.9rem' }}>{selectedCake.shortDescription}</Typography>
+              
               <Grid container spacing={2}>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Title" value={editFormData.title || ''} onChange={e => setEditFormData(p => ({ ...p, title: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Subtitle" value={editFormData.subtitle || ''} onChange={e => setEditFormData(p => ({ ...p, subtitle: e.target.value }))} /></Grid>
-                <Grid item xs={12}><TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Type" value={editFormData.cakeType || ''} onChange={e => setEditFormData(p => ({ ...p, cakeType: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}>
-                  <TextField
-                    fullWidth
-                    label="Price (AED)"
-                    type="number"
-                    value={editFormData.price || ''}
-                    onChange={e => setEditFormData(p => ({ ...p, price: Number(e.target.value) }))}
-                    helperText={`≈ ₹${toINR(editFormData.price || 0)}`}
-                  />
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>FINAL PRICE</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.success }}>₹{selectedCake.finalPrice.toLocaleString()}</Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>ITEM TYPE</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 900, color: selectedCake.itemType === 'Eggless' ? themeColors.success : themeColors.warning }}>
+                      {selectedCake.itemType.toUpperCase()}
+                    </Typography>
+                  </Paper>
                 </Grid>
               </Grid>
-            )}
 
-            {/* Includes */}
-            {currentTab === 1 && (
-              <Box>
-                <Button variant="outlined" size="small" onClick={addInclude} sx={{ mb: 2 }}>Add Include</Button>
-                {editFormData.includes?.map((inc, idx) => (
-                  <Box key={idx} sx={{ border: '1px solid #ddd', borderRadius: 1, p: 2, mb: 2 }}>
-                    <Grid container spacing={2} alignItems="center">
-                      <Grid item xs={12} md={4}>
-                        <TextField fullWidth label="Title" size="small" value={inc.title || ''} onChange={e => handleIncludeChange(idx, 'title', e.target.value)} />
-                      </Grid>
-                      <Grid item xs={12} md={6}>
-                        <TextField fullWidth label="Items (comma-separated)" size="small" value={inc.items?.join(', ') || ''} onChange={e => handleIncludeChange(idx, 'items', e.target.value.split(',').map(i => i.trim()).filter(Boolean))} />
-                      </Grid>
-                      <Grid item xs={12} md={2}>
-                        <IconButton color="error" onClick={() => removeInclude(idx)} size="small"><Delete /></IconButton>
-                      </Grid>
-                    </Grid>
-                  </Box>
+              <Divider sx={{ my: 3 }} />
+              
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Occasions:</Typography>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                {(selectedCake.occasions || []).map((o, i) => (
+                  <Chip key={i} label={o} size="small" sx={{ fontWeight: 700 }} />
                 ))}
               </Box>
-            )}
-
-            {/* Other */}
-            {currentTab === 2 && (
-              <Grid container spacing={2}>
-                <Grid item xs={12}>
-                  <Autocomplete multiple freeSolo options={[]} value={editFormData.searchTags || []}
-                    onChange={(e, v) => setEditFormData(p => ({ ...p, searchTags: v }))}
-                    renderTags={(v, p) => v.map((o, i) => <Chip key={i} label={o} {...p(i)} />)}
-                    renderInput={p => <TextField {...p} label="Search Tags" />} />
-                </Grid>
-              </Grid>
-            )}
-          </Box>
+            </Box>
+          )}
         </DialogContent>
-        <DialogActions sx={{ p: 2, justifyContent: 'space-between' }}>
-          <Button onClick={() => setOpenEditDialog(false)} variant="outlined" disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" startIcon={saveLoading ? <CircularProgress size={16} /> : <Save />} disabled={saveLoading}>
-            {saveLoading ? 'Saving...' : 'Save Changes'}
-          </Button>
-        </DialogActions>
       </Dialog>
 
-      {/* ---------- DELETE DIALOG ---------- */}
-      <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{cakeToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
-        <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* ---------- SNACKBAR ---------- */}
-      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert onClose={() => setNotification(p => ({ ...p, open: false }))} severity={notification.severity} variant="filled">
-          {notification.message}
-        </Alert>
+      <Snackbar open={notification.open} autoHideDuration={3000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 700, fontSize: '0.82rem' }}>{notification.message}</Alert>
       </Snackbar>
-    </TableContainer>
+    </Box>
   );
 };
 
-export default CakeList;
+export default Cakelist;

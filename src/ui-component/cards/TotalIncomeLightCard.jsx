@@ -156,7 +156,7 @@ export default function TotalIncomeLightCard({ isLoading, total, icon, label }) 
                 </ListItemAvatar>
                 <ListItemText
                   sx={{ py: 0, mt: 0.45, mb: 0.45 }}
-                  primary={<Typography variant="h4" sx={{ color: '#ffffff' }}>{total}k</Typography>}
+                  primary={<Typography variant="h4" sx={{ color: '#ffffff' }}>₹{total}L</Typography>}
                   secondary={
                     <Typography variant="subtitle2" sx={{ color: 'rgba(255, 255, 255, 0.7)', mt: 0.5 }}>
                       {label}
