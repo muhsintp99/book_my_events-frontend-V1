@@ -18,7 +18,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 function AddMehandi() {
   const { id } = useParams();
@@ -98,6 +98,7 @@ function AddMehandi() {
     startingPrice: '',
     minBookingPrice: '',
     vendorType: 'individual',
+    maxBookings: '',
     maxBookings: ''
   });
 
@@ -119,13 +120,7 @@ function AddMehandi() {
   const [selectedMultiZones, setSelectedMultiZones] = useState([]);
 
   // Check if current module supports multi-zone
-  const isMultiZoneModule = () => {
-    if (!formData.module || !allModules.length) return false;
-    const mod = allModules.find((m) => m._id === formData.module);
-    if (!mod) return false;
-    const title = (mod.title || '').toLowerCase();
-    return title.includes('makeup') || title.includes('photography') || title.includes('mehandi') || title.includes('mehndi');
-  };
+  const isMultiZoneModule = () => true; // Mehandi always supports multi-zone
 
   const handleMultiZoneChange = (event) => {
     const value = event.target.value;
@@ -221,7 +216,12 @@ function AddMehandi() {
 
       if (!result.success) throw new Error(result.message || 'Failed to fetch');
 
-      const { user, profile, vendorProfile } = result.data.profile;
+      const profileInfo = result.data?.profile || result.profile || result.data;
+      if (!profileInfo) throw new Error('Profile data not found in response');
+
+      const { user, profile, vendorProfile } = profileInfo;
+      if (!user) throw new Error('User data missing from profile');
+
       setProfileId(profile?._id || null);
 
       setFormData({
@@ -230,13 +230,12 @@ function AddMehandi() {
         email: user.email || '',
         phone: user.phone || '',
         storeName: vendorProfile?.storeName || profile?.vendorName || '',
-        storeAddress: vendorProfile?.storeAddress ||
-          profile?.storeAddress || {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          fullAddress: profile?.businessAddress || ''
+        storeAddress: {
+          street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || '',
+          city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
+          state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
+          zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
@@ -261,7 +260,7 @@ function AddMehandi() {
         adminNotes: vendorProfile?.adminNotes || '',
         isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
         approvedProvider: vendorProfile?.approvedProvider || '',
-        services: vendorProfile?.services || [],
+        services: (vendorProfile?.services || []).map((s) => s._id?.$oid || s._id || s),
         specialised:
           vendorProfile?.specialised?._id?.$oid ||
           vendorProfile?.specialised?._id ||
@@ -271,6 +270,7 @@ function AddMehandi() {
         startingPrice: vendorProfile?.startingPrice || '',
         minBookingPrice: vendorProfile?.minBookingPrice || '',
         vendorType: vendorProfile?.vendorType || 'individual',
+        maxBookings: vendorProfile?.maxBookings || '',
         maxBookings: vendorProfile?.maxBookings || ''
       });
 
@@ -282,13 +282,13 @@ function AddMehandi() {
       }
 
       const logo = vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto;
-      if (logo) setLogoPreview(logo);
+      if (logo) setLogoPreview(getApiImageUrl(logo));
 
       const cover = vendorProfile?.coverImage;
-      if (cover) setCoverPreview(cover);
+      if (cover) setCoverPreview(getApiImageUrl(cover));
 
       if (vendorProfile?.zone?._id || vendorProfile?.zone) {
-        setSelectedZone(vendorProfile.zone?._id || vendorProfile.zone);
+        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
       }
 
       setIsFreeTrial(user.isFreeTrial || false);
@@ -670,9 +670,9 @@ function AddMehandi() {
         if (!res.ok) throw new Error(result.message || 'Update failed');
 
         showAlert('Provider updated successfully!', 'success');
-        setTimeout(() => {
-          navigate('/mehandi/mehandiprovider');
-        }, 2000);
+        // setTimeout(() => {
+        //   navigate('/mehandi/mehandiprovider');
+        // }, 2000);
         return;
       }
 
@@ -832,6 +832,7 @@ function AddMehandi() {
       adminNotes: '',
       isActive: true,
       approvedProvider: '',
+      vendorCode: '',
       services: [],
       specialised: '',
       startingPrice: '',
@@ -1164,7 +1165,7 @@ function AddMehandi() {
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((zoneId) => {
-                      const zone = zones.find(z => z._id === zoneId);
+                      const zone = zones.find(z => (z._id?.$oid || z._id) === zoneId);
                       return (
                         <Chip
                           key={zoneId}
@@ -1194,11 +1195,11 @@ function AddMehandi() {
                   .filter(z => z._id !== selectedZone)
                   .map((z) => (
                     <MenuItem
-                      key={z._id}
-                      value={z._id}
+                      key={z._id?.$oid || z._id}
+                      value={z._id?.$oid || z._id}
                       sx={{
-                        fontWeight: selectedMultiZones.includes(z._id) ? 600 : 400,
-                        bgcolor: selectedMultiZones.includes(z._id) ? '#eef2ff' : 'transparent'
+                        fontWeight: selectedMultiZones.includes(z._id?.$oid || z._id) ? 600 : 400,
+                        bgcolor: selectedMultiZones.includes(z._id?.$oid || z._id) ? '#eef2ff' : 'transparent'
                       }}
                     >
                       {z.name}

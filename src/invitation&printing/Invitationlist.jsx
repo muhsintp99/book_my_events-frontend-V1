@@ -24,7 +24,7 @@ const InvitationList = () => {
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [anchorEl, setAnchorEl] = useState(null);
 
-    const API_URL = `${API_BASE_URL}/invitations`;
+    const API_URL = `${API_BASE_URL}/invitation-printing`;
 
     const fetchInvitations = useCallback(async () => {
         try {

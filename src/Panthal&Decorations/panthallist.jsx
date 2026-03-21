@@ -21,7 +21,7 @@ const PanthalList = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-    const API_URL = `${API_BASE_URL}/panthals`; // Assuming this endpoint exists or follow pattern
+    const API_URL = `${API_BASE_URL}/panthal-decoration`;
 
     const fetchItems = useCallback(async () => {
         try {

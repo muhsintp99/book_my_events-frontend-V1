@@ -25,14 +25,7 @@ import {
   Alert,
   CircularProgress,
   Chip,
-  Divider,
   Grid,
-  Tabs,
-  Tab,
-  Autocomplete,
-  List,
-  ListItem,
-  ListItemText,
   Stack,
   FormControl,
   InputLabel,
@@ -43,25 +36,19 @@ import {
   Edit,
   Delete,
   Download,
-  Save,
-  Close,
-  Diamond,
-  AttachMoney,
-  Tag,
   People,
-  Web,
   Phone,
   Email,
   Category as CategoryIcon,
   Add as AddIcon,
   CloudUpload,
-
+  AttachMoney,
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 import { getAllVendors, formatVendorsForList } from '../api/providerApi';
 
-const MehandisList = () => {
+const MehandiList = () => {
   const navigate = useNavigate();
 
   /* ---------- State ---------- */
@@ -86,34 +73,26 @@ const MehandisList = () => {
   const [editingMehandi, setEditingMehandi] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
-  const [currentTab, setCurrentTab] = useState(0);
 
   // Add Dialog
   const [openAddDialog, setOpenAddDialog] = useState(false);
   const [addFormData, setAddFormData] = useState({
-    name: '',
+    packageName: '',
     description: '',
-    unit: '',
-    weight: 1,
-    material: '',
-    buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
-    availabilityMode: 'purchase',
+    packagePrice: 0,
+    advanceBookingAmount: 0,
     category: '',
-    subCategory: '',
     provider: '',
     isActive: true
   });
   const [providers, setProviders] = useState([]);
   const [categories, setCategories] = useState([]);
-  const [subCategories, setSubCategories] = useState([]);
-  const [thumbnail, setThumbnail] = useState(null);
-  const [galleryImages, setGalleryImages] = useState([]);
-  const [thumbnailPreview, setThumbnailPreview] = useState(null);
+  const [imageFile, setImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
   const [dependenciesLoading, setDependenciesLoading] = useState(false);
 
   /* ---------- API ---------- */
-  // API_BASE_URL is now imported from apiImageUtils
-  const API_URL = `${API_BASE_URL}/mehandis`;
+  const API_URL = `${API_BASE_URL}/mehandi`;
 
   const getToken = () => {
     try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
@@ -142,10 +121,6 @@ const MehandisList = () => {
         clearTimeout(timeout);
         if (!res.ok) {
           const txt = await res.text();
-          if (res.status === 401) throw new Error('Authentication required');
-          if (res.status === 403) throw new Error('Forbidden');
-          if (res.status === 404) throw new Error('Not found');
-          if (res.status >= 500) throw new Error('Server error');
           throw new Error(`HTTP ${res.status}: ${txt}`);
         }
         return await res.json();
@@ -156,37 +131,23 @@ const MehandisList = () => {
     }
   };
 
-  /* ---------- Currency ---------- */
-  const AED_TO_INR = 22.8; // 1 AED ≈ 22.8 INR
-  const toINR = (aed) => Math.round(aed * AED_TO_INR);
-
   /* ---------- Mapping ---------- */
   const mapMehandi = (c, idx) => ({
     id: idx + 1,
     _id: c._id,
-    mehandiId: c.mehandiId,
-    title: c.name || 'Untitled',
+    packageId: c.packageId,
+    title: c.packageName || 'Untitled',
     description: c.description || '',
-    unit: c.unit || '',
-    weight: c.weight ?? 0,
-    material: c.material || '',
-    price: c.buyPricing?.totalPrice ?? 0,
+    price: c.packagePrice ?? 0,
+    advanceBookingAmount: c.advanceBookingAmount ?? 0,
     providerName:
       c.provider?.firstName && c.provider?.lastName
         ? `${c.provider.firstName} ${c.provider.lastName}`
         : c.provider?.firstName || '—',
     providerEmail: c.provider?.email || '',
     isActive: c.isActive ?? false,
-    thumbnail: c.thumbnail || '',
-    galleryImages: c.galleryImages || [],
-    availabilityMode: c.availabilityMode || 'purchase',
-    buyPricing: c.buyPricing || {},
-    rentalPricing: c.rentalPricing || {},
-    stock: c.stock || {},
-    shipping: c.shipping || {},
-    occasions: c.occasions || [],
-    features: c.features || {},
-    tags: c.tags || [],
+    isTopPick: c.isTopPick ?? false,
+    image: c.image || '',
     rawMehandi: c,
   });
 
@@ -208,7 +169,6 @@ const MehandisList = () => {
     }
   };
 
-  /* ---------- Fetch Dependencies ---------- */
   const fetchDependencies = async () => {
     try {
       setDependenciesLoading(true);
@@ -219,17 +179,12 @@ const MehandisList = () => {
 
       if (vData?.success) {
         const formatted = formatVendorsForList(vData.data);
-        // Filter for Mehandis module vendors if possible, but for now show all who might be relevant
         setProviders(formatted.filter(v => (v.module || '').toLowerCase().includes('mehandi')));
       }
 
       if (cData) {
         const cats = Array.isArray(cData) ? cData : cData.data || [];
-        // Filter for Mehandis module categories
-        setCategories(cats.filter(c => {
-          const modTitle = c.module?.title || '';
-          return modTitle.toLowerCase().includes('mehandi');
-        }));
+        setCategories(cats.filter(c => (c.module?.title || '').toLowerCase().includes('mehandi')));
       }
     } catch (e) {
       console.error('Error fetching dependencies:', e);
@@ -254,19 +209,17 @@ const MehandisList = () => {
     const newVal = !item.isTopPick;
     setToggleLoading(p => ({ ...p, [key]: true }));
     setMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
     } catch (e) {
       setMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllMehandis(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [mehandis, toggleLoading]);
+  }, [mehandis, toggleLoading, API_URL]);
 
   const handleStatusToggle = useCallback(async (_id) => {
     const key = `${_id}-status`;
@@ -276,19 +229,17 @@ const MehandisList = () => {
     const newVal = !item.isActive;
     setToggleLoading(p => ({ ...p, [key]: true }));
     setMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
     } catch (e) {
       setMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllMehandis(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [mehandis, toggleLoading]);
+  }, [mehandis, toggleLoading, API_URL]);
 
   /* ---------- Delete ---------- */
   const handleDeleteClick = item => { setMehandiToDelete(item); setOpenDeleteDialog(true); };
@@ -296,7 +247,6 @@ const MehandisList = () => {
     try {
       await makeAPICall(`${API_URL}/${mehandiToDelete._id}`, getFetchOptions('DELETE'));
       setMehandis(p => p.filter(c => c._id !== mehandiToDelete._id));
-      setAllMehandis(p => p.filter(c => c._id !== mehandiToDelete._id));
       setNotification({ open: true, message: `${mehandiToDelete.title} deleted`, severity: 'success' });
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
@@ -305,149 +255,61 @@ const MehandisList = () => {
     }
   };
 
-  /* ---------- Export (INR) ---------- */
-  const filtered = mehandis.filter(c =>
+  /* ---------- Search & Filtering ---------- */
+  const filteredResult = mehandis.filter(c =>
     `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  /* ---------- Export ---------- */
   const exportCSV = () => {
-    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const rows = filtered.map(c => [
-      c.id, `"${c.title}"`, `"${c.providerName}"`, `"${c.providerEmail}"`, c.availabilityMode, toINR(c.price),
-      c.weight, c.isActive ? 'Active' : 'Inactive'
+    const headers = ['Sl', 'Package Name', 'Provider', 'Price', 'Advance Amount', 'Status'];
+    const rows = filteredResult.map(c => [
+      c.id, `"${c.title}"`, `"${c.providerName}"`, c.price, c.advanceBookingAmount, c.isActive ? 'Active' : 'Inactive'
     ]);
     const csv = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `mehandis_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `mehandi_packages_${new Date().toISOString().split('T')[0]}.csv`;
+    link.click();
     setAnchorEl(null);
-    setNotification({ open: true, message: 'CSV exported', severity: 'success' });
   };
 
   const exportExcel = () => {
-    const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
-      <td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.availabilityMode}</td><td>${toINR(c.price)}</td>
-      <td>${c.weight}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
-    </tr>`).join('')}</tbody></table>`;
+    const headers = ['Sl', 'Package Name', 'Provider', 'Price', 'Advance Amount', 'Status'];
+    const html = `<table border="1"><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr>${filteredResult.map(c => `<tr><td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.price}</td><td>${c.advanceBookingAmount}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td></tr>`).join('')}</table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url; a.download = `mehandis_${new Date().toISOString().split('T')[0]}.xls`; a.click();
+    const link = document.createElement('a');
+    link.href = URL.createObjectURL(blob);
+    link.download = `mehandi_packages_${new Date().toISOString().split('T')[0]}.xls`;
+    link.click();
     setAnchorEl(null);
-    setNotification({ open: true, message: 'Excel exported', severity: 'success' });
   };
 
-  /* ---------- View ---------- */
-  const handleView = item => {
-    setSelectedMehandi(item.rawMehandi);
-    setOpenViewDialog(true);
-  };
+  /* ---------- View & Edit ---------- */
+  const handleView = item => { setSelectedMehandi(item.rawMehandi); setOpenViewDialog(true); };
 
-  /* ---------- Edit ---------- */
   const handleEdit = item => {
     const r = item.rawMehandi;
     setEditingMehandi(item);
     setEditFormData({
-      name: r.name || '',
+      packageName: r.packageName || '',
       description: r.description || '',
-      unit: r.unit || '',
-      weight: r.weight || 0,
-      material: r.material || '',
-      buyPricing: r.buyPricing || {},
-      rentalPricing: r.rentalPricing || {},
-      stock: r.stock || {},
-      shipping: r.shipping || {},
+      packagePrice: r.packagePrice || 0,
+      advanceBookingAmount: r.advanceBookingAmount || 0,
     });
-    setCurrentTab(0);
     setOpenEditDialog(true);
   };
 
   const handleSaveEdit = async () => {
     try {
       setSaveLoading(true);
-      const payload = { ...editFormData };
-      const data = await makeAPICall(`${API_BASE_URL}/mehandis/${editingMehandi._id}`, getFetchOptions('PUT', payload));
+      const data = await makeAPICall(`${API_URL}/${editingMehandi._id}`, getFetchOptions('PUT', editFormData));
       if (data.success) {
-        const updated = mapMehandi(data.data, editingMehandi.id - 1);
-        setMehandis(p => p.map(x => x._id === editingMehandi._id ? updated : x));
-        setAllMehandis(p => p.map(x => x._id === editingMehandi._id ? updated : x));
-        setNotification({ open: true, message: 'Mehandi updated', severity: 'success' });
+        setNotification({ open: true, message: 'Updated successfully', severity: 'success' });
+        fetchMehandis();
         setOpenEditDialog(false);
       }
-    } catch (e) {
-      setNotification({ open: true, message: e.message || 'Update failed', severity: 'error' });
-    } finally {
-      setSaveLoading(false);
-    }
-  };
-
-  /* ---------- Add Logic ---------- */
-  const handleThumbnailChange = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setThumbnail(file);
-      setThumbnailPreview(URL.createObjectURL(file));
-    }
-  };
-
-  const handleGalleryChange = (e) => {
-    const files = Array.from(e.target.files);
-    setGalleryImages(prev => [...prev, ...files]);
-  };
-
-  const handleSubmitAdd = async () => {
-    if (!addFormData.name || !addFormData.category || !addFormData.provider || !thumbnail) {
-      setNotification({ open: true, message: 'Please fill name, category, provider and thumbnail', severity: 'warning' });
-      return;
-    }
-
-    try {
-      setSaveLoading(true);
-      const formData = new FormData();
-      formData.append('name', addFormData.name);
-      formData.append('description', addFormData.description);
-      formData.append('unit', addFormData.unit);
-      formData.append('weight', addFormData.weight);
-      formData.append('material', addFormData.material);
-      formData.append('availabilityMode', addFormData.availabilityMode);
-      formData.append('category', addFormData.category);
-      formData.append('subCategory', addFormData.subCategory);
-      formData.append('provider', addFormData.provider);
-      formData.append('isActive', addFormData.isActive);
-      formData.append('buyPricing', JSON.stringify(addFormData.buyPricing));
-
-      // Get Mehandi Module ID
-      const moduleRes = await fetch(`${API_BASE_URL}/modules`).then(r => r.json());
-      const mehandiModule = (moduleRes.data || moduleRes).find(m => m.title.toLowerCase().includes('mehandi'));
-      if (mehandiModule) formData.append('module', mehandiModule._id);
-
-      formData.append('thumbnail', thumbnail);
-      galleryImages.forEach(img => formData.append('galleryImages', img));
-
-      const token = getToken();
-      const res = await fetch(`${API_BASE_URL}/mehandis`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData
-      });
-
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to add');
-
-      setNotification({ open: true, message: 'Mehandi added successfully!', severity: 'success' });
-      setOpenAddDialog(false);
-
-      // Reset form
-      setAddFormData({
-        name: '', description: '', unit: '', weight: 1, material: '',
-        buyPricing: { unitPrice: 0, discountType: 'none', discountValue: 0, tax: 0 },
-        availabilityMode: 'purchase', category: '', subCategory: '', provider: '', isActive: true
-      });
-      setThumbnail(null); setThumbnailPreview(null); setGalleryImages([]);
-
-      fetchMehandis();
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
@@ -455,9 +317,54 @@ const MehandisList = () => {
     }
   };
 
+  /* ---------- Add Logic ---------- */
+  const handleImageChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
 
+  const handleSubmitAdd = async () => {
+    if (!addFormData.packageName || !addFormData.provider || !addFormData.category) {
+      setNotification({ open: true, message: 'Please fill name, provider and category', severity: 'warning' });
+      return;
+    }
+    try {
+      setSaveLoading(true);
+      const formData = new FormData();
+      Object.entries(addFormData).forEach(([k, v]) => formData.append(k, v));
+      
+      // Get Mehandi Module ID
+      const moduleRes = await fetch(`${API_BASE_URL}/modules`).then(r => r.json());
+      const mod = (moduleRes.data || moduleRes).find(m => m.title.toLowerCase().includes('mehandi'));
+      if (mod) formData.append('secondaryModule', mod._id);
+      
+      if (imageFile) formData.append('image', imageFile);
 
-  /* ---------- Stats ---------- */
+      const res = await fetch(API_URL, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${getToken()}` },
+        body: formData
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Add failed');
+
+      setNotification({ open: true, message: 'Package added!', severity: 'success' });
+      setOpenAddDialog(false);
+      fetchMehandis();
+      // Reset form
+      setAddFormData({ packageName: '', description: '', packagePrice: 0, advanceBookingAmount: 0, category: '', provider: '', isActive: true });
+      setImageFile(null); setImagePreview(null);
+    } catch (e) {
+      setNotification({ open: true, message: e.message, severity: 'error' });
+    } finally {
+      setSaveLoading(false);
+    }
+  };
+
+  /* ---------- Render ---------- */
   const stats = {
     total: allMehandis.length,
     active: allMehandis.filter(c => c.isActive).length,
@@ -466,38 +373,35 @@ const MehandisList = () => {
   };
 
   return (
-    <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
-      {/* Stats */}
-      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', p: 2, bgcolor: '#f5f5f5', gap: 1 }}>
-        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-          <Box sx={{ bgcolor: '#e3f2fd', p: 1, borderRadius: 1 }}>Total: {stats.total}</Box>
-          <Box sx={{ bgcolor: '#fff3e0', p: 1, borderRadius: 1 }}>Active: {stats.active}</Box>
-          <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive: {stats.inactive}</Box>
-          <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Top-Pick: {stats.topPick}</Box>
-        </Box>
+    <TableContainer component={Paper} sx={{ p: 2 }}>
+      {/* Stats Table */}
+      <Box sx={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', mb: 2, gap: 1 }}>
+        <Stack direction="row" spacing={1}>
+          <Chip label={`Total: ${stats.total}`} color="primary" variant="outlined" />
+          <Chip label={`Active: ${stats.active}`} color="success" variant="outlined" />
+          <Chip label={`Inactive: ${stats.inactive}`} color="default" variant="outlined" />
+          <Chip label={`Top-Pick: ${stats.topPick}`} color="secondary" variant="outlined" />
+        </Stack>
         <Stack direction="row" spacing={1}>
           <Button variant="contained" color="success" size="small" startIcon={<AddIcon />} onClick={handleAddClick}>
-            Add Mehandi
+            Add Package
           </Button>
           <Button variant="contained" color="secondary" size="small" onClick={() => fetchMehandis(true)} disabled={loading}>
-            {loading ? 'Loading...' : 'Fetch Top-Picks'}
+            Top-Picks
           </Button>
         </Stack>
       </Box>
 
       {/* Search & Export */}
-      <Box sx={{ p: 2, display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 1, bgcolor: '#f5f5f5' }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2, gap: 1 }}>
         <TextField
-          placeholder="Search Package / Provider"
+          placeholder="Search Package / Provider..."
           size="small"
           value={searchTerm}
           onChange={e => setSearchTerm(e.target.value)}
-          InputProps={{ startAdornment: <InputAdornment position="start">Search</InputAdornment> }}
-          sx={{ bgcolor: 'white', minWidth: 220 }}
+          sx={{ minWidth: 250 }}
         />
-        <Button variant="contained" color="primary" size="small" endIcon={<Download />} onClick={e => setAnchorEl(e.currentTarget)}>
-          Export
-        </Button>
+        <Button variant="outlined" size="small" endIcon={<Download />} onClick={e => setAnchorEl(e.currentTarget)}>Export</Button>
         <Menu anchorEl={anchorEl} open={openMenu} onClose={() => setAnchorEl(null)}>
           <MenuItem onClick={exportExcel}>Excel</MenuItem>
           <MenuItem onClick={exportCSV}>CSV</MenuItem>
@@ -506,235 +410,174 @@ const MehandisList = () => {
 
       {/* Table */}
       {loading ? (
-        <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <CircularProgress size={20} />
-          <Typography>Loading mehandis...</Typography>
-        </Box>
+        <Box sx={{ p: 5, textAlign: 'center' }}><CircularProgress /><Typography>Loading packages...</Typography></Box>
       ) : (
-        <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
-          <Table stickyHeader sx={{ minWidth: 650 }}>
-            <TableHead>
-              <TableRow sx={{ bgcolor: '#f5f5f5' }}>
-                <TableCell>Sl</TableCell>
-                <TableCell>Name</TableCell>
-                <TableCell>Material</TableCell>
-                <TableCell>Weight</TableCell>
-                <TableCell>Price (INR)</TableCell>
-                <TableCell>Provider</TableCell>
-                <TableCell>Availability</TableCell>
-                <TableCell>Top-Pick</TableCell>
-                <TableCell>Status</TableCell>
-                <TableCell>Actions</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filtered.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No mehandis found</Typography>
-                  </TableCell>
-                </TableRow>
-              ) : (
-                filtered.map(c => {
-                  const topKey = `${c._id}-topPick`;
-                  const statKey = `${c._id}-status`;
-                  return (
-                    <TableRow key={c._id} hover>
-                      <TableCell>{c.id}</TableCell>
-                      <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</TableCell>
-                      <TableCell>{c.material}</TableCell>
-                      <TableCell>{c.weight}g</TableCell>
-                      <TableCell>{toINR(c.price)}</TableCell>
-                      <TableCell>{c.providerName}</TableCell>
-                      <TableCell>{c.availabilityMode}</TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
-                        {toggleLoading[topKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell>
-                        <Switch size="small" checked={c.isActive} onChange={() => handleStatusToggle(c._id)} disabled={toggleLoading[statKey]} />
-                        {toggleLoading[statKey] && <CircularProgress size={14} sx={{ ml: 0.5 }} />}
-                      </TableCell>
-                      <TableCell sx={{ whiteSpace: 'nowrap' }}>
-                        <IconButton size="small" color="info" onClick={() => handleView(c)} title="View"><VisibilityOutlined /></IconButton>
-                        <IconButton size="small" color="primary" onClick={() => handleEdit(c)} title="Edit"><Edit /></IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)} title="Delete"><Delete /></IconButton>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </Box>
+        <Table stickyHeader size="small">
+          <TableHead>
+            <TableRow sx={{ bgcolor: '#f5f5f5' }}>
+              <TableCell>Sl</TableCell>
+              <TableCell>Package Name</TableCell>
+              <TableCell>Price (₹)</TableCell>
+              <TableCell>Advance (₹)</TableCell>
+              <TableCell>Provider</TableCell>
+              <TableCell>Top-Pick</TableCell>
+              <TableCell>Status</TableCell>
+              <TableCell>Actions</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {filteredResult.length === 0 ? (
+              <TableRow><TableCell colSpan={8} align="center">No packages found</TableCell></TableRow>
+            ) : (
+              filteredResult.map(c => {
+                const topKey = `${c._id}-topPick`;
+                const statKey = `${c._id}-status`;
+                return (
+                  <TableRow key={c._id}>
+                    <TableCell>{c.id}</TableCell>
+                    <TableCell sx={{ fontWeight: 'bold' }}>{c.title}</TableCell>
+                    <TableCell>{c.price}</TableCell>
+                    <TableCell>{c.advanceBookingAmount}</TableCell>
+                    <TableCell>{c.providerName}</TableCell>
+                    <TableCell>
+                      <Switch size="small" checked={c.isTopPick} onChange={() => handleTopPickToggle(c._id)} disabled={toggleLoading[topKey]} />
+                    </TableCell>
+                    <TableCell>
+                      <Switch size="small" checked={c.isActive} onChange={() => handleStatusToggle(c._id)} disabled={toggleLoading[statKey]} />
+                    </TableCell>
+                    <TableCell>
+                      <IconButton size="small" color="info" onClick={() => handleView(c)}><VisibilityOutlined /></IconButton>
+                      <IconButton size="small" color="primary" onClick={() => handleEdit(c)}><Edit /></IconButton>
+                      <IconButton size="small" color="error" onClick={() => handleDeleteClick(c)}><Delete /></IconButton>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
       )}
 
-      {/* ---------- VIEW DIALOG (INR) ---------- */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedMehandi?.name || 'Mehandi Details'}</Typography>
-        </DialogTitle>
+      {/* ---------- VIEW DIALOG ---------- */}
+      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Package Details</DialogTitle>
         <DialogContent dividers>
           {selectedMehandi && (
-            <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><CategoryIcon fontSize="small" /> Name</Typography>
-                <Typography paragraph>{selectedMehandi.name}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Material</Typography>
-                <Typography paragraph>{selectedMehandi.material || '—'}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedMehandi.buyPricing?.totalPrice || 0)}</Typography>
-
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom>Weight</Typography>
-                <Typography>{selectedMehandi.weight}g</Typography>
+            <Grid container spacing={2}>
+              <Grid item xs={12} sx={{ textAlign: 'center' }}>
+                <Box component="img" src={getApiImageUrl(selectedMehandi.image)} sx={{ width: '100%', maxHeight: 250, objectFit: 'contain', borderRadius: 1 }} />
               </Grid>
-
-              <Grid item xs={12} md={6}>
-                <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedMehandi.provider?.firstName} {selectedMehandi.provider?.lastName}</Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedMehandi.provider?.phone || '—'}
-                </Typography>
-                <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedMehandi.provider?.email || '—'}
-                </Typography>
+              <Grid item xs={12}>
+                <Typography variant="h6">{selectedMehandi.packageName}</Typography>
+                <Typography variant="body2" color="textSecondary" paragraph>{selectedMehandi.description || 'No description provided.'}</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2">Price: ₹{selectedMehandi.packagePrice}</Typography>
+                <Typography variant="subtitle2">Advance: ₹{selectedMehandi.advanceBookingAmount}</Typography>
+                <Divider sx={{ my: 1 }} />
+                <Typography variant="subtitle2">Provider: {selectedMehandi.provider?.firstName} {selectedMehandi.provider?.lastName}</Typography>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><Email fontSize="inherit" /> {selectedMehandi.provider?.email}</Typography>
+                <Typography variant="body2" sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}><Phone fontSize="inherit" /> {selectedMehandi.provider?.phone}</Typography>
               </Grid>
-
-              {selectedMehandi.description && (
-                <Grid item xs={12}>
-                  <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedMehandi.description}</Typography>
-                </Grid>
-              )}
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawMehandi: selectedMehandi }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
+          <Button onClick={() => setOpenViewDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
       {/* ---------- EDIT DIALOG ---------- */}
-      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">Edit Mehandi: {editingMehandi?.title}</Typography>
-        </DialogTitle>
+      <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Edit Package</DialogTitle>
         <DialogContent dividers>
-          {editingMehandi && (
-            <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Name" value={editFormData.name || ''} onChange={e => setEditFormData(p => ({ ...p, name: e.target.value }))} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Material" value={editFormData.material || ''} onChange={e => setEditFormData(p => ({ ...p, material: e.target.value }))} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth label="Weight (g)" type="number" value={editFormData.weight || 0} onChange={e => setEditFormData(p => ({ ...p, weight: Number(e.target.value) }))} />
-              </Grid>
-              <Grid item xs={12}>
-                <TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} />
-              </Grid>
+          <Grid container spacing={2} sx={{ mt: 1 }}>
+            <Grid item xs={12}>
+              <TextField fullWidth label="Package Name" value={editFormData.packageName || ''} onChange={e => setEditFormData({ ...editFormData, packageName: e.target.value })} />
             </Grid>
-          )}
+            <Grid item xs={6}>
+              <TextField fullWidth label="Price (₹)" type="number" value={editFormData.packagePrice || 0} onChange={e => setEditFormData({ ...editFormData, packagePrice: Number(e.target.value) })} />
+            </Grid>
+            <Grid item xs={6}>
+              <TextField fullWidth label="Advance (₹)" type="number" value={editFormData.advanceBookingAmount || 0} onChange={e => setEditFormData({ ...editFormData, advanceBookingAmount: Number(e.target.value) })} />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData({ ...editFormData, description: e.target.value })} />
+            </Grid>
+          </Grid>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenEditDialog(false)} disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSaveEdit} variant="contained" color="primary" disabled={saveLoading}>
-            {saveLoading ? <CircularProgress size={24} /> : 'Save Changes'}
-          </Button>
+          <Button onClick={() => setOpenEditDialog(false)}>Cancel</Button>
+          <Button onClick={handleSaveEdit} variant="contained" disabled={saveLoading}>{saveLoading ? 'Saving...' : 'Save'}</Button>
         </DialogActions>
       </Dialog>
 
       {/* ---------- ADD DIALOG ---------- */}
-      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle sx={{ bgcolor: 'success.main', color: 'white' }}>
-          <Typography variant="h6">Add New Mehandi</Typography>
-        </DialogTitle>
+      <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="sm" fullWidth>
+        <DialogTitle>Add New Package</DialogTitle>
         <DialogContent dividers>
           {dependenciesLoading ? (
-            <Box sx={{ textAlign: 'center', p: 3 }}><CircularProgress /><Typography>Loading providers and categories...</Typography></Box>
+            <CircularProgress />
           ) : (
             <Grid container spacing={2} sx={{ mt: 1 }}>
-              <Grid item xs={12} md={6}>
-                <TextField fullWidth required label="Name" value={addFormData.name} onChange={e => setAddFormData({ ...addFormData, name: e.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Provider</InputLabel>
-                  <Select value={addFormData.provider} label="Provider" onChange={e => setAddFormData({ ...addFormData, provider: e.target.value })}>
-                    {providers.map(v => <MenuItem key={v.vendorId} value={v.vendorId}>{v.name} ({v.email})</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth required>
-                  <InputLabel>Category</InputLabel>
-                  <Select value={addFormData.category} label="Category" onChange={e => setAddFormData({ ...addFormData, category: e.target.value })}>
-                    {categories.filter(c => !c.parentCategory).map(c => <MenuItem key={c._id} value={c._id}>{c.title || c.name}</MenuItem>)}
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={6}>
-                <FormControl fullWidth>
-                  <InputLabel>Availability Mode</InputLabel>
-                  <Select value={addFormData.availabilityMode} label="Availability Mode" onChange={e => setAddFormData({ ...addFormData, availabilityMode: e.target.value })}>
-                    <MenuItem value="purchase">Purchase</MenuItem>
-                    <MenuItem value="rental">Rental</MenuItem>
-                    <MenuItem value="all">All</MenuItem>
-                  </Select>
-                </FormControl>
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Material" value={addFormData.material} onChange={e => setAddFormData({ ...addFormData, material: e.target.value })} />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Weight (g)" type="number" value={addFormData.weight} onChange={e => setAddFormData({ ...addFormData, weight: Number(e.target.value) })} />
-              </Grid>
-              <Grid item xs={12} md={4}>
-                <TextField fullWidth label="Unit Price (AED)" type="number" value={addFormData.buyPricing.unitPrice} onChange={e => setAddFormData({ ...addFormData, buyPricing: { ...addFormData.buyPricing, unitPrice: Number(e.target.value) } })} />
+              <Grid item xs={12}>
+                <TextField fullWidth label="Package Name" value={addFormData.packageName} onChange={e => setAddFormData({ ...addFormData, packageName: e.target.value })} />
               </Grid>
               <Grid item xs={12}>
-                <TextField fullWidth label="Description" multiline rows={3} value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} />
+                <FormControl fullWidth>
+                  <InputLabel>Provider</InputLabel>
+                  <Select value={addFormData.provider} label="Provider" onChange={e => setAddFormData({ ...addFormData, provider: e.target.value })}>
+                    {providers.map(p => <MenuItem key={p.vendorId} value={p.vendorId}>{p.name}</MenuItem>)}
+                  </Select>
+                </FormControl>
               </Grid>
-              <Grid item xs={12} md={6}>
+              <Grid item xs={12}>
+                <FormControl fullWidth>
+                  <InputLabel>Category</InputLabel>
+                  <Select value={addFormData.category} label="Category" onChange={e => setAddFormData({ ...addFormData, category: e.target.value })}>
+                    {categories.map(c => <MenuItem key={c._id} value={c._id}>{c.title}</MenuItem>)}
+                  </Select>
+                </FormControl>
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth label="Price (₹)" type="number" value={addFormData.packagePrice} onChange={e => setAddFormData({ ...addFormData, packagePrice: Number(e.target.value) })} />
+              </Grid>
+              <Grid item xs={6}>
+                <TextField fullWidth label="Advance (₹)" type="number" value={addFormData.advanceBookingAmount} onChange={e => setAddFormData({ ...addFormData, advanceBookingAmount: Number(e.target.value) })} />
+              </Grid>
+              <Grid item xs={12}>
+                <TextField fullWidth label="Description" multiline rows={2} value={addFormData.description} onChange={e => setAddFormData({ ...addFormData, description: e.target.value })} />
+              </Grid>
+              <Grid item xs={12}>
                 <Button variant="outlined" component="label" fullWidth startIcon={<CloudUpload />}>
-                  {thumbnail ? thumbnail.name : 'Upload Thumbnail *'}
-                  <input type="file" hidden accept="image/*" onChange={handleThumbnailChange} />
+                  {imageFile ? imageFile.name : 'Upload Image'}
+                  <input type="file" hidden accept="image/*" onChange={handleImageChange} />
                 </Button>
-                {thumbnailPreview && <Box sx={{ mt: 1 }}><img src={thumbnailPreview} alt="Preview" style={{ width: 100, height: 100, objectFit: 'cover' }} /></Box>}
+                {imagePreview && <Box component="img" src={imagePreview} sx={{ mt: 1, height: 100, borderRadius: 1 }} />}
               </Grid>
             </Grid>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenAddDialog(false)} disabled={saveLoading}>Cancel</Button>
-          <Button onClick={handleSubmitAdd} variant="contained" color="success" disabled={saveLoading || dependenciesLoading}>
-            {saveLoading ? <CircularProgress size={24} /> : 'Add Mehandi'}
-          </Button>
+          <Button onClick={() => setOpenAddDialog(false)}>Cancel</Button>
+          <Button onClick={handleSubmitAdd} variant="contained" disabled={saveLoading}>Add</Button>
         </DialogActions>
       </Dialog>
 
       {/* ---------- DELETE DIALOG ---------- */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
-        <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{mehandiToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
+        <DialogTitle>Delete Package?</DialogTitle>
+        <DialogContent><DialogContentText>Are you sure you want to delete <strong>{mehandiToDelete?.title}</strong>?</DialogContentText></DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
-          <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
+          <Button onClick={() => setOpenDeleteDialog(false)}>Cancel</Button>
+          <Button onClick={handleDeleteConfirm} color="error" variant="contained">Delete</Button>
         </DialogActions>
       </Dialog>
 
-      {/* ---------- SNACKBAR ---------- */}
-      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification(p => ({ ...p, open: false }))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert onClose={() => setNotification(p => ({ ...p, open: false }))} severity={notification.severity} variant="filled">
-          {notification.message}
-        </Alert>
+      <Snackbar open={notification.open} autoHideDuration={4000} onClose={() => setNotification({ ...notification, open: false })}>
+        <Alert severity={notification.severity} variant="filled">{notification.message}</Alert>
       </Snackbar>
     </TableContainer>
   );
 };
 
-export default MehandisList;
+export default MehandiList;

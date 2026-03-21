@@ -61,15 +61,15 @@ import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 import { getAllVendors, formatVendorsForList } from '../api/providerApi';
 
-const OrnamentsList = () => {
+const BoutiqueList = () => {
   const navigate = useNavigate();
 
   /* ---------- State ---------- */
-  const [ornaments, setOrnaments] = useState([]);
-  const [allOrnaments, setAllOrnaments] = useState([]);
+  const [boutiques, setBoutiques] = useState([]);
+  const [allBoutiques, setAllBoutiques] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [ornamentToDelete, setOrnamentToDelete] = useState(null);
+  const [boutiqueToDelete, setBoutiqueToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -79,11 +79,11 @@ const OrnamentsList = () => {
 
   // View Dialog
   const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [selectedOrnament, setSelectedOrnament] = useState(null);
+  const [selectedBoutique, setSelectedBoutique] = useState(null);
 
   // Edit Dialog
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editingOrnament, setEditingOrnament] = useState(null);
+  const [editingBoutique, setEditingBoutique] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
@@ -113,7 +113,7 @@ const OrnamentsList = () => {
 
   /* ---------- API ---------- */
   // API_BASE_URL is now imported from apiImageUtils
-  const API_URL = `${API_BASE_URL}/ornaments`;
+  const API_URL = `${API_BASE_URL}/boutiques`;
 
   const getToken = () => {
     try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
@@ -161,10 +161,10 @@ const OrnamentsList = () => {
   const toINR = (aed) => Math.round(aed * AED_TO_INR);
 
   /* ---------- Mapping ---------- */
-  const mapOrnament = (c, idx) => ({
+  const mapBoutique = (c, idx) => ({
     id: idx + 1,
     _id: c._id,
-    ornamentId: c.ornamentId,
+    boutiqueId: c.boutiqueId,
     title: c.name || 'Untitled',
     description: c.description || '',
     unit: c.unit || '',
@@ -187,19 +187,19 @@ const OrnamentsList = () => {
     occasions: c.occasions || [],
     features: c.features || {},
     tags: c.tags || [],
-    rawOrnament: c,
+    rawBoutique: c,
   });
 
   /* ---------- Fetch ---------- */
-  const fetchOrnaments = async (topPicks = false) => {
+  const fetchBoutiques = async (topPicks = false) => {
     try {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
       const data = await makeAPICall(url, getFetchOptions());
       if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((c, i) => mapOrnament(c, i));
-        setAllOrnaments(mapped);
-        setOrnaments(mapped);
+        const mapped = data.data.map((c, i) => mapBoutique(c, i));
+        setAllBoutiques(mapped);
+        setBoutiques(mapped);
       }
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
@@ -241,78 +241,77 @@ const OrnamentsList = () => {
   const handleAddClick = () => {
     fetchDependencies();
     setOpenAddDialog(true);
-  };
-
-  useEffect(() => { fetchOrnaments(); }, []);
+  };    useEffect(() => { fetchBoutiques(); }, []);
 
   /* ---------- Toggles ---------- */
   const handleTopPickToggle = useCallback(async (_id) => {
     const key = `${_id}-topPick`;
     if (toggleLoading[key]) return;
-    const item = ornaments.find(c => c._id === _id);
+    const item = boutiques.find(c => c._id === _id);
     if (!item) return;
     const newVal = !item.isTopPick;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
     } catch (e) {
-      setOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [ornaments, toggleLoading]);
+  }, [boutiques, toggleLoading]);
 
   const handleStatusToggle = useCallback(async (_id) => {
     const key = `${_id}-status`;
     if (toggleLoading[key]) return;
-    const item = ornaments.find(c => c._id === _id);
+    const item = boutiques.find(c => c._id === _id);
     if (!item) return;
     const newVal = !item.isActive;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
     } catch (e) {
-      setOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllOrnaments(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setAllBoutiques(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [ornaments, toggleLoading]);
+  }, [boutiques, toggleLoading]);
 
   /* ---------- Delete ---------- */
-  const handleDeleteClick = item => { setOrnamentToDelete(item); setOpenDeleteDialog(true); };
+  const handleDeleteClick = item => { setBoutiqueToDelete(item); setOpenDeleteDialog(true); };
   const handleDeleteConfirm = async () => {
     try {
-      await makeAPICall(`${API_URL}/${ornamentToDelete._id}`, getFetchOptions('DELETE'));
-      setOrnaments(p => p.filter(c => c._id !== ornamentToDelete._id));
-      setAllOrnaments(p => p.filter(c => c._id !== ornamentToDelete._id));
-      setNotification({ open: true, message: `${ornamentToDelete.title} deleted`, severity: 'success' });
+      await makeAPICall(`${API_URL}/${boutiqueToDelete._id}`, getFetchOptions('DELETE'));
+      setBoutiques(p => p.filter(c => c._id !== boutiqueToDelete._id));
+      setAllBoutiques(p => p.filter(c => c._id !== boutiqueToDelete._id));
+      setNotification({ open: true, message: `${boutiqueToDelete.title} deleted`, severity: 'success' });
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
-      setOpenDeleteDialog(false); setOrnamentToDelete(null);
+      setOpenDeleteDialog(false); setBoutiqueToDelete(null);
     }
   };
 
   /* ---------- Export (INR) ---------- */
-  const filtered = ornaments.filter(c =>
+  /* ---------- Export (INR) ---------- */
+  const filteredResult = boutiques.filter(c =>
     `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const exportCSV = () => {
     const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const rows = filtered.map(c => [
+    const rows = filteredResult.map(c => [
       c.id, `"${c.title}"`, `"${c.providerName}"`, `"${c.providerEmail}"`, c.availabilityMode, toINR(c.price),
       c.weight, c.isActive ? 'Active' : 'Inactive'
     ]);
@@ -320,35 +319,35 @@ const OrnamentsList = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `ornaments_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    a.href = url; a.download = `boutiques_${new Date().toISOString().split('T')[0]}.csv`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'CSV exported', severity: 'success' });
   };
 
   const exportExcel = () => {
     const headers = ['Sl', 'Name', 'Provider', 'Provider Email', 'Availability', 'Price (INR)', 'Weight (g)', 'Status'];
-    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
+    const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filteredResult.map(c => `<tr>
       <td>${c.id}</td><td>${c.title}</td><td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.availabilityMode}</td><td>${toINR(c.price)}</td>
       <td>${c.weight}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
     </tr>`).join('')}</tbody></table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `ornaments_${new Date().toISOString().split('T')[0]}.xls`; a.click();
+    a.href = url; a.download = `boutiques_${new Date().toISOString().split('T')[0]}.xls`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'Excel exported', severity: 'success' });
   };
 
   /* ---------- View ---------- */
   const handleView = item => {
-    setSelectedOrnament(item.rawOrnament);
+    setSelectedBoutique(item.rawBoutique);
     setOpenViewDialog(true);
   };
 
   /* ---------- Edit ---------- */
   const handleEdit = item => {
-    const r = item.rawOrnament;
-    setEditingOrnament(item);
+    const r = item.rawBoutique;
+    setEditingBoutique(item);
     setEditFormData({
       name: r.name || '',
       description: r.description || '',
@@ -368,12 +367,12 @@ const OrnamentsList = () => {
     try {
       setSaveLoading(true);
       const payload = { ...editFormData };
-      const data = await makeAPICall(`${API_BASE_URL}/ornaments/${editingOrnament._id}`, getFetchOptions('PUT', payload));
+      const data = await makeAPICall(`${API_BASE_URL}/boutiques/${editingBoutique._id}`, getFetchOptions('PUT', payload));
       if (data.success) {
-        const updated = mapOrnament(data.data, editingOrnament.id - 1);
-        setOrnaments(p => p.map(x => x._id === editingOrnament._id ? updated : x));
-        setAllOrnaments(p => p.map(x => x._id === editingOrnament._id ? updated : x));
-        setNotification({ open: true, message: 'Ornament updated', severity: 'success' });
+        const updated = mapBoutique(data.data, editingBoutique.id - 1);
+        setBoutiques(p => p.map(x => x._id === editingBoutique._id ? updated : x));
+        setAllBoutiques(p => p.map(x => x._id === editingBoutique._id ? updated : x));
+        setNotification({ open: true, message: 'Boutique updated', severity: 'success' });
         setOpenEditDialog(false);
       }
     } catch (e) {
@@ -459,10 +458,10 @@ const OrnamentsList = () => {
 
   /* ---------- Stats ---------- */
   const stats = {
-    total: allOrnaments.length,
-    active: allOrnaments.filter(c => c.isActive).length,
-    inactive: allOrnaments.filter(c => !c.isActive).length,
-    topPick: allOrnaments.filter(c => c.isTopPick).length,
+    total: allBoutiques.length,
+    active: allBoutiques.filter(c => c.isActive).length,
+    inactive: allBoutiques.filter(c => !c.isActive).length,
+    topPick: allBoutiques.filter(c => c.isTopPick).length,
   };
 
   return (
@@ -477,9 +476,9 @@ const OrnamentsList = () => {
         </Box>
         <Stack direction="row" spacing={1}>
           <Button variant="contained" color="success" size="small" startIcon={<AddIcon />} onClick={handleAddClick}>
-            Add Ornament
+            Add Boutique
           </Button>
-          <Button variant="contained" color="secondary" size="small" onClick={() => fetchOrnaments(true)} disabled={loading}>
+          <Button variant="contained" color="secondary" size="small" onClick={() => fetchBoutiques(true)} disabled={loading}>
             {loading ? 'Loading...' : 'Fetch Top-Picks'}
           </Button>
         </Stack>
@@ -508,7 +507,7 @@ const OrnamentsList = () => {
       {loading ? (
         <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
           <CircularProgress size={20} />
-          <Typography>Loading ornaments...</Typography>
+          <Typography>Loading boutiques...</Typography>
         </Box>
       ) : (
         <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
@@ -528,14 +527,14 @@ const OrnamentsList = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {filtered.length === 0 ? (
+              {filteredResult.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No ornaments found</Typography>
+                    <Typography color="textSecondary">No boutiques found</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
-                filtered.map(c => {
+                filteredResult.map(c => {
                   const topKey = `${c._id}-topPick`;
                   const statKey = `${c._id}-status`;
                   return (
@@ -572,40 +571,40 @@ const OrnamentsList = () => {
       {/* ---------- VIEW DIALOG (INR) ---------- */}
       <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedOrnament?.name || 'Ornament Details'}</Typography>
+          <Typography variant="h6">{selectedBoutique?.name || 'Boutique Details'}</Typography>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedOrnament && (
+          {selectedBoutique && (
             <Grid container spacing={3}>
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><CategoryIcon fontSize="small" /> Name</Typography>
-                <Typography paragraph>{selectedOrnament.name}</Typography>
+                <Typography paragraph>{selectedBoutique.name}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>Material</Typography>
-                <Typography paragraph>{selectedOrnament.material || '—'}</Typography>
+                <Typography paragraph>{selectedBoutique.material || '—'}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedOrnament.buyPricing?.totalPrice || 0)}</Typography>
+                <Typography>₹{toINR(selectedBoutique.buyPricing?.totalPrice || 0)}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>Weight</Typography>
-                <Typography>{selectedOrnament.weight}g</Typography>
+                <Typography>{selectedBoutique.weight}g</Typography>
               </Grid>
 
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedOrnament.provider?.firstName} {selectedOrnament.provider?.lastName}</Typography>
+                <Typography>{selectedBoutique.provider?.firstName} {selectedBoutique.provider?.lastName}</Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedOrnament.provider?.phone || '—'}
+                  <Phone fontSize="small" /> {selectedBoutique.provider?.phone || '—'}
                 </Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedOrnament.provider?.email || '—'}
+                  <Email fontSize="small" /> {selectedBoutique.provider?.email || '—'}
                 </Typography>
               </Grid>
 
-              {selectedOrnament.description && (
+              {selectedBoutique.description && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedOrnament.description}</Typography>
+                  <Typography paragraph>{selectedBoutique.description}</Typography>
                 </Grid>
               )}
             </Grid>
@@ -613,17 +612,17 @@ const OrnamentsList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawOrnament: selectedOrnament }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
+          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawBoutique: selectedBoutique }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
         </DialogActions>
       </Dialog>
 
       {/* ---------- EDIT DIALOG ---------- */}
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">Edit Ornament: {editingOrnament?.title}</Typography>
+          <Typography variant="h6">Edit Boutique: {editingBoutique?.title}</Typography>
         </DialogTitle>
         <DialogContent dividers>
-          {editingOrnament && (
+          {editingBoutique && (
             <Grid container spacing={2} sx={{ mt: 1 }}>
               <Grid item xs={12} md={6}>
                 <TextField fullWidth label="Name" value={editFormData.name || ''} onChange={e => setEditFormData(p => ({ ...p, name: e.target.value }))} />
@@ -651,7 +650,7 @@ const OrnamentsList = () => {
       {/* ---------- ADD DIALOG ---------- */}
       <Dialog open={openAddDialog} onClose={() => setOpenAddDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle sx={{ bgcolor: 'success.main', color: 'white' }}>
-          <Typography variant="h6">Add New Ornament</Typography>
+          <Typography variant="h6">Add New Boutique</Typography>
         </DialogTitle>
         <DialogContent dividers>
           {dependenciesLoading ? (
@@ -712,7 +711,7 @@ const OrnamentsList = () => {
         <DialogActions>
           <Button onClick={() => setOpenAddDialog(false)} disabled={saveLoading}>Cancel</Button>
           <Button onClick={handleSubmitAdd} variant="contained" color="success" disabled={saveLoading || dependenciesLoading}>
-            {saveLoading ? <CircularProgress size={24} /> : 'Add Ornament'}
+            {saveLoading ? <CircularProgress size={24} /> : 'Add Boutique'}
           </Button>
         </DialogActions>
       </Dialog>
@@ -720,7 +719,7 @@ const OrnamentsList = () => {
       {/* ---------- DELETE DIALOG ---------- */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{ornamentToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
+        <DialogContent><DialogContentText>Delete <strong>{boutiqueToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
           <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
@@ -737,4 +736,4 @@ const OrnamentsList = () => {
   );
 };
 
-export default OrnamentsList;
+export default BoutiqueList;

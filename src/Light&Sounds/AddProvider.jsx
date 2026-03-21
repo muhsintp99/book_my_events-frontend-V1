@@ -17,7 +17,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 function AddLight() {
   const { id } = useParams();
@@ -219,11 +219,10 @@ function AddLight() {
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
-        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone || '',
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || '',
         module:
           vendorProfile?.module?._id?.$oid ||
           vendorProfile?.module?._id ||
-          vendorProfile?.module?.$oid ||
           vendorProfile?.module ||
           activeModuleId ||
           '',
@@ -240,11 +239,10 @@ function AddLight() {
         adminNotes: vendorProfile?.adminNotes || '',
         isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
         approvedProvider: vendorProfile?.approvedProvider || '',
-        services: vendorProfile?.services || [],
+        services: (vendorProfile?.services || []).map((s) => s._id?.$oid || s._id || s),
         specialised:
           vendorProfile?.specialised?._id?.$oid ||
           vendorProfile?.specialised?._id ||
-          vendorProfile?.specialised?.$oid ||
           vendorProfile?.specialised ||
           '',
         startingPrice: vendorProfile?.startingPrice || '',
@@ -261,10 +259,10 @@ function AddLight() {
       }
 
       const logo = vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto;
-      if (logo) setLogoPreview(logo);
+      if (logo) setLogoPreview(getApiImageUrl(logo));
 
       const cover = vendorProfile?.coverImage;
-      if (cover) setCoverPreview(cover);
+      if (cover) setCoverPreview(getApiImageUrl(cover));
 
       if (vendorProfile?.zone?._id || vendorProfile?.zone) {
         setSelectedZone(vendorProfile.zone?._id || vendorProfile.zone);

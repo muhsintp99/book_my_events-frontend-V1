@@ -129,7 +129,8 @@ export const formatVendorsForList = (vendors) => {
             module: v.module?.title || 'N/A',
             moduleId: v.module?._id?.$oid || v.module?._id || v.module?.$oid || v.module || null,
             zone: v.zone?.name || 'N/A',
-            coverImage: v.coverImage || ''
+            coverImage: v.coverImage || '',
+            vendorCode: v.vendorCode || v.user?.vendorCode || 'N/A'
         }));
 };
 

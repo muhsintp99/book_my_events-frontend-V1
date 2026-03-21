@@ -53,15 +53,15 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
 
-const CateringList = () => {
+const CakeList = () => {
   const navigate = useNavigate();
 
   /* ---------- State ---------- */
-  const [caterings, setCaterings] = useState([]);
-  const [allCaterings, setAllCaterings] = useState([]);
+  const [cakes, setCakes] = useState([]);
+  const [allCakes, setAllCakes] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
-  const [cateringToDelete, setCateringToDelete] = useState(null);
+  const [cakeToDelete, setCakeToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
   const [toggleLoading, setToggleLoading] = useState({});
   const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
@@ -71,18 +71,17 @@ const CateringList = () => {
 
   // View Dialog
   const [openViewDialog, setOpenViewDialog] = useState(false);
-  const [selectedCatering, setSelectedCatering] = useState(null);
+  const [selectedCake, setSelectedCake] = useState(null);
 
   // Edit Dialog
   const [openEditDialog, setOpenEditDialog] = useState(false);
-  const [editingCatering, setEditingCatering] = useState(null);
+  const [editingCake, setEditingCake] = useState(null);
   const [editFormData, setEditFormData] = useState({});
   const [saveLoading, setSaveLoading] = useState(false);
   const [currentTab, setCurrentTab] = useState(0);
 
   /* ---------- API ---------- */
-  // API_BASE_URL is now imported from apiImageUtils
-  const API_URL = `${API_BASE_URL}/catering`;
+  const API_URL = `${API_BASE_URL}/cakes`;
 
   const getToken = () => {
     try { return localStorage.getItem('token') || sessionStorage.getItem('token'); }
@@ -130,14 +129,14 @@ const CateringList = () => {
   const toINR = (aed) => Math.round(aed * AED_TO_INR);
 
   /* ---------- Mapping ---------- */
-  const mapCatering = (c, idx) => ({
+  const mapCake = (c, idx) => ({
     id: idx + 1,
     _id: c._id,
-    cateringId: c.cateringId,
+    cakeId: c.cakeId,
     title: c.title || 'Untitled',
     subtitle: c.subtitle || '',
     description: c.description || '',
-    cateringType: c.cateringType || '',
+    cakeType: c.cakeType || '',
     price: c.price ?? 0,
     providerName:
       c.provider?.firstName && c.provider?.lastName
@@ -152,28 +151,20 @@ const CateringList = () => {
     thumbnail: c.thumbnail || '',
     searchTags: c.searchTags || [],
     faqs: c.faqs || [],
-    rawCatering: c,
+    rawCake: c,
   });
 
   /* ---------- Fetch ---------- */
-  const fetchCaterings = async (topPicks = false) => {
+  const fetchCakes = async (topPicks = false) => {
     try {
       setLoading(true);
       const url = topPicks ? `${API_URL}/top-picks` : API_URL;
       const data = await makeAPICall(url, getFetchOptions());
       if (data?.data && Array.isArray(data.data)) {
-
-        // ✅ FILTER ONLY CAKE MODULE PACKAGES
-        const cakeOnly = data.data.filter(c =>
-          c.module?.title?.toLowerCase().includes("cake")
-        );
-
-        const mapped = cakeOnly.map((c, i) => mapCatering(c, i));
-
-        setAllCaterings(mapped);
-        setCaterings(mapped);
+        const mapped = data.data.map((c, i) => mapCake(c, i));
+        setAllCakes(mapped);
+        setCakes(mapped);
       }
-
     } catch (e) {
       setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
     } finally {
@@ -181,77 +172,77 @@ const CateringList = () => {
     }
   };
 
-  useEffect(() => { fetchCaterings(); }, []);
+  useEffect(() => { fetchCakes(); }, []);
 
   /* ---------- Toggles ---------- */
   const handleTopPickToggle = useCallback(async (_id) => {
     const key = `${_id}-topPick`;
     if (toggleLoading[key]) return;
-    const cat = caterings.find(c => c._id === _id);
+    const cat = cakes.find(c => c._id === _id);
     if (!cat) return;
     const newVal = !cat.isTopPick;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
-    setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
+    setAllCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-top-pick`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isTopPick ? 'Top-pick enabled' : 'Top-pick disabled', severity: 'success' });
     } catch (e) {
-      setCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
-      setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
+      setAllCakes(p => p.map(c => c._id === _id ? { ...c, isTopPick: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [caterings, toggleLoading]);
+  }, [cakes, toggleLoading]);
 
   const handleStatusToggle = useCallback(async (_id) => {
     const key = `${_id}-status`;
     if (toggleLoading[key]) return;
-    const cat = caterings.find(c => c._id === _id);
+    const cat = cakes.find(c => c._id === _id);
     if (!cat) return;
     const newVal = !cat.isActive;
     setToggleLoading(p => ({ ...p, [key]: true }));
-    setCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
-    setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setCakes(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
+    setAllCakes(p => p.map(c => c._id === _id ? { ...c, isActive: newVal } : c));
     try {
       const res = await makeAPICall(`${API_URL}/${_id}/toggle-active`, getFetchOptions('PATCH'));
       if (!res.success) throw new Error(res.message || 'Failed');
       setNotification({ open: true, message: res.data.isActive ? 'Activated' : 'Deactivated', severity: 'success' });
     } catch (e) {
-      setCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
-      setAllCaterings(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setCakes(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
+      setAllCakes(p => p.map(c => c._id === _id ? { ...c, isActive: !newVal } : c));
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
       setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
     }
-  }, [caterings, toggleLoading]);
+  }, [cakes, toggleLoading]);
 
   /* ---------- Delete ---------- */
-  const handleDeleteClick = cat => { setCateringToDelete(cat); setOpenDeleteDialog(true); };
+  const handleDeleteClick = cat => { setCakeToDelete(cat); setOpenDeleteDialog(true); };
   const handleDeleteConfirm = async () => {
     try {
-      await makeAPICall(`${API_URL}/${cateringToDelete._id}`, getFetchOptions('DELETE'));
-      setCaterings(p => p.filter(c => c._id !== cateringToDelete._id));
-      setAllCaterings(p => p.filter(c => c._id !== cateringToDelete._id));
-      setNotification({ open: true, message: `${cateringToDelete.title} deleted`, severity: 'success' });
+      await makeAPICall(`${API_URL}/${cakeToDelete._id}`, getFetchOptions('DELETE'));
+      setCakes(p => p.filter(c => c._id !== cakeToDelete._id));
+      setAllCakes(p => p.filter(c => c._id !== cakeToDelete._id));
+      setNotification({ open: true, message: `${cakeToDelete.title} deleted`, severity: 'success' });
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
     } finally {
-      setOpenDeleteDialog(false); setCateringToDelete(null);
+      setOpenDeleteDialog(false); setCakeToDelete(null);
     }
   };
 
   /* ---------- Export (INR) ---------- */
-  const filtered = caterings.filter(c =>
+  const filtered = cakes.filter(c =>
     `${c.title} ${c.subtitle} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const exportCSV = () => {
     const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
     const rows = filtered.map(c => [
-      c.id, `"${c.title}"`, `"${c.subtitle}"`, c.cateringType, toINR(c.price),
+      c.id, `"${c.title}"`, `"${c.subtitle}"`, c.cakeType, toINR(c.price),
       `"${c.providerName}"`, `"${c.providerEmail}"`, `"${c.includes}"`,
       c.isTopPick ? 'Yes' : 'No', c.isActive ? 'Active' : 'Inactive'
     ]);
@@ -259,7 +250,7 @@ const CateringList = () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `catering_${new Date().toISOString().split('T')[0]}.csv`; a.click();
+    a.href = url; a.download = `cake_${new Date().toISOString().split('T')[0]}.csv`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'CSV exported', severity: 'success' });
   };
@@ -267,33 +258,33 @@ const CateringList = () => {
   const exportExcel = () => {
     const headers = ['Sl', 'Package', 'Subtitle', 'Type', 'Price (INR)', 'Provider', 'Provider Email', 'Includes', 'Top-Pick', 'Status'];
     const html = `<table border="1"><thead><tr>${headers.map(h => `<th>${h}</th>`).join('')}</tr></thead><tbody>${filtered.map(c => `<tr>
-      <td>${c.id}</td><td>${c.title}</td><td>${c.subtitle}</td><td>${c.cateringType}</td><td>${toINR(c.price)}</td>
+      <td>${c.id}</td><td>${c.title}</td><td>${c.subtitle}</td><td>${c.cakeType}</td><td>${toINR(c.price)}</td>
       <td>${c.providerName}</td><td>${c.providerEmail}</td><td>${c.includes}</td>
       <td>${c.isTopPick ? 'Yes' : 'No'}</td><td>${c.isActive ? 'Active' : 'Inactive'}</td>
     </tr>`).join('')}</tbody></table>`;
     const blob = new Blob([html], { type: 'application/vnd.ms-excel' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
-    a.href = url; a.download = `catering_${new Date().toISOString().split('T')[0]}.xls`; a.click();
+    a.href = url; a.download = `cake_${new Date().toISOString().split('T')[0]}.xls`; a.click();
     setAnchorEl(null);
     setNotification({ open: true, message: 'Excel exported', severity: 'success' });
   };
 
   /* ---------- View ---------- */
   const handleView = cat => {
-    setSelectedCatering(cat.rawCatering);
+    setSelectedCake(cat.rawCake);
     setOpenViewDialog(true);
   };
 
   /* ---------- Edit ---------- */
   const handleEdit = cat => {
-    const r = cat.rawCatering;
-    setEditingCatering(cat);
+    const r = cat.rawCake;
+    setEditingCake(cat);
     setEditFormData({
       title: r.title || '',
       subtitle: r.subtitle || '',
       description: r.description || '',
-      cateringType: r.cateringType || '',
+      cakeType: r.cakeType || '',
       price: r.price || 0,
       includes: r.includes || [],
       searchTags: r.searchTags || [],
@@ -311,12 +302,12 @@ const CateringList = () => {
       if (payload.includes) {
         payload.includes = payload.includes.filter(inc => inc.title && inc.items?.length);
       }
-      const data = await makeAPICall(`${API_URL}/${editingCatering._id}`, getFetchOptions('PUT', payload));
+      const data = await makeAPICall(`${API_URL}/${editingCake._id}`, getFetchOptions('PUT', payload));
       if (data.success) {
-        const updated = mapCatering(data.data, editingCatering.id - 1);
-        setCaterings(p => p.map(x => x._id === editingCatering._id ? updated : x));
-        setAllCaterings(p => p.map(x => x._id === editingCatering._id ? updated : x));
-        setNotification({ open: true, message: 'Catering updated', severity: 'success' });
+        const updated = mapCake(data.data, editingCake.id - 1);
+        setCakes(p => p.map(x => x._id === editingCake._id ? updated : x));
+        setAllCakes(p => p.map(x => x._id === editingCake._id ? updated : x));
+        setNotification({ open: true, message: 'Cake updated', severity: 'success' });
         setOpenEditDialog(false);
       }
     } catch (e) {
@@ -337,10 +328,10 @@ const CateringList = () => {
 
   /* ---------- Stats ---------- */
   const stats = {
-    total: allCaterings.length,
-    active: allCaterings.filter(c => c.isActive).length,
-    inactive: allCaterings.filter(c => !c.isActive).length,
-    topPick: allCaterings.filter(c => c.isTopPick).length,
+    total: allCakes.length,
+    active: allCakes.filter(c => c.isActive).length,
+    inactive: allCakes.filter(c => !c.isActive).length,
+    topPick: allCakes.filter(c => c.isTopPick).length,
   };
 
   return (
@@ -353,7 +344,7 @@ const CateringList = () => {
           <Box sx={{ bgcolor: '#e0f7fa', p: 1, borderRadius: 1 }}>Inactive: {stats.inactive}</Box>
           <Box sx={{ bgcolor: '#fce4ec', p: 1, borderRadius: 1 }}>Top-Pick: {stats.topPick}</Box>
         </Box>
-        <Button variant="contained" color="secondary" size="small" onClick={() => fetchCaterings(true)} disabled={loading}>
+        <Button variant="contained" color="secondary" size="small" onClick={() => fetchCakes(true)} disabled={loading}>
           {loading ? 'Loading...' : 'Fetch Top-Picks'}
         </Button>
       </Box>
@@ -381,7 +372,7 @@ const CateringList = () => {
       {loading ? (
         <Box sx={{ p: 3, display: 'flex', alignItems: 'center', gap: 1 }}>
           <CircularProgress size={20} />
-          <Typography>Loading caterings...</Typography>
+          <Typography>Loading cakes...</Typography>
         </Box>
       ) : (
         <Box sx={{ maxHeight: 560, overflowY: 'auto' }}>
@@ -404,7 +395,7 @@ const CateringList = () => {
               {filtered.length === 0 ? (
                 <TableRow>
                   <TableCell colSpan={10} align="center">
-                    <Typography color="textSecondary">No catering packages found</Typography>
+                    <Typography color="textSecondary">No cake packages found</Typography>
                   </TableCell>
                 </TableRow>
               ) : (
@@ -416,7 +407,7 @@ const CateringList = () => {
                       <TableCell>{c.id}</TableCell>
                       <TableCell sx={{ maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.title}</TableCell>
                       <TableCell>{c.subtitle}</TableCell>
-                      <TableCell>{c.cateringType}</TableCell>
+                      <TableCell>{c.cakeType}</TableCell>
                       <TableCell>{toINR(c.price)}</TableCell>
                       <TableCell>{c.providerName}</TableCell>
                       <TableCell sx={{ maxWidth: 250, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.includes}</TableCell>
@@ -445,39 +436,39 @@ const CateringList = () => {
       {/* ---------- VIEW DIALOG (INR) ---------- */}
       <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white' }}>
-          <Typography variant="h6">{selectedCatering?.title}</Typography>
+          <Typography variant="h6">{selectedCake?.title}</Typography>
         </DialogTitle>
         <DialogContent dividers>
-          {selectedCatering && (
+          {selectedCake && (
             <Grid container spacing={3}>
               {/* Basic */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><Category fontSize="small" /> Package</Typography>
-                <Typography paragraph>{selectedCatering.title}</Typography>
+                <Typography paragraph>{selectedCake.title}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>Subtitle</Typography>
-                <Typography paragraph>{selectedCatering.subtitle || '—'}</Typography>
+                <Typography paragraph>{selectedCake.subtitle || '—'}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><AttachMoney fontSize="small" /> Price (INR)</Typography>
-                <Typography>₹{toINR(selectedCatering.price)}</Typography>
+                <Typography>₹{toINR(selectedCake.price)}</Typography>
 
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><Restaurant fontSize="small" /> Type</Typography>
-                <Typography>{selectedCatering.cateringType || '—'}</Typography>
+                <Typography>{selectedCake.cakeType || '—'}</Typography>
               </Grid>
 
               {/* Provider */}
               <Grid item xs={12} md={6}>
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom><People fontSize="small" /> Provider</Typography>
-                <Typography>{selectedCatering.provider?.firstName} {selectedCatering.provider?.lastName}</Typography>
+                <Typography>{selectedCake.provider?.firstName} {selectedCake.provider?.lastName}</Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Phone fontSize="small" /> {selectedCatering.provider?.phone || '—'}
+                  <Phone fontSize="small" /> {selectedCake.provider?.phone || '—'}
                 </Typography>
                 <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                  <Email fontSize="small" /> {selectedCatering.provider?.email || '—'}
+                  <Email fontSize="small" /> {selectedCake.provider?.email || '—'}
                 </Typography>
-                {selectedCatering.provider?.website && (
+                {selectedCake.provider?.website && (
                   <Typography sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                    <Web fontSize="small" /> <a href={selectedCatering.provider.website} target="_blank" rel="noopener noreferrer">{selectedCatering.provider.website}</a>
+                    <Web fontSize="small" /> <a href={selectedCake.provider.website} target="_blank" rel="noopener noreferrer">{selectedCake.provider.website}</a>
                   </Typography>
                 )}
               </Grid>
@@ -487,7 +478,7 @@ const CateringList = () => {
                 <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle2" color="textSecondary" gutterBottom>Includes</Typography>
                 <List dense>
-                  {selectedCatering.includes?.map((inc, i) => (
+                  {selectedCake.includes?.map((inc, i) => (
                     <ListItem key={i} disableGutters>
                       <ListItemText primary={<strong>{inc.title}</strong>} secondary={inc.items.join(', ')} />
                     </ListItem>
@@ -496,29 +487,29 @@ const CateringList = () => {
               </Grid>
 
               {/* Tags */}
-              {selectedCatering.searchTags?.length > 0 && (
+              {selectedCake.searchTags?.length > 0 && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary" gutterBottom>Search Tags</Typography>
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
-                    {selectedCatering.searchTags.map(t => <Chip key={t} label={t} size="small" variant="outlined" />)}
+                    {selectedCake.searchTags.map(t => <Chip key={t} label={t} size="small" variant="outlined" />)}
                   </Box>
                 </Grid>
               )}
 
               {/* Description */}
-              {selectedCatering.description && (
+              {selectedCake.description && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary" gutterBottom>Description</Typography>
-                  <Typography paragraph>{selectedCatering.description}</Typography>
+                  <Typography paragraph>{selectedCake.description}</Typography>
                 </Grid>
               )}
 
               {/* FAQs */}
-              {selectedCatering.faqs?.length > 0 && (
+              {selectedCake.faqs?.length > 0 && (
                 <Grid item xs={12}>
                   <Typography variant="subtitle2" color="textSecondary" gutterBottom>FAQs</Typography>
                   <List dense>
-                    {selectedCatering.faqs.map((q, i) => (
+                    {selectedCake.faqs.map((q, i) => (
                       <ListItem key={i}>
                         <ListItemText primary={q.question} secondary={q.answer} />
                       </ListItem>
@@ -531,14 +522,14 @@ const CateringList = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenViewDialog(false)} variant="outlined">Close</Button>
-          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawCatering: selectedCatering }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
+          <Button onClick={() => { setOpenViewDialog(false); handleEdit({ rawCake: selectedCake }); }} variant="contained" startIcon={<Edit />}>Edit</Button>
         </DialogActions>
       </Dialog>
 
       {/* ---------- EDIT DIALOG (INR Helper) ---------- */}
       <Dialog open={openEditDialog} onClose={() => setOpenEditDialog(false)} maxWidth="lg" fullWidth>
         <DialogTitle sx={{ bgcolor: 'primary.main', color: 'white', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h6">Edit Catering: {editingCatering?.title}</Typography>
+          <Typography variant="h6">Edit Cake: {editingCake?.title}</Typography>
           <IconButton size="small" onClick={() => setOpenEditDialog(false)} sx={{ color: 'white' }}><Close /></IconButton>
         </DialogTitle>
         <DialogContent dividers sx={{ p: 0 }}>
@@ -555,7 +546,7 @@ const CateringList = () => {
                 <Grid item xs={12} md={6}><TextField fullWidth label="Title" value={editFormData.title || ''} onChange={e => setEditFormData(p => ({ ...p, title: e.target.value }))} /></Grid>
                 <Grid item xs={12} md={6}><TextField fullWidth label="Subtitle" value={editFormData.subtitle || ''} onChange={e => setEditFormData(p => ({ ...p, subtitle: e.target.value }))} /></Grid>
                 <Grid item xs={12}><TextField fullWidth label="Description" multiline rows={3} value={editFormData.description || ''} onChange={e => setEditFormData(p => ({ ...p, description: e.target.value }))} /></Grid>
-                <Grid item xs={12} md={6}><TextField fullWidth label="Type" value={editFormData.cateringType || ''} onChange={e => setEditFormData(p => ({ ...p, cateringType: e.target.value }))} /></Grid>
+                <Grid item xs={12} md={6}><TextField fullWidth label="Type" value={editFormData.cakeType || ''} onChange={e => setEditFormData(p => ({ ...p, cakeType: e.target.value }))} /></Grid>
                 <Grid item xs={12} md={6}>
                   <TextField
                     fullWidth
@@ -615,7 +606,7 @@ const CateringList = () => {
       {/* ---------- DELETE DIALOG ---------- */}
       <Dialog open={openDeleteDialog} onClose={() => setOpenDeleteDialog(false)}>
         <DialogTitle color="error">Confirm Delete</DialogTitle>
-        <DialogContent><DialogContentText>Delete <strong>{cateringToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
+        <DialogContent><DialogContentText>Delete <strong>{cakeToDelete?.title}</strong>? This cannot be undone.</DialogContentText></DialogContent>
         <DialogActions>
           <Button onClick={() => setOpenDeleteDialog(false)} variant="outlined">Cancel</Button>
           <Button onClick={handleDeleteConfirm} variant="contained" color="error">Delete</Button>
@@ -632,4 +623,4 @@ const CateringList = () => {
   );
 };
 
-export default CateringList;
+export default CakeList;

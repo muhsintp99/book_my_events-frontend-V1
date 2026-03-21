@@ -17,9 +17,14 @@ import {
   OutlinedInput
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { useParams, useNavigate } from 'react-router-dom';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
-function AddAuditorium() {
+function CateringProvider() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [profileId, setProfileId] = useState(null);
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
@@ -110,7 +115,7 @@ function AddAuditorium() {
     const mod = allModules.find((m) => m._id === formData.module);
     if (!mod) return false;
     const title = (mod.title || '').toLowerCase();
-    return title.includes('makeup') || title.includes('photography');
+    return title.includes('makeup') || title.includes('photography') || title.includes('mehandi') || title.includes('catering');
   };
 
   const handleMultiZoneChange = (event) => {
@@ -157,6 +162,103 @@ function AddAuditorium() {
 
     fetchPlans();
   }, [formData.module, API_BASE_URL]);
+
+  // Fetch vendor data when editing
+  useEffect(() => {
+    if (id) {
+      setIsEditMode(true);
+      fetchVendorData(id);
+    }
+  }, [id]);
+
+  const fetchVendorData = async (vendorId) => {
+    try {
+      setLoading(true);
+      const response = await fetch(`${API_BASE_URL}/profile/admin/vendor/${vendorId}/details`);
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.message || 'Failed to fetch');
+
+      const profileInfo = result.data?.profile || result.profile || result.data;
+      if (!profileInfo) throw new Error('Profile data not found in response');
+
+      const { user, profile, vendorProfile } = profileInfo;
+      if (!user) throw new Error('User data missing from profile');
+
+      setProfileId(profile?._id || null);
+
+      setFormData({
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        email: user.email || '',
+        phone: user.phone || '',
+        storeName: vendorProfile?.storeName || profile?.vendorName || '',
+        storeAddress: {
+          street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || '',
+          city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
+          state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
+          zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
+        },
+        minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
+        maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || '',
+        module:
+          vendorProfile?.module?._id?.$oid ||
+          vendorProfile?.module?._id ||
+          vendorProfile?.module ||
+          activeModuleId ||
+          '',
+        latitude: vendorProfile?.latitude || profile?.latitude || '',
+        longitude: vendorProfile?.longitude || profile?.longitude || '',
+        ownerFirstName: vendorProfile?.ownerFirstName || '',
+        ownerLastName: vendorProfile?.ownerLastName || '',
+        ownerPhone: vendorProfile?.ownerPhone || '',
+        ownerEmail: vendorProfile?.ownerEmail || '',
+        status: vendorProfile?.status || 'pending',
+        reviewedBy: vendorProfile?.reviewedBy || '',
+        reviewedAt: vendorProfile?.reviewedAt || '',
+        rejectionReason: vendorProfile?.rejectionReason || '',
+        adminNotes: vendorProfile?.adminNotes || '',
+        isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
+        approvedProvider: vendorProfile?.approvedProvider || ''
+      });
+
+      if (profile?.bankDetails) {
+        setBankDetails({
+          ...bankDetails,
+          ...profile.bankDetails
+        });
+      }
+
+      const logo = vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto;
+      if (logo) setLogoPreview(getApiImageUrl(logo));
+
+      const cover = vendorProfile?.coverImage;
+      if (cover) setCoverPreview(getApiImageUrl(cover));
+
+      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
+        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      }
+
+      setIsFreeTrial(user.isFreeTrial || false);
+      if (user.subscriptionPlan) setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
+      
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones)) {
+        const multiZoneIds = vendorProfile.zones
+          .map(z => z._id?.$oid || z._id || z)
+          .filter(id => id !== (vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone));
+        setSelectedMultiZones(multiZoneIds);
+      }
+
+      showAlert('Provider data loaded successfully', 'success');
+    } catch (err) {
+      console.error('Error fetching vendor:', err);
+      showAlert('Failed to load provider data', 'error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Load Google Maps script
   useEffect(() => {
@@ -457,6 +559,23 @@ function AddAuditorium() {
       if (files.logo) payload.append('logo', files.logo);
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
+      if (isEditMode) {
+        const updateId = profileId || id;
+        const res = await fetch(`${API_BASE_URL}/profile/${updateId}`, {
+          method: 'PUT',
+          body: payload
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || 'Update failed');
+
+        showAlert('Provider updated successfully!', 'success');
+        // setTimeout(() => {
+        //   navigate('/catering/cateringprovider');
+        // }, 2000);
+        return;
+      }
+
       // Register provider
       const res = await fetch(`${API_BASE_URL}/auth/register`, {
         method: 'POST',
@@ -638,7 +757,7 @@ function AddAuditorium() {
   return (
     <Box sx={{ p: 3, backgroundColor: '#f9f9f9', borderRadius: 2 }}>
       <Typography variant="h4" fontWeight="bold" sx={{ mb: 3 }}>
-        Add Provider
+        {isEditMode ? 'Edit Provider' : 'Add Provider'}
       </Typography>
 
       {/* Store Information */}
@@ -849,7 +968,7 @@ function AddAuditorium() {
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((zoneId) => {
-                      const zone = zones.find(z => z._id === zoneId);
+                      const zone = zones.find(z => (z._id?.$oid || z._id) === zoneId);
                       return (
                         <Chip
                           key={zoneId}
@@ -879,11 +998,11 @@ function AddAuditorium() {
                   .filter(z => z._id !== selectedZone)
                   .map((z) => (
                     <MenuItem
-                      key={z._id}
-                      value={z._id}
+                      key={z._id?.$oid || z._id}
+                      value={z._id?.$oid || z._id}
                       sx={{
-                        fontWeight: selectedMultiZones.includes(z._id) ? 600 : 400,
-                        bgcolor: selectedMultiZones.includes(z._id) ? '#eef2ff' : 'transparent'
+                        fontWeight: selectedMultiZones.includes(z._id?.$oid || z._id) ? 600 : 400,
+                        bgcolor: selectedMultiZones.includes(z._id?.$oid || z._id) ? '#eef2ff' : 'transparent'
                       }}
                     >
                       {z.name}
@@ -1156,4 +1275,4 @@ function AddAuditorium() {
   );
 }
 
-export default AddAuditorium;
+export default CateringProvider;

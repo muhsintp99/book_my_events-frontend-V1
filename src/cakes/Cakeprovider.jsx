@@ -92,87 +92,6 @@
 
 //   // Fetch vendor data when editing
 //   useEffect(() => {
-//     if (id) {
-//       setIsEditMode(true);
-//       fetchVendorData(id);
-//     }
-//   }, [id]);
-
-//   const fetchVendorData = async (vendorId) => {
-//     try {
-//       setLoading(true);
-//       const response = await fetch(`${API_BASE_URL}/users/${vendorId}`);
-      
-//       if (!response.ok) {
-//         throw new Error('Failed to fetch vendor data');
-//       }
-      
-//       const data = await response.json();
-//       const vendor = data.user || data;
-      
-//       console.log('Fetched vendor data:', vendor); // Debug log
-      
-//       // Determine full name - could be from storeName or combined firstName/lastName
-//       const fullName = vendor.storeName || 
-//                        (vendor.firstName && vendor.lastName ? `${vendor.firstName} ${vendor.lastName}` : '') ||
-//                        vendor.fullName || '';
-      
-//       // Populate form with vendor data
-//       setFormData({
-//         vendorType: vendor.vendorType || 'individual',
-//         fullName: fullName,
-//         storeName: vendor.storeName || fullName,
-//         firstName: vendor.firstName || '',
-//         lastName: vendor.lastName || '',
-//         email: vendor.email || '',
-//         phone: vendor.phone || vendor.mobile || '',
-//         bioTitle: vendor.bioTitle || vendor.bio?.title || '',
-//         bioSubtitle: vendor.bioSubtitle || vendor.bio?.subtitle || '',
-//         bioDescription: vendor.bioDescription || vendor.bio?.description || '',
-//         storeAddress: {
-//           street: vendor.storeAddress?.street || vendor.address?.street || '',
-//           city: vendor.storeAddress?.city || vendor.address?.city || '',
-//           state: vendor.storeAddress?.state || vendor.address?.state || '',
-//           zipCode: vendor.storeAddress?.zipCode || vendor.address?.zipCode || '',
-//           fullAddress: vendor.storeAddress?.fullAddress || vendor.address?.fullAddress || '',
-//         },
-//         zone: vendor.zone?._id || vendor.zone || '',
-//         module: vendor.module?._id || vendor.module || activeModuleId || '',
-//         latitude: vendor.location?.latitude || vendor.latitude || '',
-//         longitude: vendor.location?.longitude || vendor.longitude || '',
-//         ownerFirstName: vendor.ownerFirstName || vendor.owner?.firstName || '',
-//         ownerLastName: vendor.ownerLastName || vendor.owner?.lastName || '',
-//         ownerPhone: vendor.ownerPhone || vendor.owner?.phone || '',
-//         ownerEmail: vendor.ownerEmail || vendor.owner?.email || '',
-//         status: vendor.status || 'pending',
-//         isActive: vendor.isActive !== undefined ? vendor.isActive : true,
-//       });
-      
-//       // Set previews if images exist
-//       if (vendor.logo) {
-//         setLogoPreview(vendor.logo);
-//       }
-//       if (vendor.coverImage) {
-//         setCoverPreview(vendor.coverImage);
-//       }
-      
-//       if (vendor.zone?._id || vendor.zone) {
-//         setSelectedZone(vendor.zone?._id || vendor.zone);
-//       }
-      
-//       showAlert('Vendor data loaded successfully', 'success');
-//     } catch (error) {
-//       console.error('Error fetching vendor:', error);
-//       showAlert('Failed to load vendor data', 'error');
-//     } finally {
-//       setLoading(false);
-//     }
-//   };
-
-//   // ----------------------------------------------------
-//   // GOOGLE MAPS
-//   // ----------------------------------------------------
-//   useEffect(() => {
 //     if (window.google && window.google.maps) {
 //       setMapsLoaded(true);
 //       return;
@@ -1042,7 +961,7 @@
 //   );
 // }
 
-// export default AddAuditorium;
+// export default Cakeprovider;
 
 
 
@@ -1069,11 +988,14 @@ import {
 } from "@mui/material";
 import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 import { useParams, useNavigate } from "react-router-dom";
+import { getApiImageUrl } from "../utils/apiImageUtils";
 
-function AddAuditorium() {
+
+function Cakeprovider() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [profileId, setProfileId] = useState(null);
 
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -1148,7 +1070,7 @@ const [deliveryTime, setDeliveryTime] = useState({
     ownerPhone: "",
     ownerEmail: "",
     status: "pending",
-    isActive: true,
+    isActive: true
   });
 
   const [zones, setZones] = useState([]);
@@ -1179,48 +1101,78 @@ const [deliveryTime, setDeliveryTime] = useState({
   const fetchVendorData = async (vendorId) => {
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/users/${vendorId}`);
-      if (!response.ok) throw new Error("Failed to fetch vendor");
-      const data = await response.json();
-      const vendor = data.user || data;
+      const response = await fetch(`${API_BASE_URL}/profile/admin/vendor/${vendorId}/details`);
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.message || 'Failed to fetch');
+
+      const profileInfo = result.data?.profile || result.profile || result.data;
+      if (!profileInfo) throw new Error('Profile data not found in response');
+
+      const { user, profile, vendorProfile } = profileInfo;
+      if (!user) throw new Error('User data missing from profile');
+
+      setProfileId(profile?._id || null);
 
       const fullName =
-        vendor.storeName ||
-        `${vendor.firstName || ""} ${vendor.lastName || ""}`.trim();
+        vendorProfile?.storeName ||
+        profile?.vendorName ||
+        `${user.firstName || ""} ${user.lastName || ""}`.trim();
 
       setFormData({
-        vendorType: vendor.vendorType || "individual",
+        vendorType: vendorProfile?.vendorType || user.vendorType || "individual",
         fullName: fullName,
-        storeName: vendor.storeName || fullName,
-        firstName: vendor.firstName || "",
-        lastName: vendor.lastName || "",
-        email: vendor.email || "",
-        phone: vendor.phone || vendor.mobile || "",
-        bioTitle: vendor.bioTitle || vendor.bio?.title || "",
-        bioSubtitle: vendor.bioSubtitle || vendor.bio?.subtitle || "",
-        bioDescription: vendor.bioDescription || vendor.bio?.description || "",
+        storeName: vendorProfile?.storeName || profile?.vendorName || fullName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || user.mobile || "",
+        bioTitle: vendorProfile?.bioTitle || profile?.bio?.title || "",
+        bioSubtitle: vendorProfile?.bioSubtitle || profile?.bio?.subtitle || "",
+        bioDescription: vendorProfile?.bioDescription || profile?.bio?.description || "",
         storeAddress: {
-          street: vendor.storeAddress?.street || vendor.address?.street || "",
-          city: vendor.storeAddress?.city || vendor.address?.city || "",
-          state: vendor.storeAddress?.state || vendor.address?.state || "",
-          zipCode: vendor.storeAddress?.zipCode || vendor.address?.zipCode || "",
-          fullAddress: vendor.storeAddress?.fullAddress || vendor.address?.fullAddress || "",
+          street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || '',
+          city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
+          state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
+          zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
         },
-        zone: vendor.zone?._id || vendor.zone || "",
-        module: vendor.module?._id || vendor.module || activeModuleId || "",
-        latitude: vendor.latitude || vendor.location?.latitude || "",
-        longitude: vendor.longitude || vendor.location?.longitude || "",
-        ownerFirstName: vendor.ownerFirstName || vendor.owner?.firstName || "",
-        ownerLastName: vendor.ownerLastName || vendor.owner?.lastName || "",
-        ownerPhone: vendor.ownerPhone || vendor.owner?.phone || "",
-        ownerEmail: vendor.ownerEmail || vendor.owner?.email || "",
-        status: vendor.status || "pending",
-        isActive: vendor.isActive !== undefined ? vendor.isActive : true,
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || "",
+        module: vendorProfile?.module?._id?.$oid || vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || "",
+        latitude: vendorProfile?.latitude || profile?.latitude || "",
+        longitude: vendorProfile?.longitude || profile?.longitude || "",
+        ownerFirstName: vendorProfile?.ownerFirstName || "",
+        ownerLastName: vendorProfile?.ownerLastName || "",
+        ownerPhone: vendorProfile?.ownerPhone || "",
+        ownerEmail: vendorProfile?.ownerEmail || "",
+        status: vendorProfile?.status || "pending",
+        isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
       });
 
-      setSelectedZone(vendor.zone?._id || vendor.zone || "");
-      if (vendor.logo) setLogoPreview(vendor.logo);
-      if (vendor.coverImage) setCoverPreview(vendor.coverImage);
+      const bankData = vendorProfile?.bankDetails || profile?.bankDetails;
+      if (bankData) {
+        setBankDetails({
+          ...bankDetails,
+          ...bankData
+        });
+      }
+
+      if (vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto) {
+        setLogoPreview(getApiImageUrl(vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto));
+      }
+      
+      if (vendorProfile?.coverImage) {
+        setCoverPreview(getApiImageUrl(vendorProfile.coverImage));
+      }
+
+      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
+        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      }
+
+      setIsFreeTrial(user.isFreeTrial || false);
+      if (user.subscriptionPlan) {
+        setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
+      }
 
       showAlert("Vendor data loaded successfully", "success");
     } catch (err) {
@@ -1487,10 +1439,10 @@ const [deliveryTime, setDeliveryTime] = useState({
 
       payload.append("role", "vendor");
       payload.append("vendorType", formData.vendorType);
-      payload.append("firstName", formData.firstName);
-      payload.append("lastName", formData.lastName);
-      payload.append("email", formData.email);
-      payload.append("phone", formData.phone);
+      payload.append("firstName", formData.ownerFirstName || formData.firstName);
+      payload.append("lastName", formData.ownerLastName || formData.lastName);
+      payload.append("email", formData.ownerEmail || formData.email);
+      payload.append("phone", formData.ownerPhone || formData.phone);
 // -------- CAKE DELIVERY TIME --------
 if (isCakeModule()) {
   payload.append("minDeliveryDays", deliveryTime.minDays);
@@ -1545,8 +1497,22 @@ payload.append('accountType', bankDetails.accountType);
       if (files.logo) payload.append("logo", files.logo);
       if (files.coverImage) payload.append("coverImage", files.coverImage);
 
-      const url = isEditMode ? `${API_BASE_URL}/users/${id}` : `${API_BASE_URL}/auth/register`;
-      const method = isEditMode ? "PUT" : "POST";
+      if (isEditMode) {
+        const updateId = profileId || id;
+        const res = await fetch(`${API_BASE_URL}/profile/${updateId}`, {
+          method: "PUT",
+          body: payload
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Update failed");
+
+        showAlert("Provider updated successfully!", "success");
+        setLoading(false);
+        return;
+      }
+
+      const url = `${API_BASE_URL}/auth/register`;
+      const method = "POST";
 
       const res = await fetch(url, { method, body: payload });
       let result;
@@ -1573,8 +1539,16 @@ payload.append('accountType', bankDetails.accountType);
         (result.user?._id);
 
       if (isEditMode) {
+        const updateId = profileId || id;
+        const res = await fetch(`${API_BASE_URL}/profile/${updateId}`, {
+          method: "PUT",
+          body: payload
+        });
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Update failed");
+
         showAlert("Provider updated successfully!", "success");
-        setTimeout(() => navigate("/makeup/CateringProvider"), 2000);
+        // setTimeout(() => navigate("/cake/cakevendors"), 2000);
         setLoading(false);
         return;
       }
@@ -1665,6 +1639,7 @@ payload.append('accountType', bankDetails.accountType);
       
       status: "pending",
       isActive: true,
+      vendorCode: ""
     });
     setSelectedZone("");
     setLogoPreview(null);
@@ -2054,4 +2029,4 @@ const isCakeModule = () => {
   );
 }
 
-export default AddAuditorium;
+export default Cakeprovider;

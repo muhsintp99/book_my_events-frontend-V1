@@ -1,3 +1,4 @@
+// FORCING UPDATE
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   Box,
@@ -27,6 +28,8 @@ function PhotoProvider() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [isEditMode, setIsEditMode] = useState(false);
+  const [profileId, setProfileId] = useState(null);
+  console.log('PhotoProvider init', { setProfileId });
 
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState("");
@@ -113,18 +116,7 @@ function PhotoProvider() {
   const [selectedMultiZones, setSelectedMultiZones] = useState([]);
 
   // Check if current module supports multi-zone (photography always qualifies)
-  const isMultiZoneModule = () => {
-    if (!formData.module || !allModules.length) return false;
-    const mod = allModules.find((m) => m._id === formData.module);
-    if (!mod) return false;
-    const title = (mod.title || '').toLowerCase();
-    return (
-      title.includes('makeup') ||
-      title.includes('photography') ||
-      title.includes('mehandi') ||
-      title.includes('mehndi')
-    );
-  };
+  const isMultiZoneModule = () => true; // Photography always supports multi-zone
 
   const handleMultiZoneChange = (event) => {
     const value = event.target.value;
@@ -146,50 +138,87 @@ function PhotoProvider() {
   }, [id]);
 
   const fetchVendorData = async (vendorId) => {
+    console.log('In fetchVendorData', { setProfileId });
     try {
       setLoading(true);
-      const response = await fetch(`${API_BASE_URL}/users/${vendorId}`);
-      if (!response.ok) throw new Error("Failed to fetch vendor");
-      const data = await response.json();
-      const vendor = data.user || data;
+      const response = await fetch(`${API_BASE_URL}/profile/admin/vendor/${vendorId}/details`);
+      const result = await response.json();
+
+      if (!result.success) throw new Error(result.message || 'Failed to fetch');
+
+      const profileInfo = result.data?.profile || result.profile || result.data;
+      if (!profileInfo) throw new Error('Profile data not found in response');
+
+      const { user, profile, vendorProfile } = profileInfo;
+      if (!user) throw new Error('User data missing from profile');
+
+      setProfileId(profile?._id || null);
 
       const fullName =
-        vendor.storeName ||
-        `${vendor.firstName || ""} ${vendor.lastName || ""}`.trim();
+        vendorProfile?.storeName ||
+        profile?.vendorName ||
+        `${user.firstName || ""} ${user.lastName || ""}`.trim();
 
       setFormData({
-        vendorType: vendor.vendorType || "individual",
+        vendorType: vendorProfile?.vendorType || user.vendorType || "individual",
         fullName: fullName,
-        storeName: vendor.storeName || fullName,
-        firstName: vendor.firstName || "",
-        lastName: vendor.lastName || "",
-        email: vendor.email || "",
-        phone: vendor.phone || vendor.mobile || "",
-        bioTitle: vendor.bioTitle || vendor.bio?.title || "",
-        bioSubtitle: vendor.bioSubtitle || vendor.bio?.subtitle || "",
-        bioDescription: vendor.bioDescription || vendor.bio?.description || "",
-        storeAddress: {
-          street: vendor.storeAddress?.street || vendor.address?.street || "",
-          city: vendor.storeAddress?.city || vendor.address?.city || "",
-          state: vendor.storeAddress?.state || vendor.address?.state || "",
-          zipCode: vendor.storeAddress?.zipCode || vendor.address?.zipCode || "",
-          fullAddress: vendor.storeAddress?.fullAddress || vendor.address?.fullAddress || "",
-        },
-        zone: vendor.zone?._id || vendor.zone || "",
-        module: vendor.module?._id || vendor.module || activeModuleId || "",
-        latitude: vendor.latitude || vendor.location?.latitude || "",
-        longitude: vendor.longitude || vendor.location?.longitude || "",
-        ownerFirstName: vendor.ownerFirstName || vendor.owner?.firstName || "",
-        ownerLastName: vendor.ownerLastName || vendor.owner?.lastName || "",
-        ownerPhone: vendor.ownerPhone || vendor.owner?.phone || "",
-        ownerEmail: vendor.ownerEmail || vendor.owner?.email || "",
-        status: vendor.status || "pending",
-        isActive: vendor.isActive !== undefined ? vendor.isActive : true,
+        storeName: vendorProfile?.storeName || profile?.vendorName || fullName,
+        firstName: user.firstName || "",
+        lastName: user.lastName || "",
+        email: user.email || "",
+        phone: user.phone || user.mobile || "",
+        bioTitle: vendorProfile?.bioTitle || profile?.bio?.title || "",
+        bioSubtitle: vendorProfile?.bioSubtitle || profile?.bio?.subtitle || "",
+        bioDescription: vendorProfile?.bioDescription || profile?.bio?.description || "",
+          storeAddress: {
+            street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || "",
+            city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || "",
+            state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || "",
+            zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || "",
+            fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || "",
+          },
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || "",
+        module: vendorProfile?.module?._id?.$oid || vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || "",
+        latitude: vendorProfile?.latitude || profile?.latitude || "",
+        longitude: vendorProfile?.longitude || profile?.longitude || "",
+        ownerFirstName: vendorProfile?.ownerFirstName || "",
+        ownerLastName: vendorProfile?.ownerLastName || "",
+        ownerPhone: vendorProfile?.ownerPhone || "",
+        ownerEmail: vendorProfile?.ownerEmail || "",
+        status: vendorProfile?.status || "pending",
+        isActive: vendorProfile?.isActive !== undefined ? vendorProfile.isActive : true,
       });
 
-      setSelectedZone(vendor.zone?._id || vendor.zone || "");
-      if (vendor.logo) setLogoPreview(getApiImageUrl(vendor.logo));
-      if (vendor.coverImage) setCoverPreview(getApiImageUrl(vendor.coverImage));
+      if (profile?.bankDetails) {
+        setBankDetails({
+          ...bankDetails,
+          ...profile.bankDetails
+        });
+      }
+
+      if (vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto) {
+        setLogoPreview(getApiImageUrl(vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto));
+      }
+      
+      if (vendorProfile?.coverImage) {
+        setCoverPreview(getApiImageUrl(vendorProfile.coverImage));
+      }
+
+      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
+        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      }
+
+      setIsFreeTrial(user.isFreeTrial || false);
+      if (user.subscriptionPlan) {
+        setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
+      }
+
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones)) {
+        const multiZoneIds = vendorProfile.zones
+          .map(z => z._id?.$oid || z._id || z)
+          .filter(id => id !== (vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone));
+        setSelectedMultiZones(multiZoneIds);
+      }
 
       showAlert("Vendor data loaded successfully", "success");
     } catch (err) {
@@ -494,7 +523,10 @@ function PhotoProvider() {
       // Send multi-zones for eligible modules
       if (isMultiZoneModule() && selectedMultiZones.length > 0) {
         const allZones = [formData.zone, ...selectedMultiZones.filter(z => z !== formData.zone)].filter(Boolean);
+        console.log('Sending zones:', allZones);
         payload.append('zones', allZones.join(','));
+      } else {
+        console.log('Not sending multi-zones, isMultiZoneModule:', isMultiZoneModule(), 'selectedMultiZones:', selectedMultiZones);
       }
 
       payload.append("ownerFirstName", formData.ownerFirstName);
@@ -508,8 +540,24 @@ function PhotoProvider() {
       if (files.logo) payload.append("logo", files.logo);
       if (files.coverImage) payload.append("coverImage", files.coverImage);
 
-      const url = isEditMode ? `${API_BASE_URL}/users/${id}` : `${API_BASE_URL}/auth/register`;
-      const method = isEditMode ? "PUT" : "POST";
+      if (isEditMode) {
+        const updateId = profileId || id;
+        const res = await fetch(`${API_BASE_URL}/profile/${updateId}`, {
+          method: "PUT",
+          body: payload
+        });
+
+        const result = await res.json();
+        if (!res.ok) throw new Error(result.message || "Update failed");
+
+        showAlert("Provider updated successfully!", "success");
+        // setTimeout(() => navigate("/photography/photographyvendors"), 2000);
+        setLoading(false);
+        return;
+      }
+
+      const url = `${API_BASE_URL}/auth/register`;
+      const method = "POST";
 
       const res = await fetch(url, { method, body: payload });
       let result;
@@ -537,7 +585,7 @@ function PhotoProvider() {
 
       if (isEditMode) {
         showAlert("Provider updated successfully!", "success");
-        setTimeout(() => navigate("/photography/photographyvendors"), 2000);
+        // setTimeout(() => navigate("/photography/photographyvendors"), 2000);
         setLoading(false);
         return;
       }
@@ -627,6 +675,7 @@ function PhotoProvider() {
       ownerEmail: "",
       status: "pending",
       isActive: true,
+      vendorCode: "",
     });
     setSelectedZone("");
     setSelectedMultiZones([]);
@@ -821,7 +870,7 @@ function PhotoProvider() {
                 renderValue={(selected) => (
                   <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
                     {selected.map((zoneId) => {
-                      const zone = zones.find(z => z._id === zoneId);
+                      const zone = zones.find(z => (z._id?.$oid || z._id) === zoneId);
                       return (
                         <Chip
                           key={zoneId}
@@ -851,11 +900,11 @@ function PhotoProvider() {
                   .filter(z => z._id !== selectedZone)
                   .map((z) => (
                     <MenuItem
-                      key={z._id}
-                      value={z._id}
+                      key={z._id?.$oid || z._id}
+                      value={z._id?.$oid || z._id}
                       sx={{
-                        fontWeight: selectedMultiZones.includes(z._id) ? 600 : 400,
-                        bgcolor: selectedMultiZones.includes(z._id) ? '#eef2ff' : 'transparent'
+                        fontWeight: selectedMultiZones.includes(z._id?.$oid || z._id) ? 600 : 400,
+                        bgcolor: selectedMultiZones.includes(z._id?.$oid || z._id) ? '#eef2ff' : 'transparent'
                       }}
                     >
                       {z.name}

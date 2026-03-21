@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 function AddOrnaments() {
   const { id } = useParams();
@@ -176,8 +176,8 @@ function AddOrnaments() {
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
-        zone: vendorProfile?.zone?._id || vendorProfile?.zone || '',
-        module: vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || '',
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || '',
+        module: vendorProfile?.module?._id?.$oid || vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || '',
         latitude: vendorProfile?.latitude || profile?.latitude || '',
         longitude: vendorProfile?.longitude || profile?.longitude || '',
         ownerFirstName: vendorProfile?.ownerFirstName || '',
@@ -201,10 +201,10 @@ function AddOrnaments() {
       }
 
       const logo = (vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto);
-      if (logo) setLogoPreview(logo);
+      if (logo) setLogoPreview(getApiImageUrl(logo));
 
       const cover = (vendorProfile?.coverImage);
-      if (cover) setCoverPreview(cover);
+      if (cover) setCoverPreview(getApiImageUrl(cover));
 
       if (vendorProfile?.zone?._id || vendorProfile?.zone) {
         setSelectedZone(vendorProfile.zone?._id || vendorProfile.zone);

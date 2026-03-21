@@ -16,7 +16,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 import { useParams, useNavigate } from 'react-router-dom';
-import { API_BASE_URL } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
 
 function AddOrnaments() {
   const { id } = useParams();
@@ -158,7 +158,12 @@ function AddOrnaments() {
 
       if (!result.success) throw new Error(result.message || 'Failed to fetch');
 
-      const { user, profile, vendorProfile } = result.data.profile;
+      const profileInfo = result.data?.profile || result.profile || result.data;
+      if (!profileInfo) throw new Error('Profile data not found in response');
+
+      const { user, profile, vendorProfile } = profileInfo;
+      if (!user) throw new Error('User data missing from profile');
+
       setProfileId(profile?._id || null);
 
       setFormData({
@@ -167,17 +172,17 @@ function AddOrnaments() {
         email: user.email || '',
         phone: user.phone || '',
         storeName: vendorProfile?.storeName || profile?.vendorName || '',
-        storeAddress: vendorProfile?.storeAddress || profile?.storeAddress || {
-          street: '',
-          city: '',
-          state: '',
-          zipCode: '',
-          fullAddress: profile?.businessAddress || ''
+        storeAddress: {
+          street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || '',
+          city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
+          state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
+          zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
-        zone: vendorProfile?.zone?._id || vendorProfile?.zone || '',
-        module: vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || '',
+        zone: vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone || '',
+        module: vendorProfile?.module?._id?.$oid || vendorProfile?.module?._id || vendorProfile?.module || activeModuleId || '',
         latitude: vendorProfile?.latitude || profile?.latitude || '',
         longitude: vendorProfile?.longitude || profile?.longitude || '',
         ownerFirstName: vendorProfile?.ownerFirstName || '',
@@ -201,13 +206,13 @@ function AddOrnaments() {
       }
 
       const logo = (vendorProfile?.logo || profile?.profilePhoto || user?.profilePhoto);
-      if (logo) setLogoPreview(logo);
+      if (logo) setLogoPreview(getApiImageUrl(logo));
 
       const cover = (vendorProfile?.coverImage);
-      if (cover) setCoverPreview(cover);
+      if (cover) setCoverPreview(getApiImageUrl(cover));
 
       if (vendorProfile?.zone?._id || vendorProfile?.zone) {
-        setSelectedZone(vendorProfile.zone?._id || vendorProfile.zone);
+        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
       }
 
       setIsFreeTrial(user.isFreeTrial || false);
@@ -535,9 +540,9 @@ function AddOrnaments() {
         if (!res.ok) throw new Error(result.message || 'Update failed');
 
         showAlert('Provider updated successfully!', 'success');
-        setTimeout(() => {
-          navigate('/ornaments/ornamentsprovider');
-        }, 2000);
+        // setTimeout(() => {
+        //   navigate('/ornaments/ornamentsprovider');
+        // }, 2000);
         return;
       }
 

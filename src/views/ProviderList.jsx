@@ -417,6 +417,7 @@ function ProviderList() {
                                 <TableHead>
                                     <TableRow sx={{ bgcolor: '#f8f9fa' }}>
                                         <TableCell sx={{ fontWeight: 600 }}>Vendor</TableCell>
+                                        <TableCell sx={{ fontWeight: 600 }}>Vendor Code</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Email</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Phone</TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>Module</TableCell>

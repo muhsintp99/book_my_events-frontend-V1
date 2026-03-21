@@ -24,7 +24,7 @@ const FloristList = () => {
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [anchorEl, setAnchorEl] = useState(null);
 
-    const API_URL = `${API_BASE_URL}/florists`;
+    const API_URL = `${API_BASE_URL}/florist`;
 
     const fetchFlorists = useCallback(async () => {
         try {

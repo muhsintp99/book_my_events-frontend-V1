@@ -14,7 +14,7 @@
 // } from '@mui/material';
 // import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
-// function AddAuditorium() {
+// function AddProvider() {
 //   const [open, setOpen] = useState(false);
 //   const [alertMessage, setAlertMessage] = useState('');
 //   const [alertSeverity, setAlertSeverity] = useState('success');
@@ -550,7 +550,7 @@
 //   );
 // }
 
-// export default AddAuditorium;
+// export default AddProvider;
 
 
 
@@ -578,7 +578,7 @@
 // } from "@mui/material";
 // import CloudUploadIcon from "@mui/icons-material/CloudUpload";
 
-// function AddAuditorium() {
+// function AddProvider() {
 //   const [open, setOpen] = useState(false);
 //   const [alertMessage, setAlertMessage] = useState("");
 //   const [alertSeverity, setAlertSeverity] = useState("success");
@@ -1393,7 +1393,7 @@
 //   );
 // }
 
-// export default AddAuditorium;
+// export default AddProvider;
 
 
 
@@ -1421,7 +1421,7 @@ import {
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
 
-function AddAuditorium() {
+function AddProvider() {
   const [open, setOpen] = useState(false);
   const [alertMessage, setAlertMessage] = useState('');
   const [alertSeverity, setAlertSeverity] = useState('success');
@@ -2330,4 +2330,4 @@ payload.append('accountType', bankDetails.accountType);
   );
 }
 
-export default AddAuditorium;
+export default AddProvider;

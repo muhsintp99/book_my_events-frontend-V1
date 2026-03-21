@@ -24,7 +24,7 @@ const LightList = () => {
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
     const [anchorEl, setAnchorEl] = useState(null);
 
-    const API_URL = `${API_BASE_URL}/light-sounds`;
+    const API_URL = `${API_BASE_URL}/light-and-sound`;
 
     const fetchItems = useCallback(async () => {
         try {

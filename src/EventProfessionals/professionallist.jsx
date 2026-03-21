@@ -21,7 +21,7 @@ const EventProfessionalList = () => {
     const [itemToDelete, setItemToDelete] = useState(null);
     const [notification, setNotification] = useState({ open: false, message: '', severity: 'success' });
 
-    const API_URL = `${API_BASE_URL}/event-professionals`;
+    const API_URL = `${API_BASE_URL}/event-professional`;
 
     const fetchItems = useCallback(async () => {
         try {
