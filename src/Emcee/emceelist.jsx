@@ -1,16 +1,16 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import {
   Table, TableBody, TableCell, TableHead, TableRow, Paper, TableContainer,
   Switch, IconButton, Box, TextField, Button,
   Dialog, DialogContent, DialogTitle,
-  Typography, Snackbar, Alert, CircularProgress, Chip, Divider,
-  Avatar, Tooltip, Collapse, Grid
+  Typography, Snackbar, Alert, Chip, Divider,
+  Avatar, Tooltip, Collapse, Grid, Stack
 } from '@mui/material';
 import {
-  VisibilityOutlined, Edit, Delete, Close, 
-  Search as SearchIcon, Star, 
-  Refresh, CheckCircle, Storefront,
-  MicExternalOn, AutoFixHigh, MilitaryTech
+  VisibilityOutlined, Edit, Delete, Close,
+  Search as SearchIcon, Star,
+  Refresh, CheckCircle,
+  MicExternalOn, MilitaryTech, Groups
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
@@ -72,6 +72,7 @@ const EmceeList = () => {
   const [selectedPackage, setSelectedPackage] = useState(null);
 
   const API_URL = `${API_BASE_URL}/emcee`;
+  const MODULE_ID = localStorage.getItem('moduleDbId');
 
   const getFetchOptions = (method = 'GET', body = null) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
@@ -88,37 +89,72 @@ const EmceeList = () => {
   const fetchPackages = async () => {
     try {
       setLoading(true);
-      const res = await fetch(API_URL, getFetchOptions());
-      const data = await res.json();
-      if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((m, idx) => ({
-          _id: m._id, id: idx + 1,
-          title: m.packageName || 'Master of Ceremonies',
-          description: m.description || '',
-          price: m.packagePrice ?? 0,
-          advance: m.advanceBookingAmount ?? 0,
-          category: m.category || 'Emcee',
-          providerId: m.provider?._id || m.provider?.id || 'unknown',
-          providerName: m.provider?.firstName && m.provider?.lastName ? `${m.provider.firstName} ${m.provider.lastName}` : (m.provider?.firstName || m.provider?.name || '—'),
-          providerEmail: m.provider?.email || '', providerPhone: m.provider?.phone || '',
-          isTopPick: m.isTopPick ?? false, isActive: m.isActive ?? false,
-          rawPackage: m,
-        }));
-        setPackages(mapped); setAllPackages(mapped);
-        
-        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
-        const allExpanded = {};
-        uniqueVendors.forEach(id => { allExpanded[id] = true; });
-        setExpandedVendors(allExpanded);
+
+      // Step 1: Get all vendors for this module
+      const vendorRes = await fetch(`${API_URL}/vendors/${MODULE_ID}`, getFetchOptions());
+      const vendorData = await vendorRes.json();
+      console.log('EMCEE VENDORS API:', vendorData);
+
+      if (!vendorData?.data || !Array.isArray(vendorData.data)) {
+        setAllPackages([]);
+        setPackages([]);
+        return;
       }
+
+      // Step 2: For each vendor, fetch their packages in parallel
+      const allMapped = [];
+      const expanded = {};
+
+      await Promise.all(
+        vendorData.data.map(async (vendor, vIndex) => {
+          try {
+            const pkgRes = await fetch(`${API_URL}/vendor/${vendor._id}`, getFetchOptions());
+            const pkgData = await pkgRes.json();
+            console.log(`Packages for vendor ${vendor._id}:`, pkgData);
+
+            const pkgList = Array.isArray(pkgData?.data) ? pkgData.data : [];
+
+            pkgList.forEach((pkg, idx) => {
+              allMapped.push({
+                _id: pkg._id,
+                id: `${vIndex}-${idx}`,
+                title: pkg.packageName || 'Master of Ceremonies',
+                description: pkg.description || '',
+                price: pkg.packagePrice ?? 0,
+                advance: pkg.advanceBookingAmount ?? 0,
+                providerId: vendor._id,
+                providerName: `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim() || '—',
+                providerEmail: vendor.email || '',
+                providerPhone: vendor.phone || '',
+                isTopPick: pkg.isTopPick ?? false,
+                isActive: pkg.isActive ?? false,
+                rawPackage: pkg,
+              });
+            });
+
+            expanded[vendor._id] = true;
+          } catch (e) {
+            console.error(`Failed to fetch packages for vendor ${vendor._id}:`, e);
+          }
+        })
+      );
+
+      setAllPackages(allMapped);
+      setPackages(allMapped);
+      setExpandedVendors(expanded);
+
     } catch (e) {
       setNotification({ open: true, message: e.message, severity: 'error' });
-    } finally { setLoading(false); }
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => { fetchPackages(); }, []);
 
-  const filtered = packages.filter(p => `${p.title} ${p.providerName}`.toLowerCase().includes(searchTerm.toLowerCase()));
+  const filtered = packages.filter(p =>
+    `${p.title} ${p.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const vendorGroups = useMemo(() => {
     const groups = {};
@@ -126,8 +162,10 @@ const EmceeList = () => {
       const key = pkg.providerId;
       if (!groups[key]) {
         groups[key] = {
-          providerId: key, providerName: pkg.providerName,
-          providerEmail: pkg.providerEmail, providerPhone: pkg.providerPhone,
+          providerId: key,
+          providerName: pkg.providerName,
+          providerEmail: pkg.providerEmail,
+          providerPhone: pkg.providerPhone,
           packages: [],
         };
       }
@@ -147,11 +185,14 @@ const EmceeList = () => {
     setToggleLoading(p => ({ ...p, [key]: true }));
     setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
     try {
-      await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
+      const res = await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
+      if (!res.ok) throw new Error('Failed');
     } catch (e) {
       setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
       setNotification({ open: true, message: 'Update failed', severity: 'error' });
-    } finally { setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; }); }
+    } finally {
+      setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; });
+    }
   };
 
   const handleView = (pkg) => { setSelectedPackage(pkg.rawPackage); setOpenViewDialog(true); };
@@ -165,18 +206,37 @@ const EmceeList = () => {
 
   return (
     <Box sx={{ p: 4, bgcolor: themeColors.background, minHeight: '100vh' }}>
+
+      {/* Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
-          <Typography variant="h3" sx={{ fontWeight: 900, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.2px' }}>
+          <Typography variant="h3" sx={{
+            fontWeight: 900,
+            background: themeColors.gradientPrimary,
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            letterSpacing: '-1.2px'
+          }}>
             BookMyEvent Emcee
           </Typography>
           <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 700, mt: 0.2 }}>
             Masters of Ceremonies & Anchors management.
           </Typography>
         </Box>
-        <Button variant="outlined" startIcon={<Refresh />} onClick={fetchPackages} sx={{ borderRadius: '14px', textTransform: 'none', fontWeight: 900, px: 3, border: '1px solid', borderColor: themeColors.border, color: themeColors.textMain }}>Sync Artists</Button>
+        <Button
+          variant="outlined"
+          startIcon={<Refresh />}
+          onClick={fetchPackages}
+          sx={{
+            borderRadius: '14px', textTransform: 'none', fontWeight: 900, px: 3,
+            border: '1px solid', borderColor: themeColors.border, color: themeColors.textMain
+          }}
+        >
+          Sync Artists
+        </Button>
       </Box>
 
+      {/* Stats */}
       <Box sx={{ display: 'flex', gap: 2.5, mb: 4, flexWrap: 'wrap' }}>
         <HeaderStat label="Showreel Skills" value={stats.total} icon={<MicExternalOn />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
         <HeaderStat label="Available" value={stats.active} icon={<CheckCircle />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
@@ -184,7 +244,12 @@ const EmceeList = () => {
         <HeaderStat label="Host Network" value={stats.artists} icon={<Groups />} color={themeColors.primary} />
       </Box>
 
-      <Paper elevation={0} sx={{ p: 1.5, mb: 3.5, borderRadius: '20px', border: '1px solid', borderColor: themeColors.border, display: 'flex', alignItems: 'center', gap: 2, bgcolor: 'white' }}>
+      {/* Search */}
+      <Paper elevation={0} sx={{
+        p: 1.5, mb: 3.5, borderRadius: '20px',
+        border: '1px solid', borderColor: themeColors.border,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'white'
+      }}>
         <TextField
           placeholder="Search by event type or emcee name..."
           size="small"
@@ -193,64 +258,160 @@ const EmceeList = () => {
           sx={{ width: 450, '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: themeColors.background } }}
           InputProps={{ startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1 }} /> }}
         />
+        <Button
+          variant="text"
+          onClick={() => {
+            const anyVisible = Object.values(expandedVendors).some(v => v);
+            if (anyVisible) {
+              setExpandedVendors({});
+            } else {
+              const all = {};
+              [...new Set(filtered.map(f => f.providerId))].forEach(id => { all[id] = true; });
+              setExpandedVendors(all);
+            }
+          }}
+          sx={{ fontWeight: 800, color: themeColors.textSecondary, textTransform: 'none', fontSize: '0.78rem' }}
+        >
+          {Object.values(expandedVendors).some(v => v) ? 'Hide Artists' : 'View All Artists'}
+        </Button>
       </Paper>
 
+      {/* Loading */}
+      {loading && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <Typography sx={{ color: themeColors.textSecondary, fontWeight: 700 }}>Loading emcee packages...</Typography>
+        </Box>
+      )}
+
+      {/* Empty state */}
+      {!loading && vendorGroups.length === 0 && (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+          <Typography sx={{ color: themeColors.textSecondary, fontWeight: 700 }}>No emcee packages found.</Typography>
+        </Box>
+      )}
+
+      {/* Vendor Groups */}
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {vendorGroups.map((vendor) => {
           const isExpanded = expandedVendors[vendor.providerId];
+          const activeCount = vendor.packages.filter(p => p.isActive).length;
+
           return (
-            <Paper key={vendor.providerId} sx={{ borderRadius: '24px', overflow: 'hidden', border: '1px solid', borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border, boxShadow: isExpanded ? '0 10px 30px rgba(0,0,0,0.03)' : 'none', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)' }}>
-              <Box onClick={() => toggleVendor(vendor.providerId)} sx={{ p: 2.8, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'pointer', bgcolor: isExpanded ? themeColors.accentLight : 'white' }}>
-                <Avatar sx={{ width: 52, height: 52, background: themeColors.gradientPrimary, fontWeight: 900, border: '3px solid white', boxShadow: '0 4px 10px rgba(0,0,0,0.1)' }}>{vendor.providerName[0]}</Avatar>
+            <Paper
+              key={vendor.providerId}
+              elevation={0}
+              sx={{
+                borderRadius: '24px', overflow: 'hidden',
+                border: '1px solid', borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
+                boxShadow: isExpanded ? '0 10px 30px rgba(225,91,100,0.06)' : 'none',
+                transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                bgcolor: 'white'
+              }}
+            >
+              {/* Vendor Header */}
+              <Box
+                onClick={() => toggleVendor(vendor.providerId)}
+                sx={{
+                  p: 2.8, display: 'flex', alignItems: 'center', gap: 2.5,
+                  cursor: 'pointer', bgcolor: isExpanded ? themeColors.accentLight : 'white'
+                }}
+              >
+                <Avatar sx={{
+                  width: 52, height: 52,
+                  background: themeColors.gradientPrimary,
+                  fontWeight: 900, fontSize: '1.2rem',
+                  border: '3px solid white',
+                  boxShadow: '0 4px 10px rgba(0,0,0,0.1)'
+                }}>
+                  {(vendor.providerName?.[0] || '?').toUpperCase()}
+                </Avatar>
                 <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontWeight: 900, fontSize: '1.2rem', color: themeColors.textMain }}>{vendor.providerName}</Typography>
-                  <Typography variant="body2" sx={{ color: themeColors.textSecondary, fontWeight: 600 }}>{vendor.providerEmail} • {vendor.providerPhone}</Typography>
+                  <Typography sx={{ fontWeight: 900, fontSize: '1.12rem', color: themeColors.textMain }}>
+                    {vendor.providerName}
+                  </Typography>
+                  <Typography variant="body2" sx={{ color: themeColors.textSecondary, fontWeight: 600, fontSize: '0.82rem' }}>
+                    {vendor.providerEmail || 'Verified Partner'} • {vendor.providerPhone || 'N/A'}
+                  </Typography>
                 </Box>
-                <Box sx={{ textAlign: 'right' }}>
-                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }}>{vendor.packages.length} PACKAGES</Typography>
-                  <MilitaryTech sx={{ color: themeColors.warning, mt: 0.5 }} />
+                <Box sx={{ textAlign: 'right', px: 1.5 }}>
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>
+                    {vendor.packages.length} PACKAGES
+                  </Typography>
+                  <Chip
+                    label={`${activeCount} READY`}
+                    size="small"
+                    sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }}
+                  />
                 </Box>
+                <MilitaryTech sx={{ color: themeColors.warning }} />
               </Box>
 
-              <Collapse in={isExpanded}>
-                <Box sx={{ px: 4, pb: 3.5 }}>
-                  <Divider sx={{ mb: 3 }} />
+              {/* Packages Table */}
+              <Collapse in={isExpanded} timeout="auto" unmountOnExit>
+                <Box sx={{ px: 3.5, pb: 2.5 }}>
+                  <Divider sx={{ mb: 2.5 }} />
                   <TableContainer>
-                    <Table>
+                    <Table size="medium">
                       <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }}>PERFORMANCE ROLE</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }}>RATE (INR)</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }} align="center">EDITOR'S CHOICE</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }} align="center">STATUS</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.8rem' }} align="right">RECORD</TableCell>
+                        <TableRow sx={{ '& th': { borderBottom: `2px solid ${themeColors.border}`, py: 1.2 } }}>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>PERFORMANCE ROLE</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>RATE (INR)</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">EDITOR'S CHOICE</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">STATUS</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">ACTIONS</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {vendor.packages.map(pkg => (
-                          <TableRow key={pkg._id} hover sx={{ '& td': { py: 2 } }}>
+                          <TableRow key={pkg._id} hover sx={{ '& td': { py: 1.6 }, '&:hover': { bgcolor: '#F9FAFB' } }}>
                             <TableCell>
-                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>{pkg.title}</Typography>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>
+                                {pkg.title}
+                              </Typography>
                               <Stack direction="row" spacing={1} mt={0.5}>
-                                <Chip label="Charismatic" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800 }} />
-                                <Chip label="Engaging" size="small" variant="outlined" sx={{ height: 16, fontSize: '0.6rem', fontWeight: 800 }} />
+                                <Chip label="Charismatic" size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700 }} />
+                                <Chip label="Engaging" size="small" variant="outlined" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700 }} />
                               </Stack>
                             </TableCell>
                             <TableCell>
-                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>₹{pkg.price.toLocaleString()}</Typography>
-                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 700 }}>Advance: ₹{pkg.advance.toLocaleString()}</Typography>
+                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>
+                                ₹{pkg.price.toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 700 }}>
+                                Advance: ₹{pkg.advance.toLocaleString()}
+                              </Typography>
                             </TableCell>
                             <TableCell align="center">
-                              <Switch size="small" checked={pkg.isTopPick} onChange={() => handleStatusUpdate(pkg._id, 'topPick')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }} />
+                              <Switch
+                                size="small"
+                                checked={pkg.isTopPick}
+                                onChange={() => handleStatusUpdate(pkg._id, 'topPick')}
+                                disabled={!!toggleLoading[`${pkg._id}-topPick`]}
+                                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }}
+                              />
                             </TableCell>
                             <TableCell align="center">
-                              <Switch size="small" checked={pkg.isActive} onChange={() => handleStatusUpdate(pkg._id, 'status')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                              <Switch
+                                size="small"
+                                checked={pkg.isActive}
+                                onChange={() => handleStatusUpdate(pkg._id, 'status')}
+                                disabled={!!toggleLoading[`${pkg._id}-status`]}
+                                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }}
+                              />
                             </TableCell>
                             <TableCell align="right">
                               <Stack direction="row" spacing={0.5} justifyContent="flex-end">
-                                <IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton>
-                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}><Edit sx={{ fontSize: 18 }} /></IconButton>
-                                <IconButton size="small" sx={{ color: themeColors.danger }}><Delete sx={{ fontSize: 18 }} /></IconButton>
+                                <Tooltip title="View Details">
+                                  <IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}>
+                                    <VisibilityOutlined sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}>
+                                  <Edit sx={{ fontSize: 18 }} />
+                                </IconButton>
+                                <IconButton size="small" sx={{ color: themeColors.danger }}>
+                                  <Delete sx={{ fontSize: 18 }} />
+                                </IconButton>
                               </Stack>
                             </TableCell>
                           </TableRow>
@@ -265,32 +426,78 @@ const EmceeList = () => {
         })}
       </Box>
 
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '28px' } }}>
+      {/* View Dialog */}
+      <Dialog
+        open={openViewDialog}
+        onClose={() => setOpenViewDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '28px' } }}
+      >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3.5, px: 4 }}>
-          <Typography sx={{ fontWeight: 950, fontSize: '1.3rem' }}>Artist Information</Typography>
+          <Typography sx={{ fontWeight: 900, fontSize: '1.3rem' }}>Artist Information</Typography>
           <IconButton onClick={() => setOpenViewDialog(false)}><Close /></IconButton>
         </DialogTitle>
         <DialogContent sx={{ pb: 5, px: 4 }}>
           {selectedPackage && (
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1, color: themeColors.accent }}>{selectedPackage.packageName}</Typography>
-              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 3.5, lineHeight: 1.7, fontSize: '0.92rem' }}>{selectedPackage.description || 'Dynamic and professional presence that guarantees to keep your audience engaged and entertained throughout the event.'}</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1, color: themeColors.accent }}>
+                {selectedPackage.packageName}
+              </Typography>
+              <Typography variant="body2" sx={{ color: themeColors.textSecondary, mb: 3.5, lineHeight: 1.7, fontSize: '0.92rem' }}>
+                {selectedPackage.description || 'Dynamic and professional presence that guarantees to keep your audience engaged and entertained throughout the event.'}
+              </Typography>
               <Grid container spacing={2.5}>
-                <Grid item xs={6}><Paper variant="outlined" sx={{ p: 2.2, borderRadius: '18px', bgcolor: '#F9FAFB', border: '1px solid #eee' }}><Typography variant="caption" sx={{ fontWeight: 900, color: themeColors.textSecondary }}>BOOKING FEE</Typography><Typography sx={{ fontWeight: 950, color: themeColors.success, fontSize: '1.25rem' }}>₹{selectedPackage.packagePrice.toLocaleString()}</Typography></Paper></Grid>
-                <Grid item xs={6}><Paper variant="outlined" sx={{ p: 2.2, borderRadius: '18px', bgcolor: '#F9FAFB', border: '1px solid #eee' }}><Typography variant="caption" sx={{ fontWeight: 900, color: themeColors.textSecondary }}>SECURE WITH</Typography><Typography sx={{ fontWeight: 950, color: themeColors.textMain, fontSize: '1.25rem' }}>₹{selectedPackage.advanceBookingAmount?.toLocaleString() || '0'}</Typography></Paper></Grid>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2.2, borderRadius: '18px', bgcolor: '#F9FAFB', border: '1px solid #eee' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: themeColors.textSecondary }}>BOOKING FEE</Typography>
+                    <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.25rem' }}>
+                      ₹{selectedPackage.packagePrice?.toLocaleString()}
+                    </Typography>
+                  </Paper>
+                </Grid>
+                <Grid item xs={6}>
+                  <Paper variant="outlined" sx={{ p: 2.2, borderRadius: '18px', bgcolor: '#F9FAFB', border: '1px solid #eee' }}>
+                    <Typography variant="caption" sx={{ fontWeight: 900, color: themeColors.textSecondary }}>SECURE WITH</Typography>
+                    <Typography sx={{ fontWeight: 900, color: themeColors.textMain, fontSize: '1.25rem' }}>
+                      ₹{selectedPackage.advanceBookingAmount?.toLocaleString() || '0'}
+                    </Typography>
+                  </Paper>
+                </Grid>
               </Grid>
               <Divider sx={{ my: 4 }} />
               <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Key Highlights:</Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1.2 }}>
-                {['Public Speaking', 'Crowd Control', 'Humor', 'Script Execution'].map(h => <Chip key={h} label={h} size="small" sx={{ fontWeight: 800, bgcolor: themeColors.accentLight, color: themeColors.accent, border: '1px solid', borderColor: themeColors.accent + '30' }} />)}
+                {['Public Speaking', 'Crowd Control', 'Humor', 'Script Execution'].map(h => (
+                  <Chip
+                    key={h}
+                    label={h}
+                    size="small"
+                    sx={{
+                      fontWeight: 800,
+                      bgcolor: themeColors.accentLight,
+                      color: themeColors.accent,
+                      border: '1px solid',
+                      borderColor: themeColors.accent + '30'
+                    }}
+                  />
+                ))}
               </Box>
             </Box>
           )}
         </DialogContent>
       </Dialog>
 
-      <Snackbar open={notification.open} autoHideDuration={3000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '14px', fontWeight: 800 }}>{notification.message}</Alert>
+      {/* Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={() => setNotification(p => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '14px', fontWeight: 800 }}>
+          {notification.message}
+        </Alert>
       </Snackbar>
     </Box>
   );

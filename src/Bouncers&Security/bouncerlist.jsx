@@ -1,16 +1,44 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Table, TableBody, TableCell, TableHead, TableRow, Paper, TableContainer,
-  Switch, IconButton, Box, TextField, Button,
-  Dialog, DialogContent, DialogTitle,
-  Typography, Snackbar, Alert, CircularProgress, Chip, Divider,
-  Avatar, Tooltip, Collapse, Grid
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableRow,
+  Paper,
+  TableContainer,
+  Switch,
+  IconButton,
+  Box,
+  TextField,
+  Button,
+  Dialog,
+  DialogContent,
+  DialogTitle,
+  Typography,
+  Snackbar,
+  Alert,
+  CircularProgress,
+  Chip,
+  Divider,
+  Avatar,
+  Tooltip,
+  Collapse,
+  Grid
 } from '@mui/material';
 import {
-  VisibilityOutlined, Edit, Delete, Close, 
-  Search as SearchIcon, Star, 
-  Refresh, CheckCircle, Storefront,
-  Security, VerifiedUser, Shield
+  VisibilityOutlined,
+  Edit,
+  Delete,
+  Close,
+  Search as SearchIcon,
+  Star,
+  Refresh,
+  CheckCircle,
+  Storefront,
+  Security,
+  VerifiedUser,
+  Shield
 } from '@mui/icons-material';
 import { useNavigate } from 'react-router-dom';
 import { API_BASE_URL } from '../utils/apiImageUtils';
@@ -29,27 +57,48 @@ const themeColors = {
   textSecondary: '#636E72',
   white: '#FFFFFF',
   gradientPrimary: 'linear-gradient(135deg, #E15B64 0%, #FD7272 100%)',
-  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)',
+  gradientSuccess: 'linear-gradient(135deg, #00B894 0%, #55EFC4 100%)'
 };
 
 const HeaderStat = ({ label, value, icon, color, gradient }) => (
-  <Box sx={{
-    bgcolor: 'white', borderRadius: '18px', py: 2.0, px: 2.8,
-    display: 'flex', alignItems: 'center', gap: 2.4, flex: 1, minWidth: '200px',
-    boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
-    border: '1px solid', borderColor: 'rgba(0,0,0,0.04)',
-    transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
-    '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
-  }}>
-    <Box sx={{
-      width: 48, height: 48, borderRadius: '14px', background: gradient || `${color}15`,
-      display: 'flex', alignItems: 'center', justifyContent: 'center', color: gradient ? '#FFFFFF' : color,
-      boxShadow: gradient ? '0 4px 10px rgba(225, 91, 100, 0.2)' : 'none'
-    }}>
+  <Box
+    sx={{
+      bgcolor: 'white',
+      borderRadius: '18px',
+      py: 2.0,
+      px: 2.8,
+      display: 'flex',
+      alignItems: 'center',
+      gap: 2.4,
+      flex: 1,
+      minWidth: '200px',
+      boxShadow: '0 4px 15px rgba(0,0,0,0.03)',
+      border: '1px solid',
+      borderColor: 'rgba(0,0,0,0.04)',
+      transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+      '&:hover': { transform: 'translateY(-5px)', boxShadow: '0 12px 25px rgba(0,0,0,0.06)' }
+    }}
+  >
+    <Box
+      sx={{
+        width: 48,
+        height: 48,
+        borderRadius: '14px',
+        background: gradient || `${color}15`,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: gradient ? '#FFFFFF' : color,
+        boxShadow: gradient ? '0 4px 10px rgba(225, 91, 100, 0.2)' : 'none'
+      }}
+    >
       {React.cloneElement(icon, { sx: { fontSize: 24 } })}
     </Box>
     <Box>
-      <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '0.7rem' }}>
+      <Typography
+        variant="caption"
+        sx={{ color: themeColors.textSecondary, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.8px', fontSize: '0.7rem' }}
+      >
         {label}
       </Typography>
       <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.textMain, lineHeight: 1.1, fontSize: '1.35rem' }}>
@@ -72,57 +121,97 @@ const Bouncerlist = () => {
   const [openViewDialog, setOpenViewDialog] = useState(false);
   const [selectedPackage, setSelectedPackage] = useState(null);
 
-  const API_URL = `${API_BASE_URL}/bouncer`;
+  const API_URL = `${API_BASE_URL}/bouncers-security`;
+
+  const MODULE_ID = localStorage.getItem('moduleDbId'); // ✅ AUTO USE YOUR STORED ID
 
   const getFetchOptions = (method = 'GET', body = null) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const opts = {
       method,
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
-      credentials: 'include', mode: 'cors',
+      credentials: 'include',
+      mode: 'cors'
     };
     if (token) opts.headers['Authorization'] = `Bearer ${token}`;
     if (body) opts.body = JSON.stringify(body);
     return opts;
   };
 
-  const fetchPackages = async (topPicks = false) => {
-    try {
-      setLoading(true);
-      const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const res = await fetch(url, getFetchOptions());
-      const data = await res.json();
-      if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((m, idx) => ({
-          _id: m._id, id: idx + 1,
-          title: m.packageName || 'Untitled',
-          description: m.description || '',
-          price: m.packagePrice ?? 0,
-          advance: m.advanceBookingAmount ?? 0,
-          providerId: m.provider?._id || m.provider?.id || 'unknown',
-          providerName: m.provider?.firstName && m.provider?.lastName ? `${m.provider.firstName} ${m.provider.lastName}` : (m.provider?.firstName || m.provider?.name || '—'),
-          providerEmail: m.provider?.email || '', providerPhone: m.provider?.phone || '',
-          isTopPick: m.isTopPick ?? false, isActive: m.isActive ?? false,
-          rawPackage: m,
-        }));
-        setAllPackages(mapped); setPackages(mapped);
-        
-        // Expand all vendors by default
-        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
-        const allExpanded = {};
-        uniqueVendors.forEach(id => { allExpanded[id] = true; });
-        setExpandedVendors(allExpanded);
-      }
-    } catch (e) {
-      setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
-    } finally { setLoading(false); }
-  };
+  const fetchPackages = async () => {
+  try {
+    setLoading(true);
 
-  useEffect(() => { fetchPackages(); }, []);
+    // Step 1: Get all vendors for this module
+    const vendorRes = await fetch(
+      `${API_URL}/vendors/${MODULE_ID}`,
+      getFetchOptions()
+    );
+    const vendorData = await vendorRes.json();
+    console.log("BOUNCER VENDORS API:", vendorData);
 
-  const filtered = packages.filter((c) =>
-    `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+    if (!vendorData?.data || !Array.isArray(vendorData.data)) {
+      setAllPackages([]);
+      setPackages([]);
+      return;
+    }
+
+    // Step 2: For each vendor, fetch their packages
+    const allMapped = [];
+    const expanded = {};
+
+    await Promise.all(
+      vendorData.data.map(async (vendor, vIndex) => {
+        try {
+          const pkgRes = await fetch(
+            `${API_URL}/vendor/${vendor._id}`,
+            getFetchOptions()
+          );
+          const pkgData = await pkgRes.json();
+          console.log(`Packages for vendor ${vendor._id}:`, pkgData);
+
+          const pkgList = Array.isArray(pkgData?.data) ? pkgData.data : [];
+
+          pkgList.forEach((pkg, idx) => {
+            allMapped.push({
+              _id: pkg._id,
+              id: `${vIndex}-${idx}`,
+              title: pkg.packageName || 'Untitled',
+              description: pkg.description || '',
+              price: pkg.packagePrice ?? 0,
+              advance: pkg.advanceBookingAmount ?? 0,
+              providerId: vendor._id,
+              providerName: `${vendor.firstName || ''} ${vendor.lastName || ''}`.trim(),
+              providerEmail: vendor.email || '',
+              providerPhone: vendor.phone || '',
+              isTopPick: pkg.isTopPick ?? false,
+              isActive: pkg.isActive ?? false,
+              rawPackage: pkg,
+            });
+          });
+
+          expanded[vendor._id] = true;
+        } catch (e) {
+          console.error(`Failed to fetch packages for vendor ${vendor._id}:`, e);
+        }
+      })
+    );
+
+    setAllPackages(allMapped);
+    setPackages(allMapped);
+    setExpandedVendors(expanded);
+
+  } catch (e) {
+    setNotification({ open: true, message: e.message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
+  useEffect(() => {
+    fetchPackages();
+  }, []);
+
+  const filtered = packages.filter((c) => `${c.title} ${c.providerName}`.toLowerCase().includes(searchTerm.toLowerCase()));
 
   const vendorGroups = useMemo(() => {
     const groups = {};
@@ -130,9 +219,11 @@ const Bouncerlist = () => {
       const key = pkg.providerId;
       if (!groups[key]) {
         groups[key] = {
-          providerId: key, providerName: pkg.providerName,
-          providerEmail: pkg.providerEmail, providerPhone: pkg.providerPhone,
-          packages: [],
+          providerId: key,
+          providerName: pkg.providerName,
+          providerEmail: pkg.providerEmail,
+          providerPhone: pkg.providerPhone,
+          packages: []
         };
       }
       groups[key].packages.push(pkg);
@@ -140,7 +231,7 @@ const Bouncerlist = () => {
     return Object.values(groups).sort((a, b) => b.packages.length - a.packages.length);
   }, [filtered]);
 
-  const toggleVendor = (vendorId) => setExpandedVendors(p => ({ ...p, [vendorId]: !p[vendorId] }));
+  const toggleVendor = (vendorId) => setExpandedVendors((p) => ({ ...p, [vendorId]: !p[vendorId] }));
 
   const handleStatusUpdate = async (_id, type) => {
     const valKey = type === 'topPick' ? 'isTopPick' : 'isActive';
@@ -148,24 +239,33 @@ const Bouncerlist = () => {
     const key = `${_id}-${type}`;
     if (toggleLoading[key]) return;
 
-    setToggleLoading(p => ({ ...p, [key]: true }));
-    setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
+    setToggleLoading((p) => ({ ...p, [key]: true }));
+    setPackages((p) => p.map((c) => (c._id === _id ? { ...c, [valKey]: !c[valKey] } : c)));
     try {
       const res = await fetch(`${API_URL}/${_id}/${endpoint}`, getFetchOptions('PATCH'));
       if (!res.ok) throw new Error('Failed');
     } catch (e) {
-      setPackages(p => p.map(c => c._id === _id ? { ...c, [valKey]: !c[valKey] } : c));
+      setPackages((p) => p.map((c) => (c._id === _id ? { ...c, [valKey]: !c[valKey] } : c)));
       setNotification({ open: true, message: 'Update failed', severity: 'error' });
-    } finally { setToggleLoading(p => { const n = { ...p }; delete n[key]; return n; }); }
+    } finally {
+      setToggleLoading((p) => {
+        const n = { ...p };
+        delete n[key];
+        return n;
+      });
+    }
   };
 
-  const handleView = (pkg) => { setSelectedPackage(pkg.rawPackage); setOpenViewDialog(true); };
+  const handleView = (pkg) => {
+    setSelectedPackage(pkg.rawPackage);
+    setOpenViewDialog(true);
+  };
 
   const stats = {
     total: allPackages.length,
-    active: allPackages.filter(c => c.isActive).length,
-    topPick: allPackages.filter(c => c.isTopPick).length,
-    vendors: [...new Set(allPackages.map(c => c.providerId))].length,
+    active: allPackages.filter((c) => c.isActive).length,
+    topPick: allPackages.filter((c) => c.isTopPick).length,
+    vendors: [...new Set(allPackages.map((c) => c.providerId))].length
   };
 
   return (
@@ -173,7 +273,17 @@ const Bouncerlist = () => {
       {/* Red Premium Header */}
       <Box sx={{ mb: 4, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <Box>
-          <Typography variant="h3" sx={{ fontWeight: 900, background: themeColors.gradientPrimary, WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', letterSpacing: '-1.1px', fontSize: '2.3rem' }}>
+          <Typography
+            variant="h3"
+            sx={{
+              fontWeight: 900,
+              background: themeColors.gradientPrimary,
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              letterSpacing: '-1.1px',
+              fontSize: '2.3rem'
+            }}
+          >
             BookMyEvent Security
           </Typography>
           <Typography variant="subtitle1" sx={{ color: themeColors.textSecondary, fontWeight: 600, mt: 0.2, fontSize: '0.88rem' }}>
@@ -181,48 +291,106 @@ const Bouncerlist = () => {
           </Typography>
         </Box>
         <Box sx={{ display: 'flex', gap: 1.5 }}>
-          <Button variant="outlined" startIcon={<Refresh fontSize="small" />} onClick={() => fetchPackages()} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700, px: 2.2, height: 42, fontSize: '0.82rem', borderColor: themeColors.border, color: themeColors.textSecondary }}>Refresh</Button>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, bgcolor: 'white', px: 2, borderRadius: '12px', border: '1px solid', borderColor: themeColors.border }}>
+          <Button
+            variant="outlined"
+            startIcon={<Refresh fontSize="small" />}
+            onClick={() => fetchPackages()}
+            sx={{
+              borderRadius: '12px',
+              textTransform: 'none',
+              fontWeight: 700,
+              px: 2.2,
+              height: 42,
+              fontSize: '0.82rem',
+              borderColor: themeColors.border,
+              color: themeColors.textSecondary
+            }}
+          >
+            Refresh
+          </Button>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              bgcolor: 'white',
+              px: 2,
+              borderRadius: '12px',
+              border: '1px solid',
+              borderColor: themeColors.border
+            }}
+          >
             <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>Top Pick</Typography>
-            <Switch size="small" checked={packages.some(p => p.isTopPick)} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.accent } }} />
+            <Switch
+              size="small"
+              checked={packages.some((p) => p.isTopPick)}
+              sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.accent } }}
+            />
           </Box>
         </Box>
       </Box>
 
       {/* Stats */}
       <Box sx={{ display: 'flex', gap: 2.5, mb: 4, flexWrap: 'wrap' }}>
-        <HeaderStat label="Guard Packages" value={stats.total} icon={<Security />} color={themeColors.accent} gradient={themeColors.gradientPrimary} />
-        <HeaderStat label="Active" value={stats.active} icon={<VerifiedUser />} color={themeColors.success} gradient={themeColors.gradientSuccess} />
+        <HeaderStat
+          label="Guard Packages"
+          value={stats.total}
+          icon={<Security />}
+          color={themeColors.accent}
+          gradient={themeColors.gradientPrimary}
+        />
+        <HeaderStat
+          label="Active"
+          value={stats.active}
+          icon={<VerifiedUser />}
+          color={themeColors.success}
+          gradient={themeColors.gradientSuccess}
+        />
         <HeaderStat label="Top Rated" value={stats.topPick} icon={<Star />} color={themeColors.warning} />
         <HeaderStat label="Agencies" value={stats.vendors} icon={<Storefront />} color={themeColors.primary} />
       </Box>
 
       {/* Filter */}
-      <Paper elevation={0} sx={{ p: 1.8, mb: 3.5, borderRadius: '18px', border: '1px solid', borderColor: themeColors.border, display: 'flex', alignItems: 'center', justifyContent: 'space-between', bgcolor: 'white' }}>
+      <Paper
+        elevation={0}
+        sx={{
+          p: 1.8,
+          mb: 3.5,
+          borderRadius: '18px',
+          border: '1px solid',
+          borderColor: themeColors.border,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          bgcolor: 'white'
+        }}
+      >
         <Box sx={{ display: 'flex', gap: 2, alignItems: 'center' }}>
           <TextField
             placeholder="Search security group or bouncers..."
             size="small"
             value={searchTerm}
-            onChange={e => setSearchTerm(e.target.value)}
+            onChange={(e) => setSearchTerm(e.target.value)}
             InputProps={{ startAdornment: <SearchIcon sx={{ color: themeColors.textSecondary, mr: 1, fontSize: 18 }} /> }}
             sx={{ width: 350, '& .MuiOutlinedInput-root': { borderRadius: '12px', bgcolor: themeColors.background, fontSize: '0.82rem' } }}
           />
         </Box>
-        <Button 
-          variant="text" 
+        <Button
+          variant="text"
           onClick={() => {
-            const anyVisible = Object.values(expandedVendors).some(v => v);
+            const anyVisible = Object.values(expandedVendors).some((v) => v);
             if (anyVisible) setExpandedVendors({});
             else {
               const all = {};
-              [...new Set(filtered.map(f => f.providerId))].forEach(id => { all[id] = true; });
+              [...new Set(filtered.map((f) => f.providerId))].forEach((id) => {
+                all[id] = true;
+              });
               setExpandedVendors(all);
             }
-          }} 
+          }}
           sx={{ fontWeight: 800, color: themeColors.textSecondary, textTransform: 'none', fontSize: '0.78rem' }}
         >
-          {Object.values(expandedVendors).some(v => v) ? 'Hide Agencies' : 'View All Agencies'}
+          {Object.values(expandedVendors).some((v) => v) ? 'Hide Agencies' : 'View All Agencies'}
         </Button>
       </Paper>
 
@@ -230,24 +398,45 @@ const Bouncerlist = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
         {vendorGroups.map((vendor) => {
           const isExpanded = expandedVendors[vendor.providerId];
-          const activeCount = vendor.packages.filter(p => p.isActive).length;
+          const activeCount = vendor.packages.filter((p) => p.isActive).length;
 
           return (
-            <Paper key={vendor.providerId} elevation={0} sx={{
-              borderRadius: '24px', overflow: 'hidden', border: '1px solid',
-              borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
-              boxShadow: isExpanded ? '0 12px 30px rgba(225,91,100,0.06)' : 'none',
-              transition: 'all 0.4s ease', bgcolor: 'white'
-            }}>
-              <Box onClick={() => toggleVendor(vendor.providerId)} sx={{
-                p: 2.5, display: 'flex', alignItems: 'center', gap: 2.5, cursor: 'pointer',
-                bgcolor: isExpanded ? themeColors.accentLight : 'white',
-              }}>
-                <Avatar sx={{ 
-                  width: 44, height: 44, fontSize: '1.1rem', fontWeight: 900, 
-                  background: themeColors.gradientPrimary, color: 'white', 
-                  border: '3px solid white', boxShadow: '0 4px 8px rgba(0,0,0,0.08)' 
-                }}>
+            <Paper
+              key={vendor.providerId}
+              elevation={0}
+              sx={{
+                borderRadius: '24px',
+                overflow: 'hidden',
+                border: '1px solid',
+                borderColor: isExpanded ? themeColors.accent + '30' : themeColors.border,
+                boxShadow: isExpanded ? '0 12px 30px rgba(225,91,100,0.06)' : 'none',
+                transition: 'all 0.4s ease',
+                bgcolor: 'white'
+              }}
+            >
+              <Box
+                onClick={() => toggleVendor(vendor.providerId)}
+                sx={{
+                  p: 2.5,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: 2.5,
+                  cursor: 'pointer',
+                  bgcolor: isExpanded ? themeColors.accentLight : 'white'
+                }}
+              >
+                <Avatar
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    fontSize: '1.1rem',
+                    fontWeight: 900,
+                    background: themeColors.gradientPrimary,
+                    color: 'white',
+                    border: '3px solid white',
+                    boxShadow: '0 4px 8px rgba(0,0,0,0.08)'
+                  }}
+                >
                   {vendor.providerName[0].toUpperCase()}
                 </Avatar>
                 <Box sx={{ flex: 1 }}>
@@ -257,8 +446,14 @@ const Bouncerlist = () => {
                   </Typography>
                 </Box>
                 <Box sx={{ textAlign: 'right', px: 1.5 }}>
-                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>{vendor.packages.length} PACKAGES</Typography>
-                  <Chip label={`${activeCount} READY`} size="small" sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }} />
+                  <Typography sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.75rem' }}>
+                    {vendor.packages.length} PACKAGES
+                  </Typography>
+                  <Chip
+                    label={`${activeCount} READY`}
+                    size="small"
+                    sx={{ fontWeight: 900, bgcolor: themeColors.success, color: 'white', mt: 0.4, height: 22, fontSize: '0.65rem' }}
+                  />
                 </Box>
               </Box>
 
@@ -270,37 +465,78 @@ const Bouncerlist = () => {
                       <TableHead>
                         <TableRow sx={{ '& th': { borderBottom: '2px solid' + themeColors.border, py: 1.2 } }}>
                           <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>GUARD TYPE</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>BASE RATE (INR)</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">VIP PICK</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">STATUS</TableCell>
-                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">ACTIONS</TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }}>
+                            BASE RATE (INR)
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">
+                            VIP PICK
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="center">
+                            STATUS
+                          </TableCell>
+                          <TableCell sx={{ fontWeight: 900, color: themeColors.textSecondary, fontSize: '0.78rem' }} align="right">
+                            ACTIONS
+                          </TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
                         {vendor.packages.map((pkg) => (
                           <TableRow key={pkg._id} sx={{ '& td': { py: 1.6 }, '&:hover': { bgcolor: '#F9FAFB' } }}>
                             <TableCell>
-                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>{pkg.title}</Typography>
+                              <Typography sx={{ fontWeight: 800, color: themeColors.textMain, fontSize: '0.95rem' }}>
+                                {pkg.title}
+                              </Typography>
                               <Box sx={{ display: 'flex', gap: 1, mt: 0.5 }}>
-                                <Chip label="Trained" size="small" icon={<Shield sx={{ fontSize: '10px !important' }} />} sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#eff6ff', color: '#1d4ed8' }} />
-                                <Chip label="VIP Security" size="small" sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#fdf2f8', color: '#be185d' }} />
+                                <Chip
+                                  label="Trained"
+                                  size="small"
+                                  icon={<Shield sx={{ fontSize: '10px !important' }} />}
+                                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#eff6ff', color: '#1d4ed8' }}
+                                />
+                                <Chip
+                                  label="VIP Security"
+                                  size="small"
+                                  sx={{ height: 18, fontSize: '0.6rem', fontWeight: 700, bgcolor: '#fdf2f8', color: '#be185d' }}
+                                />
                               </Box>
                             </TableCell>
                             <TableCell>
-                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>₹{pkg.price.toLocaleString()}</Typography>
-                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontSize: '0.65rem' }}>Advance req: ₹{pkg.advance.toLocaleString()}</Typography>
+                              <Typography sx={{ fontWeight: 900, color: themeColors.success, fontSize: '1.05rem' }}>
+                                ₹{pkg.price.toLocaleString()}
+                              </Typography>
+                              <Typography variant="caption" sx={{ color: themeColors.textSecondary, fontSize: '0.65rem' }}>
+                                Advance req: ₹{pkg.advance.toLocaleString()}
+                              </Typography>
                             </TableCell>
                             <TableCell align="center">
-                              <Switch size="small" checked={pkg.isTopPick} onChange={() => handleStatusUpdate(pkg._id, 'topPick')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }} />
+                              <Switch
+                                size="small"
+                                checked={pkg.isTopPick}
+                                onChange={() => handleStatusUpdate(pkg._id, 'topPick')}
+                                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.warning } }}
+                              />
                             </TableCell>
                             <TableCell align="center">
-                              <Switch size="small" checked={pkg.isActive} onChange={() => handleStatusUpdate(pkg._id, 'status')} sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }} />
+                              <Switch
+                                size="small"
+                                checked={pkg.isActive}
+                                onChange={() => handleStatusUpdate(pkg._id, 'status')}
+                                sx={{ '& .MuiSwitch-switchBase.Mui-checked': { color: themeColors.success } }}
+                              />
                             </TableCell>
                             <TableCell align="right">
                               <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.6 }}>
-                                <Tooltip title="View Verification Details"><IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}><VisibilityOutlined sx={{ fontSize: 18 }} /></IconButton></Tooltip>
-                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}><Edit sx={{ fontSize: 18 }} /></IconButton>
-                                <IconButton size="small" sx={{ color: themeColors.danger }}><Delete sx={{ fontSize: 18 }} /></IconButton>
+                                <Tooltip title="View Verification Details">
+                                  <IconButton size="small" onClick={() => handleView(pkg)} sx={{ color: themeColors.accent }}>
+                                    <VisibilityOutlined sx={{ fontSize: 18 }} />
+                                  </IconButton>
+                                </Tooltip>
+                                <IconButton size="small" sx={{ color: themeColors.textSecondary }}>
+                                  <Edit sx={{ fontSize: 18 }} />
+                                </IconButton>
+                                <IconButton size="small" sx={{ color: themeColors.danger }}>
+                                  <Delete sx={{ fontSize: 18 }} />
+                                </IconButton>
                               </Box>
                             </TableCell>
                           </TableRow>
@@ -316,27 +552,45 @@ const Bouncerlist = () => {
       </Box>
 
       {/* View Dialog */}
-      <Dialog open={openViewDialog} onClose={() => setOpenViewDialog(false)} maxWidth="sm" fullWidth PaperProps={{ sx: { borderRadius: '24px' } }}>
+      <Dialog
+        open={openViewDialog}
+        onClose={() => setOpenViewDialog(false)}
+        maxWidth="sm"
+        fullWidth
+        PaperProps={{ sx: { borderRadius: '24px' } }}
+      >
         <DialogTitle sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pt: 3 }}>
           <Typography sx={{ fontWeight: 900, fontSize: '1.2rem' }}>Package Specifics</Typography>
-          <IconButton onClick={() => setOpenViewDialog(false)}><Close /></IconButton>
+          <IconButton onClick={() => setOpenViewDialog(false)}>
+            <Close />
+          </IconButton>
         </DialogTitle>
         <DialogContent sx={{ pb: 4 }}>
           {selectedPackage && (
             <Box>
-              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, color: themeColors.accent }}>{selectedPackage.packageName}</Typography>
-              <Typography sx={{ color: themeColors.textSecondary, mb: 3, lineHeight: 1.6, fontSize: '0.9rem' }}>{selectedPackage.description || 'Professional security and crowd control services tailored for your grand event.'}</Typography>
-              
+              <Typography variant="h5" sx={{ fontWeight: 900, mb: 1.5, color: themeColors.accent }}>
+                {selectedPackage.packageName}
+              </Typography>
+              <Typography sx={{ color: themeColors.textSecondary, mb: 3, lineHeight: 1.6, fontSize: '0.9rem' }}>
+                {selectedPackage.description || 'Professional security and crowd control services tailored for your grand event.'}
+              </Typography>
+
               <Grid container spacing={2}>
                 <Grid item xs={6}>
                   <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>HIRE RATE</Typography>
-                    <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.success }}>₹{selectedPackage.packagePrice.toLocaleString()}</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>
+                      HIRE RATE
+                    </Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 900, color: themeColors.success }}>
+                      ₹{selectedPackage.packagePrice.toLocaleString()}
+                    </Typography>
                   </Paper>
                 </Grid>
                 <Grid item xs={6}>
                   <Paper variant="outlined" sx={{ p: 2, borderRadius: '16px', bgcolor: '#F9FAFB' }}>
-                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>ADVANCE</Typography>
+                    <Typography variant="caption" sx={{ fontWeight: 800, color: themeColors.textSecondary }}>
+                      ADVANCE
+                    </Typography>
                     <Typography variant="h6" sx={{ fontWeight: 900, color: themeColors.primary }}>
                       ₹{selectedPackage.advanceBookingAmount?.toLocaleString() || '0'}
                     </Typography>
@@ -345,8 +599,10 @@ const Bouncerlist = () => {
               </Grid>
 
               <Divider sx={{ my: 3 }} />
-              
-              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>Security Features:</Typography>
+
+              <Typography variant="subtitle2" sx={{ fontWeight: 900, mb: 2 }}>
+                Security Features:
+              </Typography>
               <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 <Chip label="Emergency Response" size="small" variant="outlined" sx={{ fontWeight: 700 }} />
                 <Chip label="Crowd Management" size="small" variant="outlined" sx={{ fontWeight: 700 }} />
@@ -357,8 +613,15 @@ const Bouncerlist = () => {
         </DialogContent>
       </Dialog>
 
-      <Snackbar open={notification.open} autoHideDuration={3000} onClose={() => setNotification(p => ({...p, open: false}))} anchorOrigin={{ vertical: 'top', horizontal: 'right' }}>
-        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 700, fontSize: '0.82rem' }}>{notification.message}</Alert>
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={3000}
+        onClose={() => setNotification((p) => ({ ...p, open: false }))}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+      >
+        <Alert severity={notification.severity} variant="filled" sx={{ borderRadius: '18px', fontWeight: 700, fontSize: '0.82rem' }}>
+          {notification.message}
+        </Alert>
       </Snackbar>
     </Box>
   );

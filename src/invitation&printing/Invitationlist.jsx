@@ -73,7 +73,7 @@ const Invitationlist = () => {
   const [selectedInvitation, setSelectedInvitation] = useState(null);
 
   const API_URL = `${API_BASE_URL}/invitation-printing`;
-
+const MODULE_ID = "68e78b3c6a1614cf448a3591";
   const getFetchOptions = (method = 'GET', body = null) => {
     const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     const opts = {
@@ -86,38 +86,59 @@ const Invitationlist = () => {
     return opts;
   };
 
-  const fetchPackages = async (topPicks = false) => {
-    try {
-      setLoading(true);
-      const url = topPicks ? `${API_URL}/top-picks` : API_URL;
-      const res = await fetch(url, getFetchOptions());
-      const data = await res.json();
-      if (data?.data && Array.isArray(data.data)) {
-        const mapped = data.data.map((m, idx) => ({
-          _id: m._id, id: idx + 1,
-          title: m.packageName || 'Untitled',
-          description: m.description || '',
-          price: m.packagePrice ?? 0,
-          advance: m.advanceBookingAmount ?? 0,
-          providerId: m.provider?._id || m.provider?.id || 'unknown',
-          providerName: m.provider?.firstName && m.provider?.lastName ? `${m.provider.firstName} ${m.provider.lastName}` : (m.provider?.firstName || m.provider?.name || '—'),
-          providerEmail: m.provider?.email || '', providerPhone: m.provider?.phone || '',
-          isTopPick: m.isTopPick ?? false, isActive: m.isActive ?? false,
-          rawPackage: m,
-        }));
-        setAllPackages(mapped); setPackages(mapped);
-        
-        // Expand all vendors by default
-        const uniqueVendors = [...new Set(mapped.map(m => m.providerId))];
-        const allExpanded = {};
-        uniqueVendors.forEach(id => { allExpanded[id] = true; });
-        setExpandedVendors(allExpanded);
-      }
-    } catch (e) {
-      setNotification({ open: true, message: `Error: ${e.message}`, severity: 'error' });
-    } finally { setLoading(false); }
-  };
+ const fetchPackages = async () => {
+  try {
+    setLoading(true);
 
+    const res = await fetch(
+      `${API_URL}/vendors/${MODULE_ID}`,
+      getFetchOptions()
+    );
+
+    const data = await res.json();
+
+    console.log("INVITATION API RESPONSE:", data); // DEBUG
+
+    if (data?.data && Array.isArray(data.data)) {
+
+      const mapped = data.data.flatMap((vendor, vIndex) =>
+        (vendor.packages || []).map((pkg, idx) => ({
+          _id: pkg._id,
+          id: `${vIndex}-${idx}`,
+
+          title: pkg.packageName || 'Untitled',
+          description: pkg.description || '',
+          price: pkg.packagePrice ?? 0,
+          advance: pkg.advanceBookingAmount ?? 0,
+
+          providerId: vendor._id,
+          providerName: `${vendor.firstName || ''} ${vendor.lastName || ''}`,
+          providerEmail: vendor.email || '',
+          providerPhone: vendor.phone || '',
+
+          isTopPick: pkg.isTopPick ?? false,
+          isActive: pkg.isActive ?? false,
+
+          rawPackage: pkg,
+        }))
+      );
+
+      setAllPackages(mapped);
+      setPackages(mapped);
+
+      const expanded = {};
+      data.data.forEach(v => {
+        expanded[v._id] = true;
+      });
+      setExpandedVendors(expanded);
+    }
+
+  } catch (e) {
+    setNotification({ open: true, message: e.message, severity: 'error' });
+  } finally {
+    setLoading(false);
+  }
+};
   useEffect(() => { fetchPackages(); }, []);
 
   const filtered = packages.filter((c) =>
