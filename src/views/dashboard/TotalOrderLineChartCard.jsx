@@ -22,7 +22,7 @@ import SkeletonTotalOrderCard from 'ui-component/cards/Skeleton/EarningCard';
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
-export default function TotalOrderLineChartCard({ isLoading }) {
+export default function TotalOrderLineChartCard({ isLoading, bgcolor }) {
   const theme = useTheme();
 
   const [timeValue, setTimeValue] = React.useState(false);
@@ -39,7 +39,7 @@ export default function TotalOrderLineChartCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: '#EA4C46', // ✅ Updated background color
+            bgcolor: bgcolor || '#EA4C46', // ✅ Use passed bgcolor
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -183,4 +183,4 @@ export default function TotalOrderLineChartCard({ isLoading }) {
   );
 }
 
-TotalOrderLineChartCard.propTypes = { isLoading: PropTypes.bool };
+TotalOrderLineChartCard.propTypes = { isLoading: PropTypes.bool, bgcolor: PropTypes.string };

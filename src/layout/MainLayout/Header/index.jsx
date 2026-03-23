@@ -371,6 +371,8 @@ import Menu from '@mui/material/Menu';
 import MenuItem from '@mui/material/MenuItem';
 import Typography from '@mui/material/Typography';
 import ListItemIcon from '@mui/material/ListItemIcon';
+import IconButton from '@mui/material/IconButton';
+import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
@@ -392,7 +394,8 @@ import {
   IconTool,
   IconCreditCard,
   IconUsers,
-  IconUserCheck
+  IconUserCheck,
+  IconSmartHome
 } from '@tabler/icons-react';
 
 export default function Header() {
@@ -577,6 +580,14 @@ export default function Header() {
     }
     navigate(route);
     handleSettingsClose();
+  };
+
+  const handleHomeClick = () => {
+    // Reset to "Venues" which is auditorium
+    localStorage.setItem('selectedModuleName', 'Venues');
+    dispatchModuleEvents('auditorium', 'auditorium');
+    navigate('/auditorium/dashboard');
+    setTimeout(() => window.location.reload(), 100);
   };
 
   const handleModuleClick = (module) => {
@@ -836,6 +847,27 @@ export default function Header() {
 
         {/* Right-aligned section */}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+          {/* Back to Modules / Home Button */}
+          <Tooltip title="Back to Modules">
+            <IconButton
+              onClick={handleHomeClick}
+              sx={{
+                width: 45,
+                height: 45,
+                bgcolor: '#ffffff',
+                border: '1px solid #e0e0e0',
+                color: '#666',
+                '&:hover': {
+                  borderColor: '#EA4C46',
+                  bgcolor: '#FFF5F6',
+                  color: '#EA4C46'
+                }
+              }}
+            >
+              <IconSmartHome size={22} />
+            </IconButton>
+          </Tooltip>
+
           {/* Settings Button */}
           <Button
             variant="outlined"

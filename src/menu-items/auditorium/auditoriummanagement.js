@@ -17,14 +17,6 @@ const auditoriummanagement = {
   type: 'group',
   children: [
     {
-      id: 'Banners',
-      title: 'Banners',
-      type: 'item',
-      url: '/auditorium/banner',
-      icon: icons.IconPhoto,
-      breadcrumbs: false
-    },
-    {
       id: 'Coupons',
       title: 'Coupons',
       type: 'item',

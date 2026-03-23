@@ -24,7 +24,7 @@ import FileCopyTwoToneIcon from '@mui/icons-material/FileCopyOutlined';
 import PictureAsPdfTwoToneIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveOutlined';
 
-export default function EarningCard({ isLoading }) {
+export default function EarningCard({ isLoading, bgcolor }) {
   const theme = useTheme();
 
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -46,7 +46,7 @@ export default function EarningCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: '#EA4C46', // ✅ Updated background color
+            bgcolor: bgcolor || '#EA4C46', // ✅ Use passed bgcolor
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -178,4 +178,4 @@ export default function EarningCard({ isLoading }) {
   );
 }
 
-EarningCard.propTypes = { isLoading: PropTypes.bool };
+EarningCard.propTypes = { isLoading: PropTypes.bool, bgcolor: PropTypes.string };

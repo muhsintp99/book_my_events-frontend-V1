@@ -117,8 +117,8 @@ import TotalIncomeCard from 'ui-component/cards/Skeleton/TotalIncomeCard';
 // assets
 import TableChartOutlinedIcon from '@mui/icons-material/TableChartOutlined';
 
-const CardWrapper = styled(MainCard)(({ theme }) => ({
-  backgroundColor: '#EA4C46',
+const CardWrapper = styled(MainCard)(({ theme, bgcolor }) => ({
+  backgroundColor: bgcolor || '#EA4C46',
   color: theme.palette.darkTextPrimary,
   overflow: 'hidden',
   position: 'relative',
@@ -144,7 +144,7 @@ const CardWrapper = styled(MainCard)(({ theme }) => ({
   }
 }));
 
-export default function TotalIncomeDarkCard({ isLoading }) {
+export default function TotalIncomeDarkCard({ isLoading, bgcolor }) {
   const theme = useTheme();
 
   return (
@@ -152,7 +152,7 @@ export default function TotalIncomeDarkCard({ isLoading }) {
       {isLoading ? (
         <TotalIncomeCard />
       ) : (
-        <CardWrapper border={false} content={false}>
+        <CardWrapper border={false} content={false} bgcolor={bgcolor}>
           <Box sx={{ p: 2 }}>
             <List sx={{ py: 0 }}>
               <ListItem alignItems="center" disableGutters sx={{ py: 0 }}>

@@ -1531,6 +1531,7 @@ function BannerForm() {
     message: '',
     severity: 'success'
   });
+  const [editingId, setEditingId] = useState(null);
 
   // Fetch zones on component mount
   useEffect(() => {
@@ -1635,7 +1636,7 @@ function BannerForm() {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    if (!formData.title || !formData.zone || !formData.bannerImage) {
+    if (!formData.title || !formData.zone || (!formData.bannerImage && !editingId)) {
       showNotification('Please fill all required fields', 'error');
       return;
     }
@@ -1652,18 +1653,23 @@ function BannerForm() {
         formDataToSend.append('link', formData.link);
       }
 
-      formDataToSend.append('image', formData.bannerImage);
+      if (formData.bannerImage) {
+        formDataToSend.append('image', formData.bannerImage);
+      }
 
-      const response = await fetch(`${API_BASE_URL}/banners`, {
-        method: 'POST',
+      const url = editingId ? `${API_BASE_URL}/banners/${editingId}` : `${API_BASE_URL}/banners`;
+      const method = editingId ? 'PUT' : 'POST';
+
+      const response = await fetch(url, {
+        method: method,
         body: formDataToSend,
       });
 
       const result = await response.json();
-      console.log('Create Banner Response:', result);
+      console.log(`${editingId ? 'Update' : 'Create'} Banner Response:`, result);
 
       if (response.ok || result.success) {
-        showNotification(result.message || 'Banner created successfully', 'success');
+        showNotification(result.message || `Banner ${editingId ? 'updated' : 'created'} successfully`, 'success');
         setFormData({
           title: '',
           zone: '',
@@ -1672,13 +1678,14 @@ function BannerForm() {
           bannerImage: null
         });
         setImagePreview(null);
+        setEditingId(null);
         fetchBanners();
       } else {
-        showNotification(result.message || 'Failed to create banner', 'error');
+        showNotification(result.message || `Failed to ${editingId ? 'update' : 'create'} banner`, 'error');
       }
     } catch (error) {
-      console.error('Error creating banner:', error);
-      showNotification('Error creating banner: ' + error.message, 'error');
+      console.error(`Error ${editingId ? 'updating' : 'creating'} banner:`, error);
+      showNotification(`Error ${editingId ? 'updating' : 'creating'} banner: ` + error.message, 'error');
     } finally {
       setLoading(false);
     }
@@ -1693,6 +1700,7 @@ function BannerForm() {
       bannerImage: null
     });
     setImagePreview(null);
+    setEditingId(null);
   };
 
   const handleDelete = async (id) => {
@@ -1737,6 +1745,7 @@ function BannerForm() {
     if (banner.image) {
       setImagePreview(banner.image);
     }
+    setEditingId(banner._id);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -1751,7 +1760,7 @@ function BannerForm() {
       }}
     >
       <Box sx={{ mb: 4, fontSize: '1.5rem', fontWeight: 'bold', color: '#333' }}>
-        Add New Banner
+        {editingId ? 'Edit Banner' : 'Add New Banner'}
       </Box>
 
       <Box component="form" onSubmit={handleSubmit} sx={{ width: '100%' }}>
@@ -1889,7 +1898,7 @@ function BannerForm() {
             sx={{ minWidth: 120, height: 45 }}
             disabled={loading}
           >
-            {loading ? <CircularProgress size={24} color="inherit" /> : 'Submit'}
+            {loading ? <CircularProgress size={24} color="inherit" /> : (editingId ? 'Update' : 'Submit')}
           </Button>
           <Button
             variant="outlined"

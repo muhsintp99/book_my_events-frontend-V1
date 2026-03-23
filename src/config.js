@@ -1,4 +1,4 @@
-export const DASHBOARD_PATH = '/sample-page';
+export const DASHBOARD_PATH = '/module-selection';
 
 // const config = {
 //   fontFamily: `'Poppins', sans-serif`,

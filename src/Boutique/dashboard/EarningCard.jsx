@@ -26,9 +26,8 @@ import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveOutlined';
 
 export default function EarningCard({ isLoading }) {
   const theme = useTheme();
-  const [anchorEl, setAnchorEl] = React.useState(null);
 
-  const mainColor = '#EA4C46'; // 🎨 Brand color
+  const [anchorEl, setAnchorEl] = React.useState(null);
 
   const handleClick = (event) => {
     setAnchorEl(event.currentTarget);
@@ -47,7 +46,7 @@ export default function EarningCard({ isLoading }) {
           border={false}
           content={false}
           sx={{
-            bgcolor: mainColor,
+            bgcolor: '#EA4C46', // ✅ Updated background color
             color: '#fff',
             overflow: 'hidden',
             position: 'relative',
@@ -56,7 +55,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: 'rgba(255,255,255,0.15)',
+              background: 'rgba(0,0,0,0.1)', // subtle overlay circle
               borderRadius: '50%',
               top: { xs: -85 },
               right: { xs: -95 }
@@ -66,7 +65,7 @@ export default function EarningCard({ isLoading }) {
               position: 'absolute',
               width: 210,
               height: 210,
-              background: 'rgba(255,255,255,0.1)',
+              background: 'rgba(0,0,0,0.15)',
               borderRadius: '50%',
               top: { xs: -125 },
               right: { xs: -15 },
@@ -76,7 +75,6 @@ export default function EarningCard({ isLoading }) {
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
-              {/* Top Section */}
               <Grid>
                 <Grid container sx={{ justifyContent: 'space-between' }}>
                   <Grid>
@@ -86,19 +84,12 @@ export default function EarningCard({ isLoading }) {
                         ...theme.typography.commonAvatar,
                         ...theme.typography.largeAvatar,
                         bgcolor: 'rgba(255,255,255,0.2)',
-                        color: '#fff',
                         mt: 1
                       }}
                     >
-                      <CardMedia
-                        sx={{ width: 24, height: 24 }}
-                        component="img"
-                        src={EarningIcon}
-                        alt="Earning"
-                      />
+                      <CardMedia sx={{ width: 24, height: 24 }} component="img" src={EarningIcon} alt="Notification" />
                     </Avatar>
                   </Grid>
-
                   <Grid>
                     <Avatar
                       variant="rounded"
@@ -107,8 +98,7 @@ export default function EarningCard({ isLoading }) {
                         ...theme.typography.mediumAvatar,
                         bgcolor: 'rgba(255,255,255,0.2)',
                         color: '#fff',
-                        zIndex: 1,
-                        cursor: 'pointer'
+                        zIndex: 1
                       }}
                       aria-controls="menu-earning-card"
                       aria-haspopup="true"
@@ -116,7 +106,6 @@ export default function EarningCard({ isLoading }) {
                     >
                       <MoreHorizIcon fontSize="inherit" />
                     </Avatar>
-
                     <Menu
                       id="menu-earning-card"
                       anchorEl={anchorEl}
@@ -134,36 +123,26 @@ export default function EarningCard({ isLoading }) {
                       }}
                     >
                       <MenuItem onClick={handleClose}>
-                        <GetAppTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Import Card
+                        <GetAppTwoToneIcon sx={{ mr: 1.75 }} /> Import Card
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <FileCopyTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Copy Data
+                        <FileCopyTwoToneIcon sx={{ mr: 1.75 }} /> Copy Data
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <PictureAsPdfTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Export
+                        <PictureAsPdfTwoToneIcon sx={{ mr: 1.75 }} /> Export
                       </MenuItem>
                       <MenuItem onClick={handleClose}>
-                        <ArchiveTwoToneIcon sx={{ mr: 1.75, color: mainColor }} /> Archive File
+                        <ArchiveTwoToneIcon sx={{ mr: 1.75 }} /> Archive File
                       </MenuItem>
                     </Menu>
                   </Grid>
                 </Grid>
               </Grid>
-
-              {/* Earnings Amount */}
               <Grid>
                 <Grid container sx={{ alignItems: 'center' }}>
                   <Grid>
-                    <Typography
-                      sx={{
-                        fontSize: '2.125rem',
-                        fontWeight: 500,
-                        mr: 1,
-                        mt: 1.75,
-                        mb: 0.75
-                      }}
-                    >
-                      $500.00
+                    <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
+                      ₹24,56,400
                     </Typography>
                   </Grid>
                   <Grid>
@@ -175,16 +154,11 @@ export default function EarningCard({ isLoading }) {
                         color: '#fff'
                       }}
                     >
-                      <ArrowUpwardIcon
-                        fontSize="inherit"
-                        sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }}
-                      />
+                      <ArrowUpwardIcon fontSize="inherit" sx={{ transform: 'rotate3d(1, 1, 1, 45deg)' }} />
                     </Avatar>
                   </Grid>
                 </Grid>
               </Grid>
-
-              {/* Subtitle */}
               <Grid sx={{ mb: 1.25 }}>
                 <Typography
                   sx={{

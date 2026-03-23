@@ -26,7 +26,7 @@ export default function Dashboard() {
     setLoading(false);
   }, []);
 
-  const cardBgColor = "#31428fff";
+  const cardBgColor = "#EA4C46"; // Changing from Blue to Red as requested
 
   return (
     <Grid container spacing={gridSpacing}>

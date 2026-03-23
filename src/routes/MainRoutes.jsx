@@ -76,6 +76,7 @@ const EditVenuePage = Loadable(lazy(() => import('../audiviews/EditVenuePage')))
 const ZoneSetup = Loadable(lazy(() => import('../views/ZoneSetup')));
 const ModuleSetup = Loadable(lazy(() => import('../views/ModuleSetup')));
 const SecondModuleSetup = Loadable(lazy(() => import('../views/SecondmoduleSetup')));
+const ModuleSelector = Loadable(lazy(() => import('../views/ModuleSelector')));
 
 const PincodeSetup = Loadable(lazy(() => import('../views/Pincodesetup')));
 
@@ -251,6 +252,7 @@ const MainRoutes = {
     { path: '*', element: <PageNotFound /> },
     { path: 'dashboard', element: <DashboardDefault /> },
     { path: 'unauthorized', element: <Unauthorized /> },
+    { path: 'module-selection', element: <ModuleSelector /> },
     { path: 'statistics', element: <Statistics /> },
     { path: 'typography', element: <UtilsTypography /> },
     { path: 'color', element: <UtilsColor /> },
@@ -325,7 +327,7 @@ const MainRoutes = {
 
     // Auditorium Routes
     { path: 'auditorium/dashboard', element: <AuditoriumDashboard /> },
-    { path: 'auditorium/banner', element: <Auditoriumbanner /> },
+    { path: 'settings/banner', element: <Auditoriumbanner /> },
     { path: 'auditorium/coupons', element: <Auditoriumcoupons /> },
     { path: 'auditorium/pushnotifications', element: <AuditoriumPushnotifications /> },
     { path: 'auditorium/category', element: <Auditoriumcategory /> },
