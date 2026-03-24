@@ -1,0 +1,1 @@
+import{j as o}from"./index-B_MbFGgo.js";import{M as i}from"./ModuleEnquiries-DILPrLIE.js";import"./Event-BCPFKu4K.js";import"./Visibility-DuDprL_b.js";import"./Category-jTfvT0DP.js";import"./DialogActions-DCy-Ojnz.js";const p=()=>o.jsx(i,{moduleTitle:"Event Professionals"});export{p as default};

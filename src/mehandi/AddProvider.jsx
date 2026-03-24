@@ -98,7 +98,6 @@ function AddMehandi() {
     startingPrice: '',
     minBookingPrice: '',
     vendorType: 'individual',
-    maxBookings: '',
     maxBookings: ''
   });
 
@@ -270,7 +269,6 @@ function AddMehandi() {
         startingPrice: vendorProfile?.startingPrice || '',
         minBookingPrice: vendorProfile?.minBookingPrice || '',
         vendorType: vendorProfile?.vendorType || 'individual',
-        maxBookings: vendorProfile?.maxBookings || '',
         maxBookings: vendorProfile?.maxBookings || ''
       });
 

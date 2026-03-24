@@ -1,0 +1,1 @@
+import{j as o}from"./index-B_MbFGgo.js";import{M as t}from"./ModuleEnquiries-DILPrLIE.js";import"./Event-BCPFKu4K.js";import"./Visibility-DuDprL_b.js";import"./Category-jTfvT0DP.js";import"./DialogActions-DCy-Ojnz.js";const n=()=>o.jsx(t,{moduleTitle:"Panthal & Decorations"});export{n as default};
