@@ -1,9 +1,9 @@
-import { IconBuildingSkyscraper, IconSettings, IconTools } from '@tabler/icons-react';
+import { IconBuildingSkyscraper, IconSettings, IconMessageCircle } from '@tabler/icons-react';
 
 const icons = {
     IconBuildingSkyscraper,
     IconSettings,
-    IconTools
+    IconMessageCircle
 };
 
 const ProfessionalProvidermanagement = {
@@ -28,11 +28,11 @@ const ProfessionalProvidermanagement = {
             breadcrumbs: false
         },
         {
-            id: 'professional-list',
-            title: 'Professional List',
+            id: 'professional-enquiries',
+            title: 'Enquiries',
             type: 'item',
-            url: '/eventprofessionals/professionalList',
-            icon: icons.IconTools,
+            url: '/eventprofessionals/enquiries',
+            icon: icons.IconMessageCircle,
             breadcrumbs: false
         },
     ]

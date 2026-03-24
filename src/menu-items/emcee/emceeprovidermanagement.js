@@ -1,9 +1,9 @@
-import { IconBuildingSkyscraper, IconSettings, IconTools } from '@tabler/icons-react';
+import { IconBuildingSkyscraper, IconSettings, IconMessageCircle } from '@tabler/icons-react';
 
 const icons = {
     IconBuildingSkyscraper,
     IconSettings,
-    IconTools
+    IconMessageCircle
 };
 
 const EmceeProvidermanagement = {
@@ -28,11 +28,11 @@ const EmceeProvidermanagement = {
             breadcrumbs: false
         },
         {
-            id: 'emcee-list',
-            title: 'Emcee List',
+            id: 'emcee-enquiries',
+            title: 'Enquiries',
             type: 'item',
-            url: '/emcee/emceeList',
-            icon: icons.IconTools,
+            url: '/emcee/enquiries',
+            icon: icons.IconMessageCircle,
             breadcrumbs: false
         },
     ]

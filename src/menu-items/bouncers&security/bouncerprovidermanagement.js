@@ -1,9 +1,9 @@
-import { IconBuildingSkyscraper, IconSettings, IconTools } from '@tabler/icons-react';
+import { IconBuildingSkyscraper, IconSettings, IconMessageCircle } from '@tabler/icons-react';
 
 const icons = {
     IconBuildingSkyscraper,
     IconSettings,
-    IconTools
+    IconMessageCircle
 };
 
 const BouncerProvidermanagement = {
@@ -28,11 +28,11 @@ const BouncerProvidermanagement = {
             breadcrumbs: false
         },
         {
-            id: 'bouncer-list',
-            title: 'Bouncer List',
+            id: 'bouncer-enquiries',
+            title: 'Enquiries',
             type: 'item',
-            url: '/bouncers/bouncerList',
-            icon: icons.IconTools,
+            url: '/bouncers/enquiries',
+            icon: icons.IconMessageCircle,
             breadcrumbs: false
         },
     ]

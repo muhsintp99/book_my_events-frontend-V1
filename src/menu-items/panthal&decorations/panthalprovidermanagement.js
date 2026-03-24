@@ -1,9 +1,9 @@
-import { IconBuildingSkyscraper, IconSettings, IconTools } from '@tabler/icons-react';
+import { IconBuildingSkyscraper, IconSettings, IconMessageCircle } from '@tabler/icons-react';
 
 const icons = {
     IconBuildingSkyscraper,
     IconSettings,
-    IconTools
+    IconMessageCircle
 };
 
 const PanthalProvidermanagement = {
@@ -28,11 +28,11 @@ const PanthalProvidermanagement = {
             breadcrumbs: false
         },
         {
-            id: 'panthal-list',
-            title: 'Panthal List',
+            id: 'panthal-enquiries',
+            title: 'Enquiries',
             type: 'item',
-            url: '/panthal/panthalList',
-            icon: icons.IconTools,
+            url: '/panthal/enquiries',
+            icon: icons.IconMessageCircle,
             breadcrumbs: false
         },
     ]

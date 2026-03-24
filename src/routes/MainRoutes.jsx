@@ -198,7 +198,7 @@ const Flouristprovider = ProviderList;
 const Lightdashboard = Loadable(lazy(() => import('../Light&Sounds/dashboard')));
 const Lightaddprovider = Loadable(lazy(() => import('../Light&Sounds/AddProvider')));
 const Lightcategory = Loadable(lazy(() => import('../Light&Sounds/Category')));
-const LightList = Loadable(lazy(() => import('../Light&Sounds/lightlist')));
+const LightEnquiries = Loadable(lazy(() => import('../Light&Sounds/LightEnquiries')));
 const LightCoupon = Loadable(lazy(() => import('../Light&Sounds/lightcoupon')));
 const Lightprovider = ProviderList;
 
@@ -206,7 +206,7 @@ const Lightprovider = ProviderList;
 const Bouncerdashboard = Loadable(lazy(() => import('../Bouncers&Security/dashboard')));
 const Bounceraddprovider = Loadable(lazy(() => import('../Bouncers&Security/AddProvider')));
 const Bouncercategory = Loadable(lazy(() => import('../Bouncers&Security/Category')));
-const BouncerListComp = Loadable(lazy(() => import('../Bouncers&Security/bouncerlist')));
+const BouncerEnquiries = Loadable(lazy(() => import('../Bouncers&Security/BouncerEnquiries')));
 const BouncerCouponComp = Loadable(lazy(() => import('../Bouncers&Security/bouncercoupon')));
 const Bouncerprovider = ProviderList;
 
@@ -214,7 +214,7 @@ const Bouncerprovider = ProviderList;
 const Emceedashboard = Loadable(lazy(() => import('../Emcee/dashboard')));
 const Emceeaddprovider = Loadable(lazy(() => import('../Emcee/AddProvider')));
 const Emceecategory = Loadable(lazy(() => import('../Emcee/Category')));
-const EmceeListComp = Loadable(lazy(() => import('../Emcee/emceelist')));
+const EmceeEnquiries = Loadable(lazy(() => import('../Emcee/EmceeEnquiries')));
 const EmceeCouponComp = Loadable(lazy(() => import('../Emcee/emceecoupon')));
 const Emceeprovider = ProviderList;
 
@@ -223,7 +223,7 @@ const Emceeprovider = ProviderList;
 const Panthaldashboard = Loadable(lazy(() => import('../Panthal&Decorations/dashboard')));
 const Panthaladdprovider = Loadable(lazy(() => import('../Panthal&Decorations/AddProvider')));
 const Panthalcategory = Loadable(lazy(() => import('../Panthal&Decorations/Category')));
-const PanthalListComp = Loadable(lazy(() => import('../Panthal&Decorations/panthallist')));
+const PanthalEnquiries = Loadable(lazy(() => import('../Panthal&Decorations/PanthalEnquiries')));
 const PanthalCouponComp = Loadable(lazy(() => import('../Panthal&Decorations/panthalcoupon')));
 const Panthalprovider = ProviderList;
 
@@ -232,7 +232,7 @@ const Panthalprovider = ProviderList;
 const Professionaldashboard = Loadable(lazy(() => import('../EventProfessionals/dashboard')));
 const Professionaladdprovider = Loadable(lazy(() => import('../EventProfessionals/AddProvider')));
 const Professionalcategory = Loadable(lazy(() => import('../EventProfessionals/Category')));
-const ProfessionalListComp = Loadable(lazy(() => import('../EventProfessionals/professionallist')));
+const ProfessionalEnquiries = Loadable(lazy(() => import('../EventProfessionals/ProfessionalEnquiries')));
 const ProfessionalCouponComp = Loadable(lazy(() => import('../EventProfessionals/professionalcoupon')));
 const Professionalprovider = ProviderList;
 
@@ -468,7 +468,7 @@ const MainRoutes = {
     { path: 'lights/AddProvider', element: <Lightaddprovider /> },
     { path: 'lights/AddProvider/:id', element: <Lightaddprovider /> },
     { path: 'lights/category', element: <Lightcategory /> },
-    { path: 'lights/lightList', element: <LightList /> },
+    { path: 'lights/enquiries', element: <LightEnquiries /> },
     { path: 'lights/lightprovider', element: <Lightprovider /> },
     { path: 'lights/coupons', element: <LightCoupon /> },
 
@@ -480,7 +480,7 @@ const MainRoutes = {
     { path: 'bouncers/AddProvider', element: <Bounceraddprovider /> },
     { path: 'bouncers/AddProvider/:id', element: <Bounceraddprovider /> },
     { path: 'bouncers/category', element: <Bouncercategory /> },
-    { path: 'bouncers/bouncerList', element: <BouncerListComp /> },
+    { path: 'bouncers/enquiries', element: <BouncerEnquiries /> },
     { path: 'bouncers/bouncerprovider', element: <Bouncerprovider /> },
     { path: 'bouncers/coupons', element: <BouncerCouponComp /> },
 
@@ -492,7 +492,7 @@ const MainRoutes = {
     { path: 'emcee/AddProvider', element: <Emceeaddprovider /> },
     { path: 'emcee/AddProvider/:id', element: <Emceeaddprovider /> },
     { path: 'emcee/category', element: <Emceecategory /> },
-    { path: 'emcee/emceeList', element: <EmceeListComp /> },
+    { path: 'emcee/enquiries', element: <EmceeEnquiries /> },
     { path: 'emcee/emceeprovider', element: <Emceeprovider /> },
     { path: 'emcee/coupons', element: <EmceeCouponComp /> },
 
@@ -504,7 +504,7 @@ const MainRoutes = {
     { path: 'panthal/AddProvider', element: <Panthaladdprovider /> },
     { path: 'panthal/AddProvider/:id', element: <Panthaladdprovider /> },
     { path: 'panthal/category', element: <Panthalcategory /> },
-    { path: 'panthal/panthalList', element: <PanthalListComp /> },
+    { path: 'panthal/enquiries', element: <PanthalEnquiries /> },
     { path: 'panthal/panthalprovider', element: <Panthalprovider /> },
     { path: 'panthal/coupons', element: <PanthalCouponComp /> },
 
@@ -516,7 +516,7 @@ const MainRoutes = {
     { path: 'eventprofessionals/AddProvider', element: <Professionaladdprovider /> },
     { path: 'eventprofessionals/AddProvider/:id', element: <Professionaladdprovider /> },
     { path: 'eventprofessionals/category', element: <Professionalcategory /> },
-    { path: 'eventprofessionals/professionalList', element: <ProfessionalListComp /> },
+    { path: 'eventprofessionals/enquiries', element: <ProfessionalEnquiries /> },
     { path: 'eventprofessionals/professionalprovider', element: <Professionalprovider /> },
     { path: 'eventprofessionals/coupons', element: <ProfessionalCouponComp /> },
   ]

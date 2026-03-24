@@ -1,9 +1,9 @@
-import { IconBuildingSkyscraper, IconSettings, IconTools } from '@tabler/icons-react';
+import { IconBuildingSkyscraper, IconSettings, IconMessageCircle } from '@tabler/icons-react';
 
 const icons = {
     IconBuildingSkyscraper,
     IconSettings,
-    IconTools
+    IconMessageCircle
 };
 
 const LightProvidermanagement = {
@@ -28,11 +28,11 @@ const LightProvidermanagement = {
             breadcrumbs: false
         },
         {
-            id: 'light-list',
-            title: 'Light & Sound List',
+            id: 'light-enquiries',
+            title: 'Enquiries',
             type: 'item',
-            url: '/lights/lightList',
-            icon: icons.IconTools,
+            url: '/lights/enquiries',
+            icon: icons.IconMessageCircle,
             breadcrumbs: false
         },
     ]
