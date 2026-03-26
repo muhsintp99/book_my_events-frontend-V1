@@ -286,7 +286,7 @@ const MainRoutes = {
 
     // { path: '/vehicles/create', element: <Createnew /> },
     //setting
-    { path: 'settings/zone-setup', element: <ZoneSetup /> },
+    // { path: 'settings/zone-setup', element: <ZoneSetup /> },
     { path: '/settings/module-setup', element: <ModuleSetup /> },
     { path: '/settings/pincode-setup', element: <PincodeSetup /> },
 

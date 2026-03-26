@@ -998,7 +998,7 @@ export default function Header() {
                   </Box>
 
                   {renderModuleGrid(modules, handleModuleClick)}
-                  {renderAddButton(handleAddModule, 'Add New Module', '#4caf50')}
+                  {/* {renderAddButton(handleAddModule, 'Add New Module', '#4caf50')} */}
                 </Box>
 
                 <Divider sx={{ my: 3 }} />
@@ -1047,7 +1047,7 @@ export default function Header() {
                   </Box>
 
                   {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
-                  {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')}
+                  {/* {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')} */}
                 </Box>
               </Box>
             </Menu>
