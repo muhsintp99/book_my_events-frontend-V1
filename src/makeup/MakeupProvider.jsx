@@ -69,6 +69,9 @@ function MakeupProvider() {
     email: '',
     phone: '',
     storeName: '',
+    bioTitle: '',
+    bioSubtitle: '',
+    bioDescription: '',
     storeAddress: {
       street: '',
       city: '',
@@ -187,6 +190,9 @@ function MakeupProvider() {
         email: user.email || '',
         phone: user.phone || '',
         storeName: vendorProfile?.storeName || profile?.vendorName || '',
+        bioTitle: vendorProfile?.bioTitle || profile?.bio?.title || '',
+        bioSubtitle: vendorProfile?.bioSubtitle || profile?.bio?.subtitle || '',
+        bioDescription: vendorProfile?.bioDescription || profile?.bio?.description || '',
         storeAddress: {
           street: vendorProfile?.storeAddress?.street || profile?.storeAddress?.street || '',
           city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
@@ -501,6 +507,11 @@ function MakeupProvider() {
       payload.append('role', 'vendor');
       payload.append('storeName', formData.storeName);
 
+      // Bio info
+      payload.append('bioTitle', formData.bioTitle);
+      payload.append('bioSubtitle', formData.bioSubtitle);
+      payload.append('bioDescription', formData.bioDescription);
+
       // ---------------- BANK DETAILS ----------------
       payload.append('accountHolderName', bankDetails.accountHolderName);
       payload.append('bankName', bankDetails.bankName);
@@ -703,6 +714,9 @@ function MakeupProvider() {
       email: '',
       phone: '',
       storeName: '',
+      bioTitle: '',
+      bioSubtitle: '',
+      bioDescription: '',
       storeAddress: { street: '', city: '', state: '', zipCode: '', fullAddress: '' },
       minimumDeliveryTime: '',
       maximumDeliveryTime: '',
@@ -799,6 +813,37 @@ function MakeupProvider() {
           {coverPreview ? 'Change Cover' : 'Upload Cover'}
           <input type="file" hidden accept="image/jpeg,image/png" onChange={(e) => handleImageUpload(e, 'coverImage')} />
         </Button>
+      </Box>
+
+      {/* Bio Section */}
+      <Box sx={{ mb: 3, p: 2, borderRadius: 1, backgroundColor: '#fff', border: '1px solid #e0e0e0' }}>
+        <Typography variant="h5" fontWeight="bold" sx={{ mb: 2 }}>
+          Bio
+        </Typography>
+        <TextField
+          fullWidth
+          label="Bio Title"
+          placeholder="e.g. Professional Makeup Artist"
+          value={formData.bioTitle}
+          onChange={handleInputChange('bioTitle')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          label="Bio Subtitle"
+          placeholder="e.g. Specializing in Bridal Makeup"
+          value={formData.bioSubtitle}
+          onChange={handleInputChange('bioSubtitle')}
+          sx={{ mb: 2 }}
+        />
+        <TextField
+          fullWidth
+          multiline
+          minRows={4}
+          label="Bio Description"
+          value={formData.bioDescription}
+          onChange={handleInputChange('bioDescription')}
+        />
       </Box>
 
       {/* User Info */}

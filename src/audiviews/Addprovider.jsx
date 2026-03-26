@@ -2437,4 +2437,4 @@ function AuditoriumProvider() {
   );
 }
 
-export default AddAuditorium;
+export default AuditoriumProvider;
