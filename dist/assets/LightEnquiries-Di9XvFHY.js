@@ -1,0 +1,1 @@
+import{j as i}from"./index-pey8wApY.js";import{M as o}from"./ModuleEnquiries-DsR-5ylY.js";import"./Event-tMeSd8lD.js";import"./Visibility-fft_rBy0.js";import"./Category-mI15_s63.js";import"./DialogActions-BTJ0AD5H.js";const u=()=>i.jsx(o,{moduleTitle:"Light & Sounds"});export{u as default};

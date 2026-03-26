@@ -114,22 +114,22 @@ export default function Dashboard() {
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
               total={
-                moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ) ? moduleStats.currentMonthEnquiries : moduleStats.totalEarnings
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                      ? moduleStats.currentMonthEnquiries
+                      : moduleStats.totalEarnings)
+                  : overallStats.totalEarnings
               }
               title={
-                moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ) ? 'ENQUIRIES THIS MONTH' : 'Total Earning'
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                      ? 'ENQUIRIES THIS MONTH'
+                      : 'Total Earning')
+                  : 'Total Platform Earning'
               }
               isCurrency={
-                !(moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ))
+                !(localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' && 
+                moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m)))
               }
             />
           </Grid>
@@ -138,16 +138,18 @@ export default function Dashboard() {
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
               total={
-                moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ) ? moduleStats.totalEnquiries : moduleStats.totalOrders
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                      ? moduleStats.totalEnquiries
+                      : moduleStats.totalOrders)
+                  : overallStats.totalBookings
               }
               title={
-                moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ) ? 'TOTAL ENQUIRIES' : 'Total Order'
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                      ? 'TOTAL ENQUIRIES'
+                      : 'Total Order')
+                  : 'Total Platform Orders'
               }
             />
           </Grid>
