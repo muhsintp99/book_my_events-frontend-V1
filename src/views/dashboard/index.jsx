@@ -158,47 +158,34 @@ export default function Dashboard() {
                   isLoading={isLoading} 
                   bgcolor={cardBgColor} 
                   total={
-                    moduleStats.moduleTitle && 
-                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                      moduleStats.moduleTitle.toLowerCase().includes(m)
-                    ) ? moduleStats.totalEnquiries : moduleStats.currentMonthIncome
+                    localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                      ? moduleStats.activeVendors
+                      : overallStats.activeVendors
                   }
-                  title={
-                    moduleStats.moduleTitle && 
-                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                      moduleStats.moduleTitle.toLowerCase().includes(m)
-                    ) ? 'Total Enquiries' : 'Total Income'
-                  }
-                  isCurrency={
-                    !(moduleStats.moduleTitle && 
-                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                      moduleStats.moduleTitle.toLowerCase().includes(m)
-                    ))
-                  }
+                  title="Active Providers"
+                  isCurrency={false}
                 />
               </Grid>
               <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
                 <TotalIncomeLightCard
-                  {...{
-                    isLoading: isLoading,
-                    total: 
-                      moduleStats.moduleTitle && 
-                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                        moduleStats.moduleTitle.toLowerCase().includes(m)
-                      ) ? moduleStats.totalEnquiries : moduleStats.totalEarnings,
-                    label: 
-                      moduleStats.moduleTitle && 
-                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                        moduleStats.moduleTitle.toLowerCase().includes(m)
-                      ) ? 'Total Enquiries Balance' : 'Total Module Income',
-                    icon: <StorefrontTwoToneIcon fontSize="inherit" />,
-                    bgcolor: cardBgColor,
-                    isCurrency: 
-                      !(moduleStats.moduleTitle && 
-                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                        moduleStats.moduleTitle.toLowerCase().includes(m)
-                      ))
-                  }}
+                  isLoading={isLoading}
+                  total={
+                    localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                      ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m))
+                          ? moduleStats.currentMonthEnquiries
+                          : moduleStats.totalOrders)
+                      : overallStats.currentMonthOrders
+                  }
+                  label={
+                    localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                      ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m))
+                          ? 'New Enquiries (Month)'
+                          : 'New Orders (Month)')
+                      : 'Platform Orders (Month)'
+                  }
+                  icon={<StorefrontTwoToneIcon fontSize="inherit" />}
+                  bgcolor={cardBgColor}
+                  isCurrency={false}
                 />
               </Grid>
             </Grid>
@@ -214,16 +201,15 @@ export default function Dashboard() {
               isLoading={isLoading} 
               data={overallStats.monthlyStats} 
               title={
-                moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ) ? `${moduleStats.moduleTitle} Enquiry Growth` : 'Total Growth'
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m))
+                      ? `${moduleStats.moduleTitle} Enquiry Trend`
+                      : `${moduleStats.moduleTitle} Growth`)
+                  : "Platform-wide Growth Trend"
               }
               isCurrency={
-                !(moduleStats.moduleTitle && 
-                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
-                  moduleStats.moduleTitle.toLowerCase().includes(m)
-                ))
+                !(localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' && 
+                moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m)))
               }
             />
           </Grid>
