@@ -557,7 +557,8 @@ export default function Header() {
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleSettingsClick = (event) => {
-    handleSettingsNavigation('/settings/zone-setup');
+    // handleSettingsNavigation('/settings/zone-setup');
+    handleSettingsNavigation('/settings/vendor-registrations');
   };
   const handleSettingsClose = () => setSettingsAnchorEl(null);
 
