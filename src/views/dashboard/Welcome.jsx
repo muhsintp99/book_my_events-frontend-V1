@@ -217,7 +217,7 @@ export default function Welcome({
                   WebkitTextFillColor: 'transparent'
                 }}
               >
-                {greeting}, {userName.split(' ')[0]}! {emoji}
+                {greeting}, {userName}! {emoji}
               </Typography>
             </Stack>
 
