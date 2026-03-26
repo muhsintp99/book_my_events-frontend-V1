@@ -32,26 +32,36 @@ const status = [
   { value: 'today', label: 'Today' }
 ];
 
-export default function TotalGrowthBarChart({ isLoading }) {
+export default function TotalGrowthBarChart({ isLoading, data = [], title = 'Total Growth', isCurrency = true }) {
   const theme = useTheme();
   const { fontFamily } = useConfig();
   const [value, setValue] = useState('year');
   const [chartOptions, setChartOptions] = useState(barChartOptions);
 
-  // Sample data for admin panel overview
-  const monthlyRevenueData = [120000, 185000, 150000, 220000, 280000, 320000, 255000, 350000, 310000, 385000, 420000, 480000];
-  const monthlyBookingsData = [85, 120, 95, 148, 192, 210, 175, 230, 208, 260, 285, 320];
+  // Use provided data or fallback to zeros
+  const monthlyRevenueData = useMemo(() => {
+    if (!data || data.length === 0) return Array(12).fill(0);
+    // Ensure 1-12 order
+    const sortedData = [...data].sort((a, b) => a.month - b.month);
+    return sortedData.map(m => m.revenue);
+  }, [data]);
+
+  const monthlyBookingsData = useMemo(() => {
+    if (!data || data.length === 0) return Array(12).fill(0);
+    const sortedData = [...data].sort((a, b) => a.month - b.month);
+    return sortedData.map(m => m.bookings);
+  }, [data]);
 
   const series = useMemo(() => [
     {
-      name: 'Revenue (₹)',
+      name: isCurrency ? 'Revenue (₹)' : 'Enquiries',
       data: monthlyRevenueData
     },
     {
-      name: 'Bookings',
+      name: isCurrency ? 'Bookings' : 'Active Providers', // Label change for enquiry modules
       data: monthlyBookingsData
     }
-  ], []);
+  ], [monthlyRevenueData, monthlyBookingsData, isCurrency]);
 
   const textPrimary = theme.palette.text.primary;
   const divider = theme.palette.divider;
@@ -72,9 +82,12 @@ export default function TotalGrowthBarChart({ isLoading }) {
         labels: { 
             style: { colors: textPrimary, fontWeight: 500 },
             formatter: (val) => {
-                if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
-                if (val >= 1000) return `₹${(val / 1000).toFixed(0)}K`;
-                return `₹${val}`;
+                if (isCurrency) {
+                  if (val >= 100000) return `₹${(val / 100000).toFixed(1)}L`;
+                  if (val >= 1000) return `₹${(val / 1000).toFixed(0)}K`;
+                  return `₹${val}`;
+                }
+                return val;
             }
         } 
       },
@@ -82,9 +95,9 @@ export default function TotalGrowthBarChart({ isLoading }) {
       tooltip: { theme: 'light', shared: true, intersect: false },
       legend: { ...(prev.legend ?? {}), labels: { ...(prev.legend?.labels ?? {}), colors: textPrimary } }
     }));
-  }, [fontFamily, textPrimary, divider, theme]);
+  }, [fontFamily, textPrimary, divider, theme, isCurrency]);
 
-  const totalRevenue = monthlyRevenueData.reduce((a, b) => a + b, 0);
+  const totalRevenue = useMemo(() => monthlyRevenueData.reduce((a, b) => a + b, 0), [monthlyRevenueData]);
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -94,7 +107,7 @@ export default function TotalGrowthBarChart({ isLoading }) {
       return monthlyRevenueData[currentMonth] || 0;
     }
     return totalRevenue;
-  }, [value, currentMonth, totalRevenue]);
+  }, [value, currentMonth, totalRevenue, monthlyRevenueData]);
 
   // Calculate percentage growth compared to last month
   const growthPercentage = useMemo(() => {
@@ -102,8 +115,9 @@ export default function TotalGrowthBarChart({ isLoading }) {
     const lastMonthIncome = monthlyRevenueData[currentMonth - 1] || 0;
     const currentMonthIncome = monthlyRevenueData[currentMonth] || 0;
     if (lastMonthIncome === 0) return currentMonthIncome > 0 ? 100 : 0;
-    return (((currentMonthIncome - lastMonthIncome) / lastMonthIncome) * 100).toFixed(1);
-  }, [currentMonth]);
+    const growth = (((currentMonthIncome - lastMonthIncome) / lastMonthIncome) * 100).toFixed(1);
+    return isNaN(growth) ? 0 : growth;
+  }, [currentMonth, monthlyRevenueData]);
 
   return (
     <>
@@ -114,10 +128,10 @@ export default function TotalGrowthBarChart({ isLoading }) {
           <Stack sx={{ gap: gridSpacing }}>
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
               <Stack sx={{ gap: 0.5 }}>
-                <Typography variant="subtitle2" color="textSecondary">Total Growth</Typography>
+                <Typography variant="subtitle2" color="textSecondary">{title}</Typography>
                 <Stack direction="row" spacing={1.5} alignItems="center">
                     <Typography variant="h3">
-                        ₹{Number(displayTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        {isCurrency ? `₹${Number(displayTotal).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}` : Number(displayTotal).toLocaleString()}
                     </Typography>
                     {growthPercentage !== 0 && (
                         <Chip
@@ -151,5 +165,8 @@ export default function TotalGrowthBarChart({ isLoading }) {
 }
 
 TotalGrowthBarChart.propTypes = { 
-  isLoading: PropTypes.bool
+  isLoading: PropTypes.bool,
+  data: PropTypes.array,
+  title: PropTypes.string,
+  isCurrency: PropTypes.bool
 };

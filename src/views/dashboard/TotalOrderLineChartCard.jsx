@@ -22,7 +22,7 @@ import SkeletonTotalOrderCard from 'ui-component/cards/Skeleton/EarningCard';
 import LocalMallOutlinedIcon from '@mui/icons-material/LocalMallOutlined';
 import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
 
-export default function TotalOrderLineChartCard({ isLoading, bgcolor }) {
+export default function TotalOrderLineChartCard({ isLoading, bgcolor, total, title = 'Total Order' }) {
   const theme = useTheme();
 
   const [timeValue, setTimeValue] = React.useState(false);
@@ -133,7 +133,7 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor }) {
                           </Typography>
                         ) : (
                           <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                            1,280
+                            {isLoading ? '...' : (total || 0).toLocaleString()}
                           </Typography>
                         )}
                       </Grid>
@@ -157,7 +157,7 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor }) {
                             color: 'rgba(255,255,255,0.8)'
                           }}
                         >
-                          Total Order
+                          {title}
                         </Typography>
                       </Grid>
                     </Grid>
@@ -183,4 +183,9 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor }) {
   );
 }
 
-TotalOrderLineChartCard.propTypes = { isLoading: PropTypes.bool, bgcolor: PropTypes.string };
+TotalOrderLineChartCard.propTypes = { 
+    isLoading: PropTypes.bool, 
+    bgcolor: PropTypes.string, 
+    total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    title: PropTypes.string 
+};

@@ -125,7 +125,15 @@ const DateChip = styled(Chip)(() => ({
   }
 }));
 
-export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
+export default function Welcome({ 
+  isLoading, 
+  userName = 'Admin', 
+  userAvatar,
+  activeModule = '', // Added activeModule
+  growthRate = 0,
+  activeVendors = 0,
+  totalBookings = 0
+}) {
   const theme = useTheme();
 
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -229,11 +237,15 @@ export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
                 mb: 2.5
               }}
             >
-              Here's an overview of your platform performance today.
+              Here's an overview of your {activeModule || 'platform'} performance today.
             </Typography>
 
             {/* Quick Stats */}
-            <Stack direction="row" spacing={2} sx={{ flexWrap: 'wrap' }}>
+            <Stack 
+              direction="row" 
+              spacing={{ xs: 1, sm: 2 }} 
+              sx={{ flexWrap: { xs: 'nowrap', sm: 'wrap' }, overflowX: { xs: 'auto', sm: 'visible' }, pb: { xs: 0.5, sm: 0 } }}
+            >
               <StatBox>
                 <Box
                   sx={{
@@ -250,7 +262,7 @@ export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
                 </Box>
                 <Box>
                   <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>
-                    24.5%
+                    {isLoading ? '...' : `${growthRate}%`}
                   </Typography>
                   <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
                     Growth Rate
@@ -274,7 +286,7 @@ export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
                 </Box>
                 <Box>
                   <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>
-                    2,540
+                    {isLoading ? '...' : activeVendors.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
                     Active Vendors
@@ -298,10 +310,10 @@ export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
                 </Box>
                 <Box>
                   <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>
-                    1,280
+                    {isLoading ? '...' : totalBookings.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
-                    Total Bookings
+                    {activeModule && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => activeModule.toLowerCase().includes(m)) ? 'Total Enquiries' : 'Total Bookings'}
                   </Typography>
                 </Box>
               </StatBox>
@@ -344,5 +356,9 @@ export default function Welcome({ isLoading, userName = 'Admin', userAvatar }) {
 Welcome.propTypes = {
   isLoading: PropTypes.bool,
   userName: PropTypes.string.isRequired,
-  userAvatar: PropTypes.string
+  userAvatar: PropTypes.string,
+  activeModule: PropTypes.string,
+  growthRate: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+  activeVendors: PropTypes.number,
+  totalBookings: PropTypes.number
 };

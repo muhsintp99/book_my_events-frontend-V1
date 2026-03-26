@@ -40,33 +40,21 @@ function Sidebar() {
   );
 
   const drawer = useMemo(() => {
-    // const drawerContent = (
-    //   <>
-    //     <MenuCard />
-    //     <Stack direction="row" sx={{ justifyContent: 'center', mb: 2 }}>
-    //       <Chip label={import.meta.env.VITE_APP_VERSION} size="small" color="default" />
-    //     </Stack>
-    //   </>
-    // );
-
     let drawerSX = { paddingLeft: '0px', paddingRight: '0px', marginTop: '20px' };
     if (drawerOpen) drawerSX = { paddingLeft: '16px', paddingRight: '16px', marginTop: '0px' };
 
     return (
       <>
-        {downMD ? (
-          <Box sx={drawerSX}>
-            <MenuList />
-            {drawerOpen}
-            {/* {drawerOpen && drawerContent} */}
-          </Box>
-        ) : (
-          <PerfectScrollbar style={{ height: 'calc(100vh - 88px)', ...drawerSX }}>
-            <MenuList />
-            {drawerOpen}
-            {/* {drawerOpen && drawerContent} */}
-          </PerfectScrollbar>
-        )}
+        <PerfectScrollbar 
+          style={{ 
+            height: downMD ? 'calc(100vh - 80px)' : 'calc(100vh - 88px)', 
+            overflowX: 'hidden',
+            ...drawerSX 
+          }}
+        >
+          <MenuList />
+          {drawerOpen}
+        </PerfectScrollbar>
       </>
     );
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -84,11 +72,13 @@ function Sidebar() {
             '& .MuiDrawer-paper': {
               mt: downMD ? 0 : 11,
               zIndex: 1099,
-              width: drawerWidth,
+              width: downMD ? '75vw' : drawerWidth,
+              maxWidth: 280,
               bgcolor: 'background.default',
               color: 'text.primary',
               borderRight: 'none',
-              height: 'auto'
+              height: '100vh',
+              overflowY: 'hidden', // handled by PerfectScrollbar
             }
           }}
           ModalProps={{ keepMounted: true }}

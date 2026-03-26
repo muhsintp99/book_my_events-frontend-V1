@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import axios from 'axios';
 
 // material-ui
 import Grid from '@mui/material/Grid';
@@ -13,6 +14,7 @@ import PopularCard from './PopularCard';
 import Welcome from './Welcome';
 
 import { gridSpacing } from 'store/constant';
+import { API_BASE_URL } from '../../utils/apiImageUtils';
 
 // assets
 import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
@@ -21,21 +23,86 @@ import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
 
 export default function Dashboard() {
   const [isLoading, setLoading] = useState(true);
+  const [moduleStats, setModuleStats] = useState({
+    moduleTitle: '',
+    totalEarnings: 0,
+    totalOrders: 0,
+    totalEnquiries: 0,
+    currentMonthEnquiries: 0,
+    activeVendors: 0,
+    topVendors: [], // Added topVendors
+    growthRate: 0,
+    currentMonthIncome: 0
+  });
+  const [overallStats, setOverallStats] = useState({
+    totalBookings: 0,
+    activeVendors: 0,
+    overallGrowth: 0,
+    monthlyStats: [],
+    topModules: []
+  });
 
   useEffect(() => {
-    setLoading(false);
+    const fetchStats = async () => {
+      setLoading(true);
+      try {
+        const moduleDbId = localStorage.getItem('moduleDbId');
+        
+        // Fetch Module Specific Stats
+        if (moduleDbId && moduleDbId !== 'undefined') {
+          const moduleRes = await axios.get(`${API_BASE_URL}/admin/dashboard/module-stats?moduleId=${moduleDbId}`);
+          if (moduleRes.data.success) {
+            setModuleStats(moduleRes.data.data);
+          }
+        }
+
+        // Fetch Overall Stats
+        const overallRes = await axios.get(`${API_BASE_URL}/admin/dashboard/overall-stats`);
+        if (overallRes.data.success) {
+          setOverallStats(overallRes.data.data);
+        }
+      } catch (error) {
+        console.error('Error fetching dashboard stats:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchStats();
   }, []);
 
-  const cardBgColor = "#EA4C46"; // Changing from Blue to Red as requested
+  const cardBgColor = "#EA4C46"; // Theme Color
 
   return (
     <Grid container spacing={gridSpacing}>
       {/* Welcome Banner */}
       <Grid size={12}>
         <Welcome
-          isLoading={false}
+          isLoading={isLoading}
           userName="Book my Event"
           userAvatar="/path/to/avatar.jpg"
+          activeModule={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+              ? moduleStats.moduleTitle
+              : ''
+          }
+          totalBookings={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+              ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                  ? moduleStats.totalEnquiries 
+                  : moduleStats.totalOrders)
+              : overallStats.totalBookings
+          }
+          activeVendors={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.activeVendors 
+              : overallStats.activeVendors
+          }
+          growthRate={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.growthRate 
+              : overallStats.overallGrowth
+          }
         />
       </Grid>
 
@@ -43,24 +110,94 @@ export default function Dashboard() {
         <Grid container spacing={gridSpacing}>
           {/* Top Cards Row */}
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <EarningCard isLoading={isLoading} bgcolor={cardBgColor} />
+            <EarningCard 
+              isLoading={isLoading} 
+              bgcolor={cardBgColor} 
+              total={
+                moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ) ? moduleStats.currentMonthEnquiries : moduleStats.totalEarnings
+              }
+              title={
+                moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ) ? 'ENQUIRIES THIS MONTH' : 'Total Earning'
+              }
+              isCurrency={
+                !(moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ))
+              }
+            />
           </Grid>
           <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
-            <TotalOrderLineChartCard isLoading={isLoading} bgcolor={cardBgColor} />
+            <TotalOrderLineChartCard 
+              isLoading={isLoading} 
+              bgcolor={cardBgColor} 
+              total={
+                moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ) ? moduleStats.totalEnquiries : moduleStats.totalOrders
+              }
+              title={
+                moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ) ? 'TOTAL ENQUIRIES' : 'Total Order'
+              }
+            />
           </Grid>
           <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
             <Grid container spacing={gridSpacing}>
               <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
-                <TotalIncomeDarkCard isLoading={isLoading} bgcolor={cardBgColor} />
+                <TotalIncomeDarkCard 
+                  isLoading={isLoading} 
+                  bgcolor={cardBgColor} 
+                  total={
+                    moduleStats.moduleTitle && 
+                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                      moduleStats.moduleTitle.toLowerCase().includes(m)
+                    ) ? moduleStats.totalEnquiries : moduleStats.currentMonthIncome
+                  }
+                  title={
+                    moduleStats.moduleTitle && 
+                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                      moduleStats.moduleTitle.toLowerCase().includes(m)
+                    ) ? 'Total Enquiries' : 'Total Income'
+                  }
+                  isCurrency={
+                    !(moduleStats.moduleTitle && 
+                    ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                      moduleStats.moduleTitle.toLowerCase().includes(m)
+                    ))
+                  }
+                />
               </Grid>
               <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
                 <TotalIncomeLightCard
                   {...{
                     isLoading: isLoading,
-                    total: 203,
-                    label: 'Total Income',
+                    total: 
+                      moduleStats.moduleTitle && 
+                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                        moduleStats.moduleTitle.toLowerCase().includes(m)
+                      ) ? moduleStats.totalEnquiries : moduleStats.totalEarnings,
+                    label: 
+                      moduleStats.moduleTitle && 
+                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                        moduleStats.moduleTitle.toLowerCase().includes(m)
+                      ) ? 'Total Enquiries Balance' : 'Total Module Income',
                     icon: <StorefrontTwoToneIcon fontSize="inherit" />,
-                    bgcolor: cardBgColor
+                    bgcolor: cardBgColor,
+                    isCurrency: 
+                      !(moduleStats.moduleTitle && 
+                      ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                        moduleStats.moduleTitle.toLowerCase().includes(m)
+                      ))
                   }}
                 />
               </Grid>
@@ -73,43 +210,43 @@ export default function Dashboard() {
       <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           <Grid size={{ xs: 12, md: 8 }}>
-            <TotalGrowthBarChart isLoading={isLoading} />
-          </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
-            <PopularCard isLoading={isLoading} />
-          </Grid>
-        </Grid>
-      </Grid>
-
-      {/* Bottom Row Cards */}
-      <Grid size={12}>
-        <Grid container spacing={gridSpacing}>
-          <Grid size={{ sm: 6, xs: 12, md: 6, lg: 3 }}>
-            <TotalIncomeDarkCard isLoading={isLoading} bgcolor={cardBgColor} />
-          </Grid>
-          <Grid size={{ sm: 6, xs: 12, md: 6, lg: 3 }}>
-            <TotalIncomeLightCard
-              {...{
-                isLoading: isLoading,
-                total: 203,
-                label: 'Total Income',
-                icon: <StorefrontTwoToneIcon fontSize="inherit" />,
-                bgcolor: cardBgColor
-              }}
+            <TotalGrowthBarChart 
+              isLoading={isLoading} 
+              data={overallStats.monthlyStats} 
+              title={
+                moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ) ? `${moduleStats.moduleTitle} Enquiry Growth` : 'Total Growth'
+              }
+              isCurrency={
+                !(moduleStats.moduleTitle && 
+                ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => 
+                  moduleStats.moduleTitle.toLowerCase().includes(m)
+                ))
+              }
             />
           </Grid>
-          <Grid size={{ sm: 6, xs: 12, md: 6, lg: 3 }}>
-            <TotalIncomeDarkCard isLoading={isLoading} bgcolor={cardBgColor} />
-          </Grid>
-          <Grid size={{ sm: 6, xs: 12, md: 6, lg: 3 }}>
-            <TotalIncomeLightCard
-              {...{
-                isLoading: isLoading,
-                total: 203,
-                label: 'Total Income',
-                icon: <StorefrontTwoToneIcon fontSize="inherit" />,
-                bgcolor: cardBgColor
-              }}
+          <Grid size={{ xs: 12, md: 4 }}>
+            <PopularCard 
+              isLoading={isLoading} 
+              data={
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+                  ? moduleStats.topVendors 
+                  : overallStats.topModules
+              }
+              activeVendors={
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+                  ? moduleStats.activeVendors 
+                  : overallStats.activeVendors
+              }
+              title={
+                localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
+                  ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
+                      ? `Top Enquired ${moduleStats.moduleTitle}` 
+                      : `Top ${moduleStats.moduleTitle || 'Booked'} Providers`)
+                  : 'Top Booked Modules'
+              }
             />
           </Grid>
         </Grid>

@@ -65,6 +65,7 @@
 // ---------------------------------------------------------------------------------
 
 
+
 import { styled } from '@mui/material/styles';
 import { drawerWidth } from 'store/constant';
 
@@ -109,16 +110,18 @@ const MainContentStyled = styled('main', {
     }
   }),
   [theme.breakpoints.down('md')]: {
-    marginLeft: 20,
-    padding: 16,
-    marginTop: 88,
-    ...(!open && {
-      width: `calc(100% - ${drawerWidth}px)`
-    })
+    marginLeft: 0,
+    marginRight: 0,
+    padding: '16px 12px',
+    marginTop: 72,
+    width: '100%'
   },
   [theme.breakpoints.down('sm')]: {
-    marginLeft: 10,
-    marginRight: 10
+    marginLeft: 0,
+    marginRight: 0,
+    padding: '12px 8px',
+    marginTop: 64,
+    width: '100%'
   }
 }));
 

@@ -1,5 +1,5 @@
 import PropTypes from 'prop-types';
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 
 // material-ui
 import { alpha } from '@mui/material/styles';
@@ -89,15 +89,26 @@ const allModules = [
   { name: 'Event Professionals', bookings: 65, trend: 'up', note: '+2.1% active' }
 ];
 
-export default function PopularCard({ isLoading = false }) {
+export default function PopularCard({ isLoading = false, data = [], activeVendors = 0, title = 'Top Booked Modules' }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const [showAll, setShowAll] = useState(false);
 
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
 
-  const initialModules = allModules.slice(0, 5);
-  const remainingModules = allModules.slice(5);
+  // Use provided data or fallback to the local array
+  const activeModules = useMemo(() => {
+    if (!data || data.length === 0) return allModules; // fallback while testing or if empty
+    return data.map(m => ({
+      name: m.name || 'Unknown',
+      bookings: m.bookings || 0,
+      trend: 'up',
+      note: m.note || (title.includes('Enquired') ? 'Total Enquiries' : title.includes('Providers') ? 'Top Provider' : 'Total booked module')
+    }));
+  }, [data]);
+
+  const initialModules = activeModules.slice(0, 5);
+  const remainingModules = activeModules.slice(5);
 
   const ModuleItem = ({ module, index, total }) => (
     <React.Fragment>
@@ -156,7 +167,7 @@ export default function PopularCard({ isLoading = false }) {
               <Grid item xs={12}>
                 <Grid container alignItems="center" justifyContent="space-between">
                   <Grid item>
-                    <Typography variant="h4" sx={{ fontWeight: 800 }}>Top Booked Modules</Typography>
+                    <Typography variant="h4" sx={{ fontWeight: 800 }}>{title}</Typography>
                   </Grid>
                   <Grid item>
                     <IconButton size="small" onClick={handleClick} sx={{ color: '#EA4C46' }}>
@@ -193,7 +204,7 @@ export default function PopularCard({ isLoading = false }) {
                         Live Providers
                       </Typography>
                       <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>
-                        2.5k+
+                        {isLoading ? '...' : (activeVendors >= 1000 ? `${(activeVendors / 1000).toFixed(1)}k+` : activeVendors)}
                       </Typography>
                     </Stack>
                   </Box>
@@ -245,5 +256,8 @@ export default function PopularCard({ isLoading = false }) {
 }
 
 PopularCard.propTypes = {
-  isLoading: PropTypes.bool
+  isLoading: PropTypes.bool,
+  data: PropTypes.array,
+  activeVendors: PropTypes.number,
+  title: PropTypes.string
 };

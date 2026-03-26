@@ -324,7 +324,7 @@ const MainRoutes = {
 
 
     // Auditorium Routes
-    { path: 'auditorium/dashboard', element: <AuditoriumDashboard /> },
+    { path: 'auditorium/dashboard', element: <DashboardDefault /> },
     { path: 'settings/banner', element: <Auditoriumbanner /> },
     { path: 'auditorium/coupons', element: <Auditoriumcoupons /> },
     { path: 'auditorium/pushnotifications', element: <AuditoriumPushnotifications /> },
@@ -347,7 +347,7 @@ const MainRoutes = {
     { path: 'module/add', element: <AddModule /> },
 
     // cateringgggg///////////////////
-    { path: 'catering/dashboard', element: <Cateringdashboard /> },
+    { path: 'catering/dashboard', element: <DashboardDefault /> },
     { path: '/catering/cateringprovider', element: <Cateringprovider /> },
 
     { path: 'catering/addprovider', element: <Cateringaddprovider /> },
@@ -359,7 +359,7 @@ const MainRoutes = {
 
     // makeup/////////////////////////////////
 
-    { path: '/makeup/dashboard', element: <Makeupdashboard /> },
+    { path: '/makeup/dashboard', element: <DashboardDefault /> },
     { path: 'makeup/AddProvider', element: <Makeupaddprovider /> },
     { path: 'makeup/category', element: <Makeupcategory /> },
     { path: 'makeup/AddProvider/:id', element: <Makeupaddprovider /> }, // Add this line for edit
@@ -374,7 +374,7 @@ const MainRoutes = {
 
     // photographyyyy///////////////////////
 
-    { path: '/photography/dashboard', element: <Photographydashboard /> },
+    { path: '/photography/dashboard', element: <DashboardDefault /> },
     { path: '/photography/provider', element: <Photographyaddprovider /> },
     { path: '/photography/provider', element: <Photographyaddprovider /> },
     { path: '/photography/photographyvendors', element: <Photographyvendorslist /> },
@@ -390,7 +390,7 @@ const MainRoutes = {
 
 
     //  cakes///////////////////////
-    { path: '/cake/dashboard', element: <Cakedashboard /> },
+    { path: '/cake/dashboard', element: <DashboardDefault /> },
     { path: '/cake/AddProvider', element: <Cakeaddprovider /> },
     { path: '/cake/AddProvider/:id', element: <Cakeaddprovider /> },
     { path: '/cake/cakevendors', element: <Cakevendorslist /> },
@@ -403,7 +403,7 @@ const MainRoutes = {
     { path: '/cake/Coupons', element: <CakeCoupon /> },
 
     // ornaments///////////////////////
-    { path: '/ornaments/dashboard', element: <Ornamentsdashboard /> },
+    { path: '/ornaments/dashboard', element: <DashboardDefault /> },
     { path: '/ornaments/AddProvider', element: <Ornamentsaddprovider /> },
     { path: '/ornaments/AddProvider/:id', element: <Ornamentsaddprovider /> },
     { path: '/ornaments/ornamentsvendors', element: <Ornamentsvendorslist /> },
@@ -414,7 +414,7 @@ const MainRoutes = {
 
 
     // boutiqueee///////////////////////
-    { path: '/boutique/dashboard', element: <Boutiquedashboard /> },
+    { path: '/boutique/dashboard', element: <DashboardDefault /> },
     { path: '/boutique/AddProvider', element: <Boutiqueaddprovider /> },
     { path: '/boutique/AddProvider/:id', element: <Boutiqueaddprovider /> },
     { path: '/boutique/ornamentsvendors', element: <Boutiquevendorslist /> },
@@ -426,7 +426,7 @@ const MainRoutes = {
     { path: '/boutique/coupons', element: <BoutiqueCoupon /> },
 
     // mehandi///////////////////////
-    { path: '/mehandi/dashboard', element: <Mehandidashboard /> },
+    { path: '/mehandi/dashboard', element: <DashboardDefault /> },
     { path: '/mehandi/AddProvider', element: <Mehandiaddprovider /> },
     { path: '/mehandi/AddProvider/:id', element: <Mehandiaddprovider /> },
     { path: '/mehandi/mehandivendors', element: <Mehandivendorslist /> },
@@ -439,7 +439,7 @@ const MainRoutes = {
     // ===============================
     // Invitation & Printing Routes
     // ===============================
-    { path: 'invitation/dashboard', element: <Invitationdashboard /> },
+    { path: 'invitation/dashboard', element: <DashboardDefault /> },
     { path: 'invitation/AddProvider', element: <Invitationaddprovider /> },
     { path: 'invitation/AddProvider/:id', element: <Invitationaddprovider /> },
     { path: 'invitation/category', element: <Invitationcategory /> },
@@ -452,7 +452,7 @@ const MainRoutes = {
     // ===============================
     // Florist & stage Routes
     // ===============================
-    { path: 'florist/dashboard', element: <Flouristdashboard /> },
+    { path: 'florist/dashboard', element: <DashboardDefault /> },
     { path: 'florist/AddProvider', element: <Flouristaddprovider /> },
     { path: 'florist/AddProvider/:id', element: <Flouristaddprovider /> },
     { path: 'florist/category', element: <Flouristcategory /> },
@@ -464,7 +464,7 @@ const MainRoutes = {
     // ===============================
     // Light & Sounds Routes
     // ===============================
-    { path: 'lights/dashboard', element: <Lightdashboard /> },
+    { path: 'lights/dashboard', element: <DashboardDefault /> },
     { path: 'lights/AddProvider', element: <Lightaddprovider /> },
     { path: 'lights/AddProvider/:id', element: <Lightaddprovider /> },
     { path: 'lights/category', element: <Lightcategory /> },
@@ -476,7 +476,7 @@ const MainRoutes = {
     // ===============================
     // Bouncers & Security Routes
     // ===============================
-    { path: 'bouncers/dashboard', element: <Bouncerdashboard /> },
+    { path: 'bouncers/dashboard', element: <DashboardDefault /> },
     { path: 'bouncers/AddProvider', element: <Bounceraddprovider /> },
     { path: 'bouncers/AddProvider/:id', element: <Bounceraddprovider /> },
     { path: 'bouncers/category', element: <Bouncercategory /> },
@@ -488,7 +488,7 @@ const MainRoutes = {
     // ===============================
     // Emcee Routes
     // ===============================
-    { path: 'emcee/dashboard', element: <Emceedashboard /> },
+    { path: 'emcee/dashboard', element: <DashboardDefault /> },
     { path: 'emcee/AddProvider', element: <Emceeaddprovider /> },
     { path: 'emcee/AddProvider/:id', element: <Emceeaddprovider /> },
     { path: 'emcee/category', element: <Emceecategory /> },
@@ -500,7 +500,7 @@ const MainRoutes = {
     // ===============================
     // Panthal & Decorations Routes
     // ===============================
-    { path: 'panthal/dashboard', element: <Panthaldashboard /> },
+    { path: 'panthal/dashboard', element: <DashboardDefault /> },
     { path: 'panthal/AddProvider', element: <Panthaladdprovider /> },
     { path: 'panthal/AddProvider/:id', element: <Panthaladdprovider /> },
     { path: 'panthal/category', element: <Panthalcategory /> },
@@ -512,7 +512,7 @@ const MainRoutes = {
     // ===============================
     // Event Professionals Routes
     // ===============================
-    { path: 'eventprofessionals/dashboard', element: <Professionaldashboard /> },
+    { path: 'eventprofessionals/dashboard', element: <DashboardDefault /> },
     { path: 'eventprofessionals/AddProvider', element: <Professionaladdprovider /> },
     { path: 'eventprofessionals/AddProvider/:id', element: <Professionaladdprovider /> },
     { path: 'eventprofessionals/category', element: <Professionalcategory /> },

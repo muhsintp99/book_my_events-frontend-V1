@@ -24,7 +24,7 @@ import FileCopyTwoToneIcon from '@mui/icons-material/FileCopyOutlined';
 import PictureAsPdfTwoToneIcon from '@mui/icons-material/PictureAsPdfOutlined';
 import ArchiveTwoToneIcon from '@mui/icons-material/ArchiveOutlined';
 
-export default function EarningCard({ isLoading, bgcolor }) {
+export default function EarningCard({ isLoading, bgcolor, total, title = 'Total Earning', isCurrency = true }) {
   const theme = useTheme();
 
   const [anchorEl, setAnchorEl] = React.useState(null);
@@ -142,7 +142,7 @@ export default function EarningCard({ isLoading, bgcolor }) {
                 <Grid container sx={{ alignItems: 'center' }}>
                   <Grid>
                     <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
-                      ₹24,56,400
+                      {isLoading ? '...' : (isCurrency ? `₹${(total || 0).toLocaleString()}` : (total || 0).toLocaleString())}
                     </Typography>
                   </Grid>
                   <Grid>
@@ -167,7 +167,7 @@ export default function EarningCard({ isLoading, bgcolor }) {
                     color: 'rgba(255,255,255,0.8)'
                   }}
                 >
-                  Total Earning
+                  {title}
                 </Typography>
               </Grid>
             </Grid>
@@ -178,4 +178,10 @@ export default function EarningCard({ isLoading, bgcolor }) {
   );
 }
 
-EarningCard.propTypes = { isLoading: PropTypes.bool, bgcolor: PropTypes.string };
+EarningCard.propTypes = { 
+    isLoading: PropTypes.bool, 
+    bgcolor: PropTypes.string, 
+    total: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
+    title: PropTypes.string,
+    isCurrency: PropTypes.bool
+};

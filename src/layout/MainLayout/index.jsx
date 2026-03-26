@@ -44,7 +44,7 @@ export default function MainLayout() {
     <Box sx={{ display: 'flex' }}>
       {/* header */}
       <AppBar enableColorOnDark position="fixed" color="inherit" elevation={0} sx={{ bgcolor: 'background.default' }}>
-        <Toolbar sx={{ p: 2 }}>
+        <Toolbar sx={{ p: { xs: 1, sm: 1.5, md: 2 }, minHeight: { xs: '64px !important', sm: '70px !important', md: '88px !important' } }}>
           <Header />
         </Toolbar>
       </AppBar>

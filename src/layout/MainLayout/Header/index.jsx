@@ -822,10 +822,10 @@ export default function Header() {
 
   return (
     <>
-      <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center' }}>
-        {/* Logo & Drawer */}
-        <Box sx={{ width: downMD ? 'auto' : 228, display: 'flex', alignItems: 'center' }}>
-          <Box component="span" sx={{ display: { xs: 'none', md: 'block' }, flexGrow: 1 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'center', overflow: 'hidden' }}>
+        {/* Left: Hamburger + Logo */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.5, md: 1 }, flexShrink: 0 }}>
+          <Box component="span" sx={{ display: { xs: 'none', md: 'block' } }}>
             <LogoSection />
           </Box>
           <Avatar
@@ -846,18 +846,21 @@ export default function Header() {
           </Avatar>
         </Box>
 
-        {/* Right-aligned section */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {/* Back to Modules / Home Button */}
+        {/* Right: Actions */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 0.75, sm: 1, md: 2 }, flexShrink: 0 }}>
+
+          {/* Home Icon Button */}
           <Tooltip title="Back to Modules">
             <IconButton
               onClick={handleHomeClick}
+              size="small"
               sx={{
-                width: 45,
-                height: 45,
+                width: { xs: 32, sm: 38, md: 45 },
+                height: { xs: 32, sm: 38, md: 45 },
                 bgcolor: '#ffffff',
                 border: '1px solid #e0e0e0',
                 color: '#666',
+                flexShrink: 0,
                 '&:hover': {
                   borderColor: '#EA4C46',
                   bgcolor: '#FFF5F6',
@@ -865,16 +868,39 @@ export default function Header() {
                 }
               }}
             >
-              <IconSmartHome size={22} />
+              <IconSmartHome size={downMD ? 16 : 22} />
             </IconButton>
           </Tooltip>
 
-          {/* Settings Button */}
+          {/* Settings - Icon only on mobile, text on desktop */}
+          <Tooltip title="Settings">
+            <IconButton
+              onClick={handleSettingsClick}
+              size="small"
+              sx={{
+                display: { xs: 'flex', md: 'none' },
+                width: 32,
+                height: 32,
+                bgcolor: '#ffffff',
+                border: '1px solid #e0e0e0',
+                color: '#666',
+                flexShrink: 0,
+                '&:hover': {
+                  borderColor: '#EA4C46',
+                  bgcolor: '#FFF5F6',
+                  color: '#EA4C46'
+                }
+              }}
+            >
+              <IconSettings size={16} />
+            </IconButton>
+          </Tooltip>
           <Button
             variant="outlined"
             size="large"
             startIcon={<IconSettings size={20} />}
             sx={{
+              display: { xs: 'none', md: 'flex' },
               textTransform: 'none',
               borderRadius: '50px',
               px: 3,
@@ -893,168 +919,102 @@ export default function Header() {
             Settings
           </Button>
 
+          {/* Module Name Button */}
+          <Button
+            variant="contained"
+            size={downMD ? 'small' : 'large'}
+            sx={{
+              textTransform: 'none',
+              borderRadius: '50px',
+              px: { xs: 1.2, sm: 2, md: 3 },
+              py: { xs: 0.5, sm: 1, md: 1.5 },
+              fontSize: { xs: '0.65rem', sm: '0.85rem', md: '1rem' },
+              maxWidth: { xs: 90, sm: 140, md: 'none' },
+              minWidth: 'unset',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              display: 'block',
+              flexShrink: 0,
+              bgcolor: '#EA4C46',
+              lineHeight: { xs: 1.2, md: 1.75 },
+              '&:hover': {
+                bgcolor: '#d43d37'
+              }
+            }}
+            onClick={handleClick}
+          >
+            {selectedModuleName}
+          </Button>
 
-
-          {/* Modules Dropdown and Notification */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-            <Button
-              variant="contained"
-              size="large"
-              sx={{
-                textTransform: 'none',
-                borderRadius: '50px',
-                px: 3,
-                py: 1.5,
-                fontSize: '1rem',
-                bgcolor: '#EA4C46',
-                '&:hover': {
-                  bgcolor: '#d43d37'
-                }
-              }}
-              onClick={handleClick}
-            >
-              {selectedModuleName}
-            </Button>
-
+          {/* Notification */}
+          <Box sx={{ flexShrink: 0 }}>
             <NotificationSection />
-
-            <Menu
-              anchorEl={anchorEl}
-              open={open}
-              onClose={handleClose}
-              anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-              transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-              PaperProps={{
-                sx: {
-                  width: downMD ? '95vw' : 420, // Reduced width from 500
-                  maxWidth: '100%',
-                  maxHeight: '65vh', // Reduced height from 70vh
-                  overflowY: 'auto',
-                  borderRadius: 3,
-                  boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
-                  position: 'fixed !important',
-                  right: '25px !important',
-                  top: '80px !important',
-                  left: 'auto !important',
-                  transform: 'translateX(0) !important',
-                  '&::-webkit-scrollbar': {
-                    width: '6px'
-                  },
-                  '&::-webkit-scrollbar-track': {
-                    background: '#f1f1f1',
-                    borderRadius: '10px'
-                  },
-                  '&::-webkit-scrollbar-thumb': {
-                    background: '#c1c1c1',
-                    borderRadius: '10px',
-                    '&:hover': {
-                      background: '#a8a8a8'
-                    }
-                  }
-                }
-              }}
-            >
-              <Box sx={{ p: 2 }}> {/* Reduced padding from 3 */}
-                {/* Main Modules Section */}
-                <Box sx={{ mb: 4 }}>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      mb: 2.5,
-                      pb: 1,
-                      borderBottom: '2px solid #f0f0f0'
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 600,
-                        color: '#1a1a1a',
-                        fontSize: '1.1rem'
-                      }}
-                    >
-                      Main Modules
-                    </Typography>
-                    <Box
-                      sx={{
-                        ml: 1.5,
-                        px: 1.5,
-                        py: 0.5,
-                        bgcolor: '#e3f2fd',
-                        borderRadius: '12px'
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#1976d2',
-                          fontWeight: 600,
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        {modules.length}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {renderModuleGrid(modules, handleModuleClick)}
-                  {/* {renderAddButton(handleAddModule, 'Add New Module', '#4caf50')} */}
-                </Box>
-
-                <Divider sx={{ my: 3 }} />
-
-                {/* Secondary Modules Section */}
-                <Box>
-                  <Box
-                    sx={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      mb: 2.5,
-                      pb: 1,
-                      borderBottom: '2px solid #f0f0f0'
-                    }}
-                  >
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        fontWeight: 600,
-                        color: '#1a1a1a',
-                        fontSize: '1.1rem'
-                      }}
-                    >
-                      Secondary Modules
-                    </Typography>
-                    <Box
-                      sx={{
-                        ml: 1.5,
-                        px: 1.5,
-                        py: 0.5,
-                        bgcolor: '#fff3e0',
-                        borderRadius: '12px'
-                      }}
-                    >
-                      <Typography
-                        variant="caption"
-                        sx={{
-                          color: '#f57c00',
-                          fontWeight: 600,
-                          fontSize: '0.75rem'
-                        }}
-                      >
-                        {secondaryModules.length}
-                      </Typography>
-                    </Box>
-                  </Box>
-
-                  {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
-                  {/* {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#ff9800')} */}
-                </Box>
-              </Box>
-            </Menu>
           </Box>
 
-          <Box sx={{ ml: 2 }}>
+          {/* Module Select Menu */}
+          <Menu
+            anchorEl={anchorEl}
+            open={open}
+            onClose={handleClose}
+            anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+            transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+            PaperProps={{
+              sx: {
+                width: downMD ? '95vw' : 420,
+                maxWidth: '100%',
+                maxHeight: '65vh',
+                overflowY: 'auto',
+                borderRadius: 3,
+                boxShadow: '0 12px 40px rgba(0,0,0,0.15)',
+                position: 'fixed !important',
+                right: '8px !important',
+                top: '70px !important',
+                left: 'auto !important',
+                transform: 'translateX(0) !important',
+                '&::-webkit-scrollbar': { width: '6px' },
+                '&::-webkit-scrollbar-track': { background: '#f1f1f1', borderRadius: '10px' },
+                '&::-webkit-scrollbar-thumb': { background: '#c1c1c1', borderRadius: '10px', '&:hover': { background: '#a8a8a8' } }
+              }
+            }}
+          >
+            <Box sx={{ p: 2 }}>
+              {/* Main Modules Section */}
+              <Box sx={{ mb: 4 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5, pb: 1, borderBottom: '2px solid #f0f0f0' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a', fontSize: '1.1rem' }}>
+                    Main Modules
+                  </Typography>
+                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#e3f2fd', borderRadius: '12px' }}>
+                    <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600, fontSize: '0.75rem' }}>
+                      {modules.length}
+                    </Typography>
+                  </Box>
+                </Box>
+                {renderModuleGrid(modules, handleModuleClick)}
+              </Box>
+
+              <Divider sx={{ my: 3 }} />
+
+              {/* Secondary Modules Section */}
+              <Box>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 2.5, pb: 1, borderBottom: '2px solid #f0f0f0' }}>
+                  <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a', fontSize: '1.1rem' }}>
+                    Secondary Modules
+                  </Typography>
+                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#fff3e0', borderRadius: '12px' }}>
+                    <Typography variant="caption" sx={{ color: '#f57c00', fontWeight: 600, fontSize: '0.75rem' }}>
+                      {secondaryModules.length}
+                    </Typography>
+                  </Box>
+                </Box>
+                {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
+              </Box>
+            </Box>
+          </Menu>
+
+          {/* Profile */}
+          <Box sx={{ flexShrink: 0 }}>
             <ProfileSection />
           </Box>
         </Box>
@@ -1062,3 +1022,4 @@ export default function Header() {
     </>
   );
 }
+
