@@ -584,10 +584,18 @@ export default function Header() {
   };
 
   const handleHomeClick = () => {
-    // Reset to "Venues" which is auditorium
-    localStorage.setItem('selectedModuleName', 'Venues');
-    dispatchModuleEvents('auditorium', 'auditorium');
-    navigate('/auditorium/dashboard');
+    // Clear specific module context to return to the generic 'Select Modules' dashboard
+    localStorage.removeItem('activeModule');
+    localStorage.removeItem('moduleId');
+    localStorage.removeItem('sidebarType');
+    localStorage.removeItem('moduleDbId');
+    localStorage.setItem('selectedModuleName', 'Select Modules');
+
+    // Notify other components of the switch to a generic module selection context
+    dispatchModuleEvents('', 'crm');
+
+    // Navigate to the main dashboard
+    navigate('/dashboard');
     setTimeout(() => window.location.reload(), 100);
   };
 

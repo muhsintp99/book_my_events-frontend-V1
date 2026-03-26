@@ -3,6 +3,8 @@ import axios from 'axios';
 
 // material-ui
 import Grid from '@mui/material/Grid';
+import Box from '@mui/material/Box';
+import Typography from '@mui/material/Typography';
 
 // project imports
 import EarningCard from './EarningCard';
@@ -30,6 +32,8 @@ export default function Dashboard() {
     totalEnquiries: 0,
     currentMonthEnquiries: 0,
     activeVendors: 0,
+    totalVendors: 0,
+    totalPackages: 0,
     topVendors: [], // Added topVendors
     growthRate: 0,
     currentMonthIncome: 0
@@ -37,9 +41,12 @@ export default function Dashboard() {
   const [overallStats, setOverallStats] = useState({
     totalBookings: 0,
     activeVendors: 0,
+    totalVendors: 0,
     overallGrowth: 0,
     monthlyStats: [],
-    topModules: []
+    topModules: [],
+    currentMonthOrders: 0,
+    currentMonthEnquiries: 0
   });
 
   useEffect(() => {
@@ -98,11 +105,32 @@ export default function Dashboard() {
               ? moduleStats.activeVendors 
               : overallStats.activeVendors
           }
+          totalVendors={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.totalVendors 
+              : overallStats.totalVendors
+          }
+          currentMonthIncome={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.currentMonthIncome 
+              : 0
+          }
+          currentMonthEnquiries={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.currentMonthEnquiries 
+              : 0
+          }
           growthRate={
             localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
               ? moduleStats.growthRate 
               : overallStats.overallGrowth
           }
+          currentMonthOrders={
+            localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' 
+              ? moduleStats.currentMonthOrders 
+              : 0
+          }
+          totalPackages={moduleStats.totalPackages || 0}
         />
       </Grid>
 
@@ -164,7 +192,7 @@ export default function Dashboard() {
                       ? moduleStats.activeVendors
                       : overallStats.activeVendors
                   }
-                  title="Active Providers"
+                  title="Subscribed Vendors"
                   isCurrency={false}
                 />
               </Grid>
@@ -175,15 +203,15 @@ export default function Dashboard() {
                     localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
                       ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m))
                           ? moduleStats.currentMonthEnquiries
-                          : moduleStats.totalOrders)
-                      : overallStats.currentMonthOrders
+                          : moduleStats.currentMonthOrders)
+                      : overallStats.currentMonthEnquiries
                   }
                   label={
                     localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
                       ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle?.toLowerCase().includes(m))
-                          ? 'New Enquiries (Month)'
-                          : 'New Orders (Month)')
-                      : 'Platform Orders (Month)'
+                          ? 'New Enquiries'
+                          : 'New Orders')
+                      : 'Platform Enquiries'
                   }
                   icon={<StorefrontTwoToneIcon fontSize="inherit" />}
                   bgcolor={cardBgColor}

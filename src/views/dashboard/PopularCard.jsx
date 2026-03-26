@@ -186,6 +186,7 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
                 </Grid>
               </Grid>
 
+
               {/* Banner Chart */}
               <Grid item xs={12} sx={{ mt: 1 }}>
                 <Card
@@ -201,7 +202,7 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
                   <Box sx={{ p: 2, pb: 0, position: 'relative', zIndex: 1 }}>
                     <Stack direction="row" alignItems="center" justifyContent="space-between">
                       <Typography variant="subtitle2" sx={{ fontWeight: 700, color: 'rgba(255,255,255,0.8)' }}>
-                        Live Providers
+                        Premium Vendors
                       </Typography>
                       <Typography variant="h3" sx={{ fontWeight: 800, color: '#fff' }}>
                         {isLoading ? '...' : (activeVendors >= 1000 ? `${(activeVendors / 1000).toFixed(1)}k+` : activeVendors)}
@@ -214,41 +215,27 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
 
               {/* List */}
               <Grid item xs={12} sx={{ mt: 1 }}>
-                {initialModules.map((module, index) => (
-                  <ModuleItem key={index} module={module} index={index} total={initialModules.length} />
+                {(showAll ? activeModules : initialModules).map((module, index, arr) => (
+                  <ModuleItem key={index} module={module} index={index} total={arr.length} />
                 ))}
-
-                <Collapse in={showAll}>
-                    <Divider sx={{ my: 1.5, borderColor: '#EA4C46', opacity: 0.3 }} />
-                    <Typography variant="caption" sx={{ display: 'block', mb: 2, fontWeight: 900, color: '#EA4C46', textTransform: 'uppercase' }}>
-                        Other Modules
-                    </Typography>
-                    {remainingModules.map((module, index) => (
-                        <ModuleItem key={index} module={module} index={index} total={remainingModules.length} />
-                    ))}
-                </Collapse>
               </Grid>
             </Grid>
           </CardContent>
-
-          {/* Footer Toggle */}
-          <Divider />
-          <CardActions sx={{ p: 1.5, justifyContent: 'center' }}>
-            <Button 
-                size="small" 
-                disableElevation 
-                onClick={() => setShowAll(!showAll)}
-                sx={{ 
-                    color: '#EA4C46', 
-                    fontWeight: 800,
-                    textTransform: 'none',
-                    '&:hover': { background: alpha('#EA4C46', 0.05) }
-                }}
-                endIcon={showAll ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-            >
-              {showAll ? 'View Less' : 'View More Modules'}
-            </Button>
-          </CardActions>
+          {activeModules.length > 5 && (
+            <CardActions sx={{ p: 2, justifyContent: 'center' }}>
+              <Button size="small" disableElevation onClick={() => setShowAll(!showAll)}>
+                {showAll ? (
+                  <>
+                    View Less <ExpandLessIcon fontSize="small" />
+                  </>
+                ) : (
+                  <>
+                    View More <ExpandMoreIcon fontSize="small" />
+                  </>
+                )}
+              </Button>
+            </CardActions>
+          )}
         </MainCard>
       )}
     </>

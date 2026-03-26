@@ -132,9 +132,17 @@ export default function Welcome({
   activeModule = '', // Added activeModule
   growthRate = 0,
   activeVendors = 0,
-  totalBookings = 0
+  totalBookings = 0,
+  totalVendors = 0,
+  currentMonthIncome = 0,
+  currentMonthEnquiries = 0,
+  totalPackages = 0,
+  currentMonthOrders = 0
 }) {
   const theme = useTheme();
+
+  const isEnquiryModule = activeModule && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => activeModule.toLowerCase().includes(m));
+  const isVenueModule = activeModule && (activeModule.toLowerCase().includes('venue') || activeModule.toLowerCase().includes('auditorium'));
 
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState('');
@@ -262,10 +270,10 @@ export default function Welcome({
                 </Box>
                 <Box>
                   <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>
-                    {isLoading ? '...' : `${growthRate}%`}
+                    {isLoading ? '...' : totalVendors.toLocaleString()}
                   </Typography>
                   <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
-                    Growth Rate
+                    Total Vendors
                   </Typography>
                 </Box>
               </StatBox>
@@ -286,10 +294,21 @@ export default function Welcome({
                 </Box>
                 <Box>
                   <Typography variant="h5" sx={{ color: '#fff', fontWeight: 800, fontSize: '1rem' }}>
-                    {isLoading ? '...' : activeVendors.toLocaleString()}
+                    {isLoading ? '...' : (
+                      isVenueModule 
+                        ? `${currentMonthOrders.toLocaleString()} New Orders`
+                        : isEnquiryModule
+                          ? currentMonthEnquiries.toLocaleString()
+                          : `${activeVendors.toLocaleString()} Premium Vendors`
+                    )}
                   </Typography>
                   <Typography variant="caption" sx={{ color: alpha('#fff', 0.6), fontSize: '0.65rem' }}>
-                    Active Vendors
+                    {isVenueModule 
+                      ? 'New Orders (This Month)' 
+                      : isEnquiryModule 
+                        ? 'New Enquiries' 
+                        : 'Premium Vendors'
+                    }
                   </Typography>
                 </Box>
               </StatBox>
@@ -360,5 +379,10 @@ Welcome.propTypes = {
   activeModule: PropTypes.string,
   growthRate: PropTypes.oneOfType([PropTypes.string, PropTypes.number]),
   activeVendors: PropTypes.number,
-  totalBookings: PropTypes.number
+  totalBookings: PropTypes.number,
+  totalVendors: PropTypes.number,
+  currentMonthIncome: PropTypes.number,
+  currentMonthEnquiries: PropTypes.number,
+  totalPackages: PropTypes.number,
+  currentMonthOrders: PropTypes.number
 };
