@@ -376,6 +376,12 @@ import Tooltip from '@mui/material/Tooltip';
 import Divider from '@mui/material/Divider';
 import Grid from '@mui/material/Grid';
 import Paper from '@mui/material/Paper';
+import Dialog from '@mui/material/Dialog';
+import DialogTitle from '@mui/material/DialogTitle';
+import DialogContent from '@mui/material/DialogContent';
+import DialogActions from '@mui/material/DialogActions';
+import TextField from '@mui/material/TextField';
+import InputAdornment from '@mui/material/InputAdornment';
 import { API_BASE_URL, getApiImageUrl as getStandardImageUrl } from '../../../utils/apiImageUtils';
 
 // project imports
@@ -396,7 +402,9 @@ import {
   IconCreditCard,
   IconUsers,
   IconUserCheck,
-  IconSmartHome
+  IconSmartHome,
+  IconEye,
+  IconEyeOff
 } from '@tabler/icons-react';
 
 export default function Header() {
@@ -412,6 +420,13 @@ export default function Header() {
   const [secondaryModules, setSecondaryModules] = useState([]);
   const [settingsAnchorEl, setSettingsAnchorEl] = useState(null);
   const [selectedModuleName, setSelectedModuleName] = useState('Select Modules');
+
+  // Passcode states
+  const [passcodeDialogOpen, setPasscodeDialogOpen] = useState(false);
+  const [passcode, setPasscode] = useState('');
+  const [passcodeError, setPasscodeError] = useState(false);
+  const [passcodeTarget, setPasscodeTarget] = useState(null);
+  const [passcodeVisible, setPasscodeVisible] = useState(false);
 
   const open = Boolean(anchorEl);
   const settingsOpen = Boolean(settingsAnchorEl);
@@ -558,21 +573,56 @@ export default function Header() {
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleSettingsClick = (event) => {
-    // handleSettingsNavigation('/settings/zone-setup');
-    handleSettingsNavigation('/settings/vendor-registrations');
+    setPasscodeTarget(() => () => handleSettingsNavigation('/settings/vendor-registrations'));
+    setPasscodeDialogOpen(true);
+    setPasscode('');
+    setPasscodeError(false);
   };
+
+  const handlePasscodeSubmit = () => {
+    // The passcode for Superadmin access
+    const SUPERADMIN_PASSCODE = '8888'; 
+
+    if (passcode === SUPERADMIN_PASSCODE) {
+      setPasscodeDialogOpen(false);
+      if (typeof passcodeTarget === 'function') {
+        passcodeTarget();
+      }
+      setPasscodeTarget(null);
+    } else {
+      setPasscodeError(true);
+    }
+  };
+
+  const handlePasscodeClose = () => {
+    setPasscodeDialogOpen(false);
+    setPasscode('');
+    setPasscodeError(false);
+    setPasscodeTarget(null);
+  };
+
   const handleSettingsClose = () => setSettingsAnchorEl(null);
 
   const handleAddModule = () => {
-    dispatchModuleEvents('setting', 'setting');
-    navigate('/settings/module-setup');
-    handleClose();
-    setTimeout(() => window.location.reload(), 100);
+    setPasscodeTarget(() => () => {
+      dispatchModuleEvents('setting', 'setting');
+      navigate('/settings/module-setup');
+      handleClose();
+      setTimeout(() => window.location.reload(), 100);
+    });
+    setPasscodeDialogOpen(true);
+    setPasscode('');
+    setPasscodeError(false);
   };
 
   const handleAddSecondaryModule = () => {
-    navigate('/settings/secondery-module-setup');
-    handleClose();
+    setPasscodeTarget(() => () => {
+      navigate('/settings/secondery-module-setup');
+      handleClose();
+    });
+    setPasscodeDialogOpen(true);
+    setPasscode('');
+    setPasscodeError(false);
   };
 
   const handleSettingsNavigation = (route) => {
@@ -1030,6 +1080,133 @@ export default function Header() {
           </Box>
         </Box>
       </Box>
+
+      {/* Passcode Protection Dialog */}
+      <Dialog 
+        open={passcodeDialogOpen} 
+        onClose={handlePasscodeClose}
+        PaperProps={{
+          sx: {
+            borderRadius: '20px',
+            p: 1,
+            minWidth: { xs: '90%', sm: '400px' }
+          }
+        }}
+      >
+        <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ 
+              p: 1.5, 
+              borderRadius: '50%', 
+              bgcolor: '#FFF5F6', 
+              color: '#EA4C46',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}>
+              <IconShieldLock size={32} />
+            </Box>
+            <Typography variant="h4" sx={{ fontWeight: 700, mt: 1 }}>Superadmin Access</Typography>
+            <Typography variant="body2" color="textSecondary">Please enter the secure passcode to continue</Typography>
+          </Box>
+        </DialogTitle>
+        <DialogContent sx={{ mt: 2, pb: 2 }}>
+          <Box sx={{ mb: 1 }}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#666', mb: 0.5 }}>
+              Security Passcode
+            </Typography>
+          </Box>
+          <TextField
+            autoFocus
+            fullWidth
+            type={passcodeVisible ? "text" : "password"}
+            autoComplete="new-password"
+            placeholder="Enter secure passcode"
+            variant="outlined"
+            value={passcode}
+            onChange={(e) => {
+              setPasscode(e.target.value);
+              setPasscodeError(false);
+            }}
+            onKeyPress={(e) => {
+              if (e.key === 'Enter') {
+                handlePasscodeSubmit();
+              }
+            }}
+            error={passcodeError}
+            helperText={passcodeError ? "Incorrect passcode. Please try again." : ""}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <IconShieldLock size={20} color={passcodeError ? "#d32f2f" : "#666"} />
+                </InputAdornment>
+              ),
+              endAdornment: (
+                <InputAdornment position="end">
+                  <IconButton
+                    aria-label="toggle passcode visibility"
+                    onClick={() => setPasscodeVisible(!passcodeVisible)}
+                    edge="end"
+                    size="small"
+                  >
+                    {passcodeVisible ? <IconEyeOff size={20} /> : <IconEye size={20} />}
+                  </IconButton>
+                </InputAdornment>
+              ),
+              sx: { 
+                borderRadius: '12px',
+                bgcolor: '#fcfcfc',
+                '& input': {
+                  color: '#333', // Explicitly set text color
+                  fontSize: '1.2rem',
+                  letterSpacing: passcodeVisible ? 'normal' : '0.5em',
+                  fontWeight: 600
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#e0e0e0'
+                },
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#ccc'
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: '#EA4C46'
+                }
+              }
+            }}
+          />
+        </DialogContent>
+        <DialogActions sx={{ p: 3, pt: 0 }}>
+          <Button 
+            onClick={handlePasscodeClose} 
+            sx={{ 
+              color: '#666', 
+              textTransform: 'none',
+              fontWeight: 600
+            }}
+          >
+            Cancel
+          </Button>
+          <Button 
+            onClick={handlePasscodeSubmit}
+            variant="contained"
+            sx={{
+              bgcolor: '#EA4C46',
+              borderRadius: '12px',
+              px: 4,
+              py: 1,
+              textTransform: 'none',
+              fontWeight: 600,
+              boxShadow: '0 4px 12px rgba(234, 76, 70, 0.3)',
+              '&:hover': {
+                bgcolor: '#d43d37',
+                boxShadow: '0 6px 16px rgba(234, 76, 70, 0.4)'
+              }
+            }}
+          >
+            Verify & Enter
+          </Button>
+        </DialogActions>
+      </Dialog>
     </>
   );
 }
