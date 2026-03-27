@@ -1,10 +1,9 @@
 import PropTypes from 'prop-types';
 
 // material-ui
-import { alpha, useTheme } from '@mui/material/styles';
+import { useTheme } from '@mui/material/styles';
 import Avatar from '@mui/material/Avatar';
 import Button from '@mui/material/Button';
-import Card from '@mui/material/Card';
 import Chip from '@mui/material/Chip';
 import List from '@mui/material/List';
 import ListItem from '@mui/material/ListItem';
@@ -13,47 +12,67 @@ import ListItemText from '@mui/material/ListItemText';
 import Stack from '@mui/material/Stack';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import Skeleton from '@mui/material/Skeleton';
 
 // assets
 import { 
-  IconBuildingStore, 
-  IconMailbox, 
-  IconCheck, 
   IconClock,
   IconUserPlus,
   IconPackage,
   IconShoppingCart,
   IconMessageCircle,
-  IconCircleCheck
+  IconChevronRight
 } from '@tabler/icons-react';
 
 const themeColors = {
   accent: '#EA4C46',
   accentLight: '#FFF5F6',
   success: '#10B981',
-  indigo: '#4F46E5',
+  indigo: '#6366F1',
   warning: '#F59E0B',
-  info: '#3B82F6'
+  info: '#3B82F6',
+  border: '#F3F4F6',
+  text: '#1F2937'
 };
 
-function ListItemWrapper({ children, isUnread = false }) {
-  const theme = useTheme();
+const timeAgo = (date) => {
+  if (!date) return 'Some time ago';
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  let interval = seconds / 31536000;
+  if (interval > 1) return Math.floor(interval) + " yr ago";
+  interval = seconds / 2592000;
+  if (interval > 1) return Math.floor(interval) + " mo ago";
+  interval = seconds / 86400;
+  if (interval > 1) return Math.floor(interval) + " d ago";
+  interval = seconds / 3600;
+  if (interval > 1) return Math.floor(interval) + " hr ago";
+  interval = seconds / 60;
+  if (interval > 1) return Math.floor(interval) + " min ago";
+  if (seconds < 5) return "Just now";
+  return Math.floor(seconds) + " s ago";
+};
 
+const getIcon = (type) => {
+    switch (type) {
+        case 'vendor': return { icon: <IconUserPlus stroke={2.5} size="20px" />, color: themeColors.success };
+        case 'order': return { icon: <IconShoppingCart stroke={2.5} size="20px" />, color: themeColors.accent };
+        case 'enquiry': return { icon: <IconMessageCircle stroke={2.5} size="20px" />, color: themeColors.warning };
+        case 'package': return { icon: <IconPackage stroke={2.5} size="20px" />, color: themeColors.indigo };
+        default: return { icon: <IconPackage stroke={2.5} size="20px" />, color: themeColors.info };
+    }
+}
+
+function ListItemWrapper({ children, isUnread = false }) {
   return (
     <Box
       sx={{
-        p: 2.5,
-        borderBottom: '1px solid',
-        borderColor: '#F3F4F6',
-        mx: 1,
-        borderRadius: '16px',
-        mb: 0.5,
+        p: '14px 16px',
+        borderBottom: `1.2px solid ${themeColors.border}`,
         cursor: 'pointer',
-        transition: 'all 0.3s ease',
-        background: isUnread ? '#FFF8F8' : 'transparent',
+        transition: 'all 0.2s ease',
+        background: isUnread ? '#FFF9F9' : 'transparent',
         '&:hover': {
-          bgcolor: '#F9FAFB',
-          transform: 'translateX(5px)',
+          bgcolor: '#f8fafc',
           '& .MuiTypography-subtitle1': { color: themeColors.accent }
         }
       }}
@@ -65,188 +84,141 @@ function ListItemWrapper({ children, isUnread = false }) {
 
 // ==============================|| NOTIFICATION LIST ITEM ||============================== //
 
-export default function NotificationList() {
-  const containerSX = { pl: 7 };
+export default function NotificationList({ notifications = [], loading = false }) {
+  const containerSX = { pl: 6.5, pr: 1, mt: 0.25 };
+
+  if (loading) {
+      return (
+          <List sx={{ width: '100%', py: 0 }}>
+              {[1, 2, 3].map((i) => (
+                   <ListItemWrapper key={i}>
+                       <Stack direction="row" spacing={2}>
+                           <Skeleton variant="circular" width={44} height={44} />
+                           <Stack spacing={1} flex={1}>
+                               <Skeleton variant="text" width="60%" sx={{ height: '20px' }} />
+                               <Skeleton variant="text" width="95%" sx={{ height: '16px' }} />
+                               <Skeleton variant="text" width="40%" sx={{ height: '16px' }} />
+                           </Stack>
+                       </Stack>
+                   </ListItemWrapper>
+              ))}
+          </List>
+      )
+  }
+
+  if (notifications.length === 0) {
+      return (
+          <Box sx={{ p: 6, textAlign: 'center', bgcolor: '#F9FAFB', mx: 2, my: 4, borderRadius: '20px', border: '2px dashed #E5E7EB' }}>
+               <IconPackage size={40} color="#D1D5DB" />
+               <Typography variant="body2" sx={{ color: '#9CA3AF', mt: 1.5, fontWeight: 600 }}>No activities found</Typography>
+          </Box>
+      );
+  }
 
   return (
     <List sx={{ width: '100%', py: 0 }}>
-      {/* 1. NEW VENDOR JOIN */}
-      <ListItemWrapper isUnread={true}>
-        <ListItem
-          alignItems="center"
-          disablePadding
-          secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end', gap: 0.5 }}>
-              <IconClock size={12} color="#9CA3AF" />
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>Just now</Typography>
-            </Stack>
-          }
-        >
-          <ListItemAvatar>
-            <Avatar
-              sx={{
-                color: themeColors.success,
-                bgcolor: `${themeColors.success}15`,
-                borderRadius: '12px'
-              }}
-            >
-              <IconUserPlus stroke={2} size="22px" />
-            </Avatar>
-          </ListItemAvatar>
-          <ListItemText 
-            primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Vendor Join</Typography>} 
-          />
-        </ListItem>
-        <Stack spacing={1.5} sx={containerSX}>
-          <Typography variant="body2" sx={{ color: '#4B5563', lineHeight: 1.5 }}>
-            Vendor "Glow Events" has registered for the "Mehandi Artist" module from the Dubai Zone.
-          </Typography>
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            <Chip 
-              label="New Registration" 
-              size="small" 
-              sx={{ 
-                height: 20, 
-                bgcolor: '#e7f9f3', 
-                color: themeColors.success, 
-                fontWeight: 900, 
-                fontSize: '0.65rem' 
-              }} 
-            />
-          </Stack>
-        </Stack>
-      </ListItemWrapper>
-
-      {/* 2. PACKAGE CREATED */}
-      <ListItemWrapper>
-        <ListItem
-          alignItems="center"
-          disablePadding
-          secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>30 min ago</Typography>
-            </Stack>
-          }
-        >
-          <ListItemAvatar>
-            <Avatar
-              sx={{
-                color: themeColors.indigo,
-                bgcolor: `${themeColors.indigo}15`,
-                borderRadius: '12px'
-              }}
-            >
-              <IconPackage stroke={2.5} size="22px" />
-            </Avatar>
-          </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Package Created</Typography>} />
-        </ListItem>
-        <Stack spacing={1} sx={containerSX}>
-          <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            Vendor "Perfect Catering" has created a new "Premium Wedding Lunch" package.
-          </Typography>
-          <Chip 
-            label="Package Update" 
-            size="small" 
-            sx={{ 
-              width: 'min-content', 
-              bgcolor: `${themeColors.indigo}10`, 
-              color: themeColors.indigo,
-              fontWeight: 900
-            }} 
-          />
-        </Stack>
-      </ListItemWrapper>
-
-      {/* 3. NEW ORDER RECEIVED */}
-      <ListItemWrapper isUnread={true}>
-        <ListItem
-          alignItems="center"
-          disablePadding
-          secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>1 hr ago</Typography>
-            </Stack>
-          }
-        >
-          <ListItemAvatar>
-            <Avatar
-              sx={{
-                color: themeColors.accent,
-                bgcolor: themeColors.accentLight,
-                borderRadius: '12px'
-              }}
-            >
-              <IconShoppingCart stroke={2} size="22px" />
-            </Avatar>
-          </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Order Notification</Typography>} />
-        </ListItem>
-        <Stack spacing={1.5} sx={containerSX}>
-          <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            Order #ORD-9827: Deluxe Auditorium booking for April 15th received.
-          </Typography>
-          <Button 
-            variant="contained" 
-            size="small"
-            sx={{ 
-                width: 'min-content', 
-                bgcolor: themeColors.accent, 
-                borderRadius: '8px',
-                fontWeight: 800,
-                textTransform: 'none',
-                boxShadow: '0 4px 12px rgba(234, 76, 70, 0.2)',
-                '&:hover': { bgcolor: themeColors.accent }
-            }}
-          >
-            Review Order
-          </Button>
-        </Stack>
-      </ListItemWrapper>
-
-      {/* 4. ENQUIRY NOTIFICATION */}
-      <ListItemWrapper>
-        <ListItem
-          alignItems="center"
-          disablePadding
-          secondaryAction={
-            <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>5 hrs ago</Typography>
-            </Stack>
-          }
-        >
-          <ListItemAvatar>
-            <Avatar
-              sx={{
-                color: themeColors.warning,
-                bgcolor: `${themeColors.warning}15`,
-                borderRadius: '12px'
-              }}
-            >
-              <IconMessageCircle stroke={2.5} size="22px" />
-            </Avatar>
-          </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Enquiry Received</Typography>} />
-        </ListItem>
-        <Stack spacing={1} sx={containerSX}>
-          <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            A new enquiry from "Aman" regarding 'Flower Decoration' services.
-          </Typography>
-          <Chip 
-              icon={<IconMailbox size={12} />}
-              label="Enquiry" 
-              size="small" 
-              sx={{ 
-                width: 'min-content', 
-                bgcolor: '#FFF7ED', 
-                color: themeColors.warning,
-                fontWeight: 900
-              }} 
-            />
-        </Stack>
-      </ListItemWrapper>
+      {notifications.map((notif) => {
+          const { icon, color } = getIcon(notif.type);
+          return (
+            <ListItemWrapper key={notif.id} isUnread={notif.unread}>
+                <ListItem alignItems="flex-start" disablePadding>
+                    <ListItemAvatar sx={{ minWidth: 52 }}>
+                        <Avatar
+                            sx={{
+                                color: color,
+                                bgcolor: `${color}10`,
+                                width: 42,
+                                height: 42,
+                                borderRadius: '12px',
+                                border: `1px solid ${color}15`
+                            }}
+                        >
+                            {icon}
+                        </Avatar>
+                    </ListItemAvatar>
+                    <ListItemText 
+                        primary={
+                            <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+                                <Typography 
+                                    variant="subtitle1" 
+                                    sx={{ 
+                                        fontWeight: 800, 
+                                        fontSize: '0.875rem', 
+                                        color: themeColors.text
+                                    }}
+                                >
+                                    {notif.title}
+                                </Typography>
+                                <Typography 
+                                    variant="caption" 
+                                    sx={{ 
+                                        color: '#94A3B8', 
+                                        fontWeight: 700, 
+                                        fontSize: '0.625rem',
+                                        textTransform: 'uppercase'
+                                    }}
+                                >
+                                    {timeAgo(notif.createdAt)}
+                                </Typography>
+                            </Stack>
+                        } 
+                    />
+                </ListItem>
+                <Stack spacing={0.5} sx={containerSX}>
+                    <Typography 
+                        variant="body2" 
+                        sx={{ 
+                            color: '#4B5563', 
+                            lineHeight: 1.5,
+                            fontSize: '0.8rem',
+                            fontWeight: 500
+                        }}
+                    >
+                        {notif.description}
+                    </Typography>
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mt: 0.5 }}>
+                        <Chip 
+                            label={notif.type === 'vendor' ? 'NEW VENDOR' : notif.type.toUpperCase()} 
+                            size="small" 
+                            sx={{ 
+                                height: 18, 
+                                bgcolor: `${color}12`, 
+                                color: color, 
+                                fontWeight: 900, 
+                                fontSize: '0.6rem',
+                                borderRadius: '4px'
+                            }} 
+                        />
+                        {(notif.type === 'order' || notif.type === 'package') && (
+                             <Button 
+                                variant="text" 
+                                size="small"
+                                endIcon={<IconChevronRight size={10} />}
+                                sx={{ 
+                                    p: 0,
+                                    height: 18,
+                                    minWidth: 'auto',
+                                    color: color,
+                                    fontSize: '0.65rem',
+                                    fontWeight: 800,
+                                    textTransform: 'none',
+                                    '&:hover': { textDecoration: 'underline', bgcolor: 'transparent' }
+                                }}
+                            >
+                                {notif.type === 'order' ? 'Review' : 'View'}
+                            </Button>
+                        )}
+                    </Stack>
+                </Stack>
+            </ListItemWrapper>
+          );
+      })}
     </List>
   );
 }
 
-NotificationList.propTypes = { children: PropTypes.node };
+NotificationList.propTypes = { 
+    notifications: PropTypes.array,
+    loading: PropTypes.bool 
+};
+

@@ -17,11 +17,13 @@ import Stack from '@mui/material/Stack';
 import TextField from '@mui/material/TextField';
 import Typography from '@mui/material/Typography';
 import Box from '@mui/material/Box';
+import { Badge } from '@mui/material';
 
 // project imports
 import MainCard from 'ui-component/cards/MainCard';
 import Transitions from 'ui-component/extended/Transitions';
 import NotificationList from './NotificationList';
+import { getNotifications } from 'api/dashboardApi';
 
 // assets
 import { IconBell } from '@tabler/icons-react';
@@ -56,11 +58,44 @@ export default function NotificationSection() {
   };
 
   const handleChange = (event) => {
-    event?.target.value && setValue(event?.target.value);
+    setValue(event?.target.value || 'all');
   };
+
+  const [notifications, setNotifications] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  const fetchNotifications = async () => {
+    try {
+      setLoading(true);
+      const res = await getNotifications();
+      if (res.success) setNotifications(res.data);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  const filteredNotifications = notifications.filter(n => {
+    if (value === 'unread') return n.unread;
+    if (value === 'new') {
+        const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);
+        return new Date(n.createdAt) > oneHourAgo;
+    }
+    return true;
+  });
+
+  const unreadCount = notifications.filter(n => n.unread).length;
 
   const prevOpen = useRef(open);
   useEffect(() => {
+    if (prevOpen.current === false && open === true) {
+      fetchNotifications();
+    }
     if (prevOpen.current === true && open === false) {
       anchorRef.current.focus();
     }
@@ -70,28 +105,43 @@ export default function NotificationSection() {
   return (
     <>
       <Box sx={{ ml: 2 }}>
-        <Avatar
-          variant="rounded"
+        <Badge
+          badgeContent={unreadCount}
+          color="error"
           sx={{
-            ...theme.typography.commonAvatar,
-            ...theme.typography.mediumAvatar,
-            transition: 'all .3s ease-in-out',
-            bgcolor: open ? themeColors.accent : 'secondary.light',
-            color: open ? 'white' : 'secondary.dark',
-            '&:hover': {
-              bgcolor: themeColors.accent,
-              color: 'white',
-              transform: 'scale(1.1)'
+            '& .MuiBadge-badge': {
+              top: 5,
+              right: 5,
+              border: `2px solid ${theme.palette.background.paper}`,
+              padding: '0 4px',
+              fontWeight: 800,
+              fontSize: '0.65rem'
             }
           }}
-          ref={anchorRef}
-          aria-controls={open ? 'menu-list-grow' : undefined}
-          aria-haspopup="true"
-          onClick={handleToggle}
-          color="inherit"
         >
-          <IconBell stroke={1.5} size="20px" />
-        </Avatar>
+          <Avatar
+            variant="rounded"
+            sx={{
+              ...theme.typography.commonAvatar,
+              ...theme.typography.mediumAvatar,
+              transition: 'all .3s ease-in-out',
+              bgcolor: open ? themeColors.accent : 'secondary.light',
+              color: open ? 'white' : 'secondary.dark',
+              '&:hover': {
+                bgcolor: themeColors.accent,
+                color: 'white',
+                transform: 'scale(1.1)'
+              }
+            }}
+            ref={anchorRef}
+            aria-controls={open ? 'menu-list-grow' : undefined}
+            aria-haspopup="true"
+            onClick={handleToggle}
+            color="inherit"
+          >
+            <IconBell stroke={1.5} size="20px" />
+          </Avatar>
+        </Badge>
       </Box>
       <Popper
         placement={downMD ? 'bottom' : 'bottom-end'}
@@ -109,13 +159,27 @@ export default function NotificationSection() {
               <Paper sx={{ borderRadius: '24px', overflow: 'hidden', boxShadow: '0 25px 60px rgba(0,0,0,0.15)' }}>
                 {open && (
                   <MainCard border={false} elevation={16} content={false} boxShadow shadow={theme.shadows[16]}>
-                    <Grid container direction="column" spacing={2} sx={{ width: downMD ? '100vw' : 360 }}>
+                    <Grid container direction="column" spacing={2} sx={{ width: downMD ? '100vw' : 420 }}>
                       <Grid item xs={12}>
                         <Box sx={{ p: 2.5, pb: 1.5 }}>
                           <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                            <Stack direction="row" spacing={1.5} alignItems="center">
-                              <Typography variant="h4" sx={{ fontWeight: 800 }}>Notifications</Typography>
-                              <Chip size="small" label="05" sx={{ color: 'white', bgcolor: themeColors.accent, fontWeight: 900, borderRadius: '8px' }} />
+                            <Stack direction="row" spacing={1} alignItems="center">
+                              <Typography variant="h4" sx={{ fontWeight: 900, fontSize: '1.25rem' }}>Notifications</Typography>
+                              {unreadCount > 0 && (
+                                <Box 
+                                  sx={{ 
+                                    color: 'white', 
+                                    bgcolor: themeColors.accent, 
+                                    px: 1,
+                                    py: 0.25,
+                                    fontSize: '0.75rem',
+                                    fontWeight: 900, 
+                                    borderRadius: '6px' 
+                                  }} 
+                                >
+                                  {unreadCount}
+                                </Box>
+                              )}
                             </Stack>
                             <Typography 
                               component={Link} 
@@ -156,7 +220,12 @@ export default function NotificationSection() {
                                   sx={{
                                     '& .MuiOutlinedInput-root': {
                                       borderRadius: '12px',
-                                      bgcolor: '#F9FAFB'
+                                      bgcolor: '#F8FAFC',
+                                      border: '1px solid #E2E8F0',
+                                      fontSize: '0.875rem',
+                                      fontWeight: 700,
+                                      '& fieldset': { border: 'none' },
+                                      '&:hover': { bgcolor: '#F1F5F9' }
                                     }
                                   }}
                                 >
@@ -169,7 +238,7 @@ export default function NotificationSection() {
                               </Box>
                             </Grid>
                           </Grid>
-                          <NotificationList />
+                          <NotificationList notifications={filteredNotifications} loading={loading} />
                         </Box>
                       </Grid>
                     </Grid>
