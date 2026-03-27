@@ -389,6 +389,7 @@ import {
   IconMenu2,
   IconPlus,
   IconSettings,
+  IconShieldLock,
   IconChevronDown,
   IconMapPinFilled,
   IconTool,
@@ -880,8 +881,8 @@ export default function Header() {
             </IconButton>
           </Tooltip>
 
-          {/* Settings - Icon only on mobile, text on desktop */}
-          <Tooltip title="Settings">
+          {/* Superadmin - Icon only on mobile, text on desktop */}
+          <Tooltip title="superadmin">
             <IconButton
               onClick={handleSettingsClick}
               size="small"
@@ -889,24 +890,23 @@ export default function Header() {
                 display: { xs: 'flex', md: 'none' },
                 width: 32,
                 height: 32,
-                bgcolor: '#ffffff',
-                border: '1px solid #e0e0e0',
-                color: '#666',
+                bgcolor: '#f3f0ff',
+                color: '#673ab7',
+                border: '1px solid #d1c4e9',
                 flexShrink: 0,
                 '&:hover': {
-                  borderColor: '#EA4C46',
-                  bgcolor: '#FFF5F6',
-                  color: '#EA4C46'
+                  bgcolor: '#ede7f6',
+                  color: '#5e35b1'
                 }
               }}
             >
-              <IconSettings size={16} />
+              <IconShieldLock size={16} />
             </IconButton>
           </Tooltip>
           <Button
-            variant="outlined"
+            variant="contained"
             size="large"
-            startIcon={<IconSettings size={20} />}
+            startIcon={<IconShieldLock size={20} />}
             sx={{
               display: { xs: 'none', md: 'flex' },
               textTransform: 'none',
@@ -914,17 +914,20 @@ export default function Header() {
               px: 3,
               py: 1.5,
               fontSize: '1rem',
-              borderColor: '#e0e0e0',
-              color: '#666',
+              bgcolor: '#f3f0ff',
+              color: '#673ab7',
+              border: '1px solid #d1c4e9',
+              boxShadow: '0 2px 8px rgba(103, 58, 183, 0.1)',
               '&:hover': {
-                borderColor: '#EA4C46',
-                bgcolor: '#FFF5F6',
-                color: '#EA4C46'
+                bgcolor: '#ede7f6',
+                borderColor: '#b39ddb',
+                color: '#5e35b1',
+                boxShadow: '0 4px 12px rgba(103, 58, 183, 0.15)'
               }
             }}
             onClick={handleSettingsClick}
           >
-            Settings
+            superadmin
           </Button>
 
           {/* Module Name Button */}

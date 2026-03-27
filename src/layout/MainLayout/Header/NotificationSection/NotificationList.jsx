@@ -16,14 +16,14 @@ import Box from '@mui/material/Box';
 
 // assets
 import { 
-  IconBrandTelegram, 
   IconBuildingStore, 
   IconMailbox, 
-  IconPhoto, 
   IconCheck, 
   IconClock,
-  IconRocket,
-  IconAlertCircle,
+  IconUserPlus,
+  IconPackage,
+  IconShoppingCart,
+  IconMessageCircle,
   IconCircleCheck
 } from '@tabler/icons-react';
 
@@ -70,7 +70,7 @@ export default function NotificationList() {
 
   return (
     <List sx={{ width: '100%', py: 0 }}>
-      {/* 1. SYSTEM UPDATE NOTIFICATION */}
+      {/* 1. NEW VENDOR JOIN */}
       <ListItemWrapper isUnread={true}>
         <ListItem
           alignItems="center"
@@ -85,42 +85,30 @@ export default function NotificationList() {
           <ListItemAvatar>
             <Avatar
               sx={{
-                color: themeColors.accent,
-                bgcolor: themeColors.accentLight,
-                borderRadius: '12px',
-                border: `1.5px solid ${themeColors.accent}`
+                color: themeColors.success,
+                bgcolor: `${themeColors.success}15`,
+                borderRadius: '12px'
               }}
             >
-              <IconRocket stroke={2} size="22px" />
+              <IconUserPlus stroke={2} size="22px" />
             </Avatar>
           </ListItemAvatar>
           <ListItemText 
-            primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>System Update: V2.1.1 Live</Typography>} 
+            primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Vendor Join</Typography>} 
           />
         </ListItem>
         <Stack spacing={1.5} sx={containerSX}>
           <Typography variant="body2" sx={{ color: '#4B5563', lineHeight: 1.5 }}>
-            Book My Event version 2.1.1 is now active. Explore the new "Global Administration Console" and improved vendor dashboard designs.
+            Vendor "Glow Events" has registered for the "Mehandi Artist" module from the Dubai Zone.
           </Typography>
           <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
             <Chip 
-              label="System" 
+              label="New Registration" 
               size="small" 
               sx={{ 
                 height: 20, 
-                bgcolor: '#FEE2E2', 
-                color: '#EF4444', 
-                fontWeight: 900, 
-                fontSize: '0.65rem' 
-              }} 
-            />
-            <Chip 
-              label="New Features" 
-              size="small" 
-              sx={{ 
-                height: 20, 
-                bgcolor: themeColors.accentLight, 
-                color: themeColors.accent, 
+                bgcolor: '#e7f9f3', 
+                color: themeColors.success, 
                 fontWeight: 900, 
                 fontSize: '0.65rem' 
               }} 
@@ -129,75 +117,74 @@ export default function NotificationList() {
         </Stack>
       </ListItemWrapper>
 
-      {/* 2. KYC VERIFICATION */}
+      {/* 2. PACKAGE CREATED */}
       <ListItemWrapper>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>45 min ago</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>30 min ago</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
             <Avatar
               sx={{
-                color: themeColors.success,
-                bgcolor: `${themeColors.success}15`,
+                color: themeColors.indigo,
+                bgcolor: `${themeColors.indigo}15`,
                 borderRadius: '12px'
               }}
             >
-              <IconCircleCheck stroke={2.5} size="22px" />
+              <IconPackage stroke={2.5} size="22px" />
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Vendor KYC Approved</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Package Created</Typography>} />
         </ListItem>
         <Stack spacing={1} sx={containerSX}>
           <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            A new vendor "Royal Floralists" has completed their KYC. Documentation verified successfully.
+            Vendor "Perfect Catering" has created a new "Premium Wedding Lunch" package.
           </Typography>
           <Chip 
-            icon={<IconCheck size={14} color={themeColors.success}/> }
-            label="Verified" 
+            label="Package Update" 
             size="small" 
             sx={{ 
               width: 'min-content', 
-              bgcolor: `${themeColors.success}10`, 
-              color: themeColors.success,
+              bgcolor: `${themeColors.indigo}10`, 
+              color: themeColors.indigo,
               fontWeight: 900
             }} 
           />
         </Stack>
       </ListItemWrapper>
 
-      {/* 3. NEW BOOKING ACTION */}
+      {/* 3. NEW ORDER RECEIVED */}
       <ListItemWrapper isUnread={true}>
         <ListItem
           alignItems="center"
           disablePadding
           secondaryAction={
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'flex-end' }}>
-              <Typography variant="caption" sx={{ fontWeight: 600 }}>2 hrs ago</Typography>
+              <Typography variant="caption" sx={{ fontWeight: 600 }}>1 hr ago</Typography>
             </Stack>
           }
         >
           <ListItemAvatar>
             <Avatar
               sx={{
-                color: themeColors.info,
-                bgcolor: `${themeColors.info}15`,
+                color: themeColors.accent,
+                bgcolor: themeColors.accentLight,
                 borderRadius: '12px'
               }}
             >
-              <IconBuildingStore stroke={2} size="22px" />
+              <IconShoppingCart stroke={2} size="22px" />
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Booking Received</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Order Notification</Typography>} />
         </ListItem>
-        <Stack spacing={2} sx={containerSX}>
+        <Stack spacing={1.5} sx={containerSX}>
           <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            Booking ID #BME-10294: Premium Stage Decoration for Kochi Wedding Event.
+            Order #ORD-9827: Deluxe Auditorium booking for April 15th received.
           </Typography>
           <Button 
             variant="contained" 
@@ -212,12 +199,12 @@ export default function NotificationList() {
                 '&:hover': { bgcolor: themeColors.accent }
             }}
           >
-            Review Booking
+            Review Order
           </Button>
         </Stack>
       </ListItemWrapper>
 
-      {/* 4. PERFORMANCE ALERT */}
+      {/* 4. ENQUIRY NOTIFICATION */}
       <ListItemWrapper>
         <ListItem
           alignItems="center"
@@ -236,17 +223,18 @@ export default function NotificationList() {
                 borderRadius: '12px'
               }}
             >
-              <IconAlertCircle stroke={2.5} size="22px" />
+              <IconMessageCircle stroke={2.5} size="22px" />
             </Avatar>
           </ListItemAvatar>
-          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>Server Alert: High Load</Typography>} />
+          <ListItemText primary={<Typography variant="subtitle1" sx={{ fontWeight: 800 }}>New Enquiry Received</Typography>} />
         </ListItem>
         <Stack spacing={1} sx={containerSX}>
           <Typography variant="body2" sx={{ color: '#4B5563' }}>
-            We noticed a sudden spike in traffic for the "Mehandi Artist" module. Auto-scaling is active.
+            A new enquiry from "Aman" regarding 'Flower Decoration' services.
           </Typography>
           <Chip 
-              label="Maintenance" 
+              icon={<IconMailbox size={12} />}
+              label="Enquiry" 
               size="small" 
               sx={{ 
                 width: 'min-content', 
