@@ -10,16 +10,16 @@ const kycmanagement = {
     id: 'kyc-management-group',
     title: 'Vendor KYC',
     type: 'group',
-    // children: [
-    //     {
-    //         id: 'kyc-verification',
-    //         title: 'KYC Verification',
-    //         type: 'item',
-    //         url: '/settings/kyc-verification',
-    //         icon: icons.IconUserCheck,
-    //         breadcrumbs: false
-    //     }
-    // ]
+    children: [
+        {
+            id: 'kyc-verification',
+            title: 'KYC Verification',
+            type: 'item',
+            url: '/settings/kyc-verification',
+            icon: icons.IconUserCheck,
+            breadcrumbs: false
+        }
+    ]
 };
 
 export default kycmanagement;
