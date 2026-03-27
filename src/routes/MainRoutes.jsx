@@ -86,6 +86,7 @@ const SubscribedStore = Loadable(lazy(() => import('../views/SubscribedStore')))
 const SubscriptionRequests = Loadable(lazy(() => import('../views/SubscriptionRequests')));
 const VendorRegistrations = Loadable(lazy(() => import('../views/settings/VendorRegistrations')));
 const VendorRegistrationDetail = Loadable(lazy(() => import('../views/settings/VendorRegistrations/VendorDetailView')));
+const AllEnquiries = Loadable(lazy(() => import('../views/settings/AllEnquiries')));
 
 // catering///////////////
 // const cateringDashboard = Loadable(lazy(() => import('../catering/')));
@@ -300,6 +301,7 @@ const MainRoutes = {
     { path: '/settings/sub/requests', element: <SubscriptionRequests /> },
     { path: '/settings/vendor-registrations', element: <VendorRegistrations /> },
     { path: '/settings/vendor-registrations/:id', element: <VendorRegistrationDetail /> },
+    { path: '/settings/enquiries', element: <AllEnquiries /> },
 
     // Bookingssss
 

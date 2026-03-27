@@ -55,6 +55,7 @@ import boutiquesections from './boutique/boutiquesections';
 import BoutiqueProvidermanagement from './boutique/boutiqueprovidermanagement';
 import pincodemanagement from './settings-items/pincodemanagment';
 import vendorregistrations from './settings-items/vendorregistrations';
+import enquiriesmanagement from './settings-items/enquiriesmanagement';
 import bannermanagement from './settings-items/bannermanagement';
 import mehandimanagement from './mehandi/mehandimanagement';
 import mehandisections from './mehandi/mehandisections';
@@ -175,7 +176,7 @@ const moduleMenuItems = {
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement, pincodemanagement, modulemanagement, bannermanagement, subscriptionmanagement, kycmanagement, vendorregistrations]
+    items: [zonemanagement, pincodemanagement, modulemanagement, bannermanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
 
   }
 
