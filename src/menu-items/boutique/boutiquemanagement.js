@@ -15,14 +15,14 @@ const boutiquemanagement = {
     title: 'boutiqueManagement',
     type: 'group',
     children: [
-        {
-            id: 'Coupons',
-            title: 'Coupons',
-            type: 'item',
-            url: '/boutique/coupons',
-            icon: icons.IconTicket,
-            breadcrumbs: false
-        },
+    {
+    id: 'Coupons',
+    title: 'Coupons',
+    type: 'item',
+    url: '/boutique/coupons',
+    icon: icons.IconTicket,
+    breadcrumbs: false
+    },
     ]
 };
 

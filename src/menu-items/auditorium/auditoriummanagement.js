@@ -17,12 +17,12 @@ const auditoriummanagement = {
   type: 'group',
   children: [
     {
-      id: 'Coupons',
-      title: 'Coupons',
-      type: 'item',
-      url: '/auditorium/coupons',
-      icon: icons.IconTicket,
-      breadcrumbs: false
+    id: 'Coupons',
+    title: 'Coupons',
+    type: 'item',
+    url: '/auditorium/coupons',
+    icon: icons.IconTicket,
+    breadcrumbs: false
     },
     // {
     //   id: 'Push-notifications',

@@ -45,14 +45,14 @@ const Promotionmgt = {
     //   icon: icons.IconCash,
     //   breadcrumbs: false
     // },
-    {
-      id: 'promotion-push-notifications',
-      title: 'Push Notifications',
-      type: 'item',
-      url: '/promotions/PushNotification', // Matches the route
-      icon: icons.IconBell,
-      breadcrumbs: false
-    }
+    // {
+    //   id: 'promotion-push-notifications',
+    //   title: 'Push Notifications',
+    //   type: 'item',
+    //   url: '/promotions/PushNotification', // Matches the route
+    //   icon: icons.IconBell,
+    //   breadcrumbs: false
+    // }
   ]
 };
 
