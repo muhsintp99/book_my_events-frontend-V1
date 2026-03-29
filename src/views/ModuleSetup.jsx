@@ -416,9 +416,9 @@ const ModuleSetup = () => {
         </Paper>
       ) : (
         <Paper sx={{ p: 3, borderRadius: 2, backgroundColor: 'white' }} elevation={2}>
-          {/* <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
+          <Typography variant="h6" sx={{ mb: 3, fontWeight: 600 }}>
             {formMode === 'add' ? 'Add New Module' : 'Edit Module'}
-          </Typography> */}
+          </Typography>
 
           {formError && (
             <Alert severity="error" sx={{ mb: 3 }} onClose={() => setFormError(null)}>

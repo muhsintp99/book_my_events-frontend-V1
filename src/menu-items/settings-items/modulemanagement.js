@@ -16,7 +16,7 @@ const modulemanagement = {
   children: [
     {
       id: 'all-module',
-      title: 'All Modules',
+      title: 'Main Modules',
       type: 'item',
       url: '/settings/module-setup',
       icon: icons.IconApps,

@@ -573,10 +573,7 @@ export default function Header() {
   const handleClick = (event) => setAnchorEl(event.currentTarget);
   const handleClose = () => setAnchorEl(null);
   const handleSettingsClick = (event) => {
-    setPasscodeTarget(() => () => handleSettingsNavigation('/settings/vendor-registrations'));
-    setPasscodeDialogOpen(true);
-    setPasscode('');
-    setPasscodeError(false);
+    handleSettingsNavigation('/settings/vendor-registrations');
   };
 
   const handlePasscodeSubmit = () => {
@@ -604,25 +601,15 @@ export default function Header() {
   const handleSettingsClose = () => setSettingsAnchorEl(null);
 
   const handleAddModule = () => {
-    setPasscodeTarget(() => () => {
-      dispatchModuleEvents('setting', 'setting');
-      navigate('/settings/module-setup');
-      handleClose();
-      setTimeout(() => window.location.reload(), 100);
-    });
-    setPasscodeDialogOpen(true);
-    setPasscode('');
-    setPasscodeError(false);
+    dispatchModuleEvents('setting', 'setting');
+    navigate('/settings/module-setup');
+    handleClose();
+    setTimeout(() => window.location.reload(), 100);
   };
 
   const handleAddSecondaryModule = () => {
-    setPasscodeTarget(() => () => {
-      navigate('/settings/secondery-module-setup');
-      handleClose();
-    });
-    setPasscodeDialogOpen(true);
-    setPasscode('');
-    setPasscodeError(false);
+    navigate('/settings/secondery-module-setup');
+    handleClose();
   };
 
   const handleSettingsNavigation = (route) => {
@@ -852,29 +839,79 @@ export default function Header() {
   );
 
   const renderAddButton = (onClick, label, color) => (
-    <Box sx={{ mt: 2 }}>
+    <Box sx={{ mt: 2, mb: 1, px: 1 }}>
       <Button
         onClick={onClick}
         fullWidth
-        startIcon={<IconPlus size={18} />}
         sx={{
+          position: 'relative',
+          overflow: 'hidden',
           bgcolor: '#ffffff',
-          color: color,
-          borderRadius: 2,
-          py: 1.5,
-          fontSize: '0.875rem',
-          fontWeight: 500,
-          border: `1.5px dashed ${color}`,
+          color: '#2d3436',
+          borderRadius: '16px',
+          py: 1.8,
+          px: 3,
+          border: '1px solid #f1f2f6',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.06)',
           textTransform: 'none',
-          transition: 'all 0.2s ease',
+          transition: 'all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)',
+          display: 'flex',
+          justifyContent: 'flex-start',
+          gap: 2,
+          '&:before': {
+            content: '""',
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            width: '4px',
+            height: '100%',
+            bgcolor: color,
+            transition: 'all 0.3s ease'
+          },
           '&:hover': {
-            bgcolor: color === '#4caf50' ? '#f1f8e9' : '#fff3e0',
-            borderColor: color === '#4caf50' ? '#388e3c' : '#f57c00',
-            transform: 'translateY(-1px)'
+            bgcolor: '#ffffff',
+            transform: 'translateY(-4px)',
+            boxShadow: `0 12px 28px ${color}15`,
+            borderColor: color,
+            color: color,
+            '&:before': {
+              width: '8px'
+            },
+            '& .plus-icon-container': {
+              bgcolor: color,
+              color: '#ffffff',
+              transform: 'rotate(90deg) scale(1.1)',
+              boxShadow: `0 4px 12px ${color}40`
+            }
+          },
+          '&:active': {
+            transform: 'translateY(-2px) scale(0.98)'
           }
         }}
       >
-        {label}
+        <Box 
+          className="plus-icon-container"
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            justifyContent: 'center',
+            width: 36,
+            height: 36,
+            borderRadius: '12px', 
+            bgcolor: `${color}10`,
+            color: color,
+            transition: 'all 0.4s ease',
+            flexShrink: 0
+          }}
+        >
+          <IconPlus size={22} stroke={3} />
+        </Box>
+        <Box sx={{ textAlign: 'left' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', lineHeight: 1.2 }}>{label}</Typography>
+          <Typography variant="caption" sx={{ color: '#95a5a6', fontSize: '0.7rem', display: 'block' }}>
+            Click to configure new modules
+          </Typography>
+        </Box>
       </Button>
     </Box>
   );
@@ -1046,13 +1083,14 @@ export default function Header() {
                   <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a', fontSize: '1.1rem' }}>
                     Main Modules
                   </Typography>
-                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#e3f2fd', borderRadius: '12px' }}>
-                    <Typography variant="caption" sx={{ color: '#1976d2', fontWeight: 600, fontSize: '0.75rem' }}>
+                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#FFF5F6', borderRadius: '12px' }}>
+                    <Typography variant="caption" sx={{ color: '#EA4C46', fontWeight: 600, fontSize: '0.75rem' }}>
                       {modules.length}
                     </Typography>
                   </Box>
                 </Box>
                 {renderModuleGrid(modules, handleModuleClick)}
+                {renderAddButton(handleAddModule, 'Add New Module', '#EA4C46')}
               </Box>
 
               <Divider sx={{ my: 3 }} />
@@ -1063,13 +1101,14 @@ export default function Header() {
                   <Typography variant="h6" sx={{ fontWeight: 600, color: '#1a1a1a', fontSize: '1.1rem' }}>
                     Secondary Modules
                   </Typography>
-                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#fff3e0', borderRadius: '12px' }}>
-                    <Typography variant="caption" sx={{ color: '#f57c00', fontWeight: 600, fontSize: '0.75rem' }}>
+                  <Box sx={{ ml: 1.5, px: 1.5, py: 0.5, bgcolor: '#FFF5F6', borderRadius: '12px' }}>
+                    <Typography variant="caption" sx={{ color: '#EA4C46', fontWeight: 600, fontSize: '0.75rem' }}>
                       {secondaryModules.length}
                     </Typography>
                   </Box>
                 </Box>
                 {renderModuleGrid(secondaryModules, handleSecondaryModuleClick, true)}
+                {renderAddButton(handleAddSecondaryModule, 'Add Secondary Module', '#D32F2F')}
               </Box>
             </Box>
           </Menu>
@@ -1081,132 +1120,7 @@ export default function Header() {
         </Box>
       </Box>
 
-      {/* Passcode Protection Dialog */}
-      <Dialog 
-        open={passcodeDialogOpen} 
-        onClose={handlePasscodeClose}
-        PaperProps={{
-          sx: {
-            borderRadius: '20px',
-            p: 1,
-            minWidth: { xs: '90%', sm: '400px' }
-          }
-        }}
-      >
-        <DialogTitle sx={{ textAlign: 'center', pb: 0 }}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-            <Box sx={{ 
-              p: 1.5, 
-              borderRadius: '50%', 
-              bgcolor: '#FFF5F6', 
-              color: '#EA4C46',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <IconShieldLock size={32} />
-            </Box>
-            <Typography variant="h4" sx={{ fontWeight: 700, mt: 1 }}>Superadmin Access</Typography>
-            <Typography variant="body2" color="textSecondary">Please enter the secure passcode to continue</Typography>
-          </Box>
-        </DialogTitle>
-        <DialogContent sx={{ mt: 2, pb: 2 }}>
-          <Box sx={{ mb: 1 }}>
-            <Typography variant="subtitle2" sx={{ fontWeight: 600, color: '#666', mb: 0.5 }}>
-              Security Passcode
-            </Typography>
-          </Box>
-          <TextField
-            autoFocus
-            fullWidth
-            type={passcodeVisible ? "text" : "password"}
-            autoComplete="new-password"
-            placeholder="Enter secure passcode"
-            variant="outlined"
-            value={passcode}
-            onChange={(e) => {
-              setPasscode(e.target.value);
-              setPasscodeError(false);
-            }}
-            onKeyPress={(e) => {
-              if (e.key === 'Enter') {
-                handlePasscodeSubmit();
-              }
-            }}
-            error={passcodeError}
-            helperText={passcodeError ? "Incorrect passcode. Please try again." : ""}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <IconShieldLock size={20} color={passcodeError ? "#d32f2f" : "#666"} />
-                </InputAdornment>
-              ),
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    aria-label="toggle passcode visibility"
-                    onClick={() => setPasscodeVisible(!passcodeVisible)}
-                    edge="end"
-                    size="small"
-                  >
-                    {passcodeVisible ? <IconEyeOff size={20} /> : <IconEye size={20} />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-              sx: { 
-                borderRadius: '12px',
-                bgcolor: '#fcfcfc',
-                '& input': {
-                  color: '#333', // Explicitly set text color
-                  fontSize: '1.2rem',
-                  letterSpacing: passcodeVisible ? 'normal' : '0.5em',
-                  fontWeight: 600
-                },
-                '& .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#e0e0e0'
-                },
-                '&:hover .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#ccc'
-                },
-                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-                  borderColor: '#EA4C46'
-                }
-              }
-            }}
-          />
-        </DialogContent>
-        <DialogActions sx={{ p: 3, pt: 0 }}>
-          <Button 
-            onClick={handlePasscodeClose} 
-            sx={{ 
-              color: '#666', 
-              textTransform: 'none',
-              fontWeight: 600
-            }}
-          >
-            Cancel
-          </Button>
-          <Button 
-            onClick={handlePasscodeSubmit}
-            variant="contained"
-            sx={{
-              bgcolor: '#EA4C46',
-              borderRadius: '12px',
-              px: 4,
-              py: 1,
-              textTransform: 'none',
-              fontWeight: 600,
-              boxShadow: '0 4px 12px rgba(234, 76, 70, 0.3)',
-              '&:hover': {
-                bgcolor: '#d43d37',
-                boxShadow: '0 6px 16px rgba(234, 76, 70, 0.4)'
-              }
-            }}
-          >
-            Verify & Enter
-          </Button>
-        </DialogActions>
-      </Dialog>
+
     </>
   );
 }
