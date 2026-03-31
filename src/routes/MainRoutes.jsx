@@ -269,6 +269,7 @@ const MainRoutes = {
     // Providers
     { path: 'providers/new', element: <NewProvider /> },
     { path: 'providers/add', element: <AddProvider /> },
+    { path: 'providers/edit/:id', element: <EditList /> },
     { path: 'providers/list', element: <ProviderList /> },
     { path: 'settings/kyc-verification', element: <KycVerification /> },
     // { path: 'providers/edit', element: <EditList /> },

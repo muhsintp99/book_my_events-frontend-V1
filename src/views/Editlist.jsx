@@ -9,13 +9,19 @@ import {
   Alert,
   Snackbar,
   CircularProgress,
+  Chip,
+  FormControl,
+  InputLabel,
+  OutlinedInput,
 } from '@mui/material';
 import CloudUploadIcon from '@mui/icons-material/CloudUpload';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
+import { getProviderDetails } from '../api/providerApi';
 
 function EditList() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { id } = useParams();
   const { provider } = location.state || {};
 
   const [formData, setFormData] = useState({
@@ -49,40 +55,89 @@ function EditList() {
   const [notificationSeverity, setNotificationSeverity] = useState('success');
   const [loading, setLoading] = useState(false);
   const [zonesLoading, setZonesLoading] = useState(true);
+  const [selectedMultiZones, setSelectedMultiZones] = useState([]);
+
+  // Helper to identify modules that support multizone (essentially all except venues)
+  const isMultiZoneModule = () => {
+    // For this generic editor, we assume it's for non-venue modules
+    return true;
+  };
+
+  const handleMultiZoneChange = (event) => {
+    const {
+      target: { value },
+    } = event;
+    // On autofill we get a stringified value.
+    setSelectedMultiZones(typeof value === 'string' ? value.split(',') : value);
+  };
+
+  const handleRemoveMultiZone = (val) => {
+    setSelectedMultiZones((prev) => prev.filter((item) => item !== val));
+  };
 
   const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
 
-  // Validate provider data
-  useEffect(() => {
-    if (!provider || !provider.id) {
-      setNotificationMessage('No valid provider data provided. Redirecting to providers list...');
-      setNotificationSeverity('error');
-      setShowNotification(true);
-      setTimeout(() => navigate('/providers'), 2000);
-      return;
-    }
-
-    // Pre-populate form with provider data
+  const populateForm = (data) => {
     setFormData({
-      storeName: provider.storeName || '',
-      storeAddress: provider.storeAddress || '',
-      minimumDeliveryTime: provider.minimumDeliveryTime || '',
-      maximumDeliveryTime: provider.maximumDeliveryTime || '',
-      zone: provider.zoneId || '',
-      latitude: provider.latitude || '',
-      longitude: provider.longitude || '',
-      ownerFirstName: provider.ownerFirstName || '',
-      ownerLastName: provider.ownerLastName || '',
-      ownerPhone: provider.ownerPhone || '',
-      ownerEmail: provider.ownerEmail || '',
-      businessTIN: provider.businessTIN || '',
-      tinExpireDate: provider.tinExpireDate || '',
+      storeName: data.storeName || data.vendorProfile?.storeName || '',
+      storeAddress: data.storeAddress || data.vendorProfile?.storeAddress?.fullAddress || '',
+      minimumDeliveryTime: data.minimumDeliveryTime || data.vendorProfile?.minimumDeliveryTime || '',
+      maximumDeliveryTime: data.maximumDeliveryTime || data.vendorProfile?.maximumDeliveryTime || '',
+      zone: data.zoneId || data.vendorProfile?.zone?._id || data.vendorProfile?.zone ||  '',
+      latitude: data.latitude || data.vendorProfile?.latitude || '',
+      longitude: data.longitude || data.vendorProfile?.longitude || '',
+      ownerFirstName: data.ownerFirstName || data.user?.firstName || '',
+      ownerLastName: data.ownerLastName || data.user?.lastName || '',
+      ownerPhone: data.ownerPhone || data.user?.phone || '',
+      ownerEmail: data.ownerEmail || data.user?.email || '',
+      businessTIN: data.businessTIN || data.vendorProfile?.businessTIN || '',
+      tinExpireDate: data.tinExpireDate || data.vendorProfile?.tinExpireDate || '',
     });
-    setSelectedZone(provider.zoneId || '');
-    setLogoPreview(provider.logo || null);
-    setCoverPreview(provider.coverImage || null);
-    setTinCertificatePreview(provider.tinCertificate || null);
-  }, [provider, navigate]);
+    setSelectedZone(data.zoneId || data.vendorProfile?.zone?._id || data.vendorProfile?.zone || '');
+    
+    // Initializing multizones from provider data
+    const multizones = data.zones || data.vendorProfile?.zones || data.zoneIds || [];
+    if (Array.isArray(multizones)) {
+      setSelectedMultiZones(multizones.map(z => z._id || z.id || z));
+    }
+    
+    setLogoPreview(data.logo || data.vendorProfile?.logo || null);
+    setCoverPreview(data.coverImage || data.vendorProfile?.coverImage || null);
+    setTinCertificatePreview(data.tinCertificate || data.vendorProfile?.tinCertificate || null);
+  };
+
+  // Validate and load provider data
+  useEffect(() => {
+    const loadProvider = async () => {
+      if (provider) {
+        populateForm(provider);
+      } else if (id) {
+        try {
+          setLoading(true);
+          const response = await getProviderDetails(id);
+          if (response.success) {
+            populateForm(response.data.profile);
+          } else {
+            throw new Error('Failed to fetch provider details');
+          }
+        } catch (error) {
+          console.error('Error loading provider:', error);
+          setNotificationMessage('Failed to load provider data.');
+          setNotificationSeverity('error');
+          setShowNotification(true);
+        } finally {
+          setLoading(false);
+        }
+      } else {
+        setNotificationMessage('No provider ID provided. Redirecting...');
+        setNotificationSeverity('error');
+        setShowNotification(true);
+        setTimeout(() => navigate('/providers'), 2000);
+      }
+    };
+
+    loadProvider();
+  }, [provider, id, navigate]);
 
   const fetchZones = async () => {
     try {
@@ -203,6 +258,12 @@ function EditList() {
           submitFormData.append(key, formData[key]);
         }
       });
+
+      // Construct multizone field
+      const allZones = [formData.zone, ...selectedMultiZones].filter(Boolean);
+      const uniqueZones = [...new Set(allZones)];
+      submitFormData.append('zones', uniqueZones.join(','));
+
       Object.keys(files).forEach((key) => {
         if (files[key]) {
           submitFormData.append(key, files[key]);
@@ -213,9 +274,8 @@ function EditList() {
 
       console.log('Updating provider with ID:', provider.id);
       console.log('API URL:', `${API_BASE_URL}/providers/${provider.id}`);
-      console.log('Form Data:', Object.fromEntries(submitFormData));
-
-      const response = await fetch(`${API_BASE_URL}/providers/${provider.id}`, {
+      const targetId = provider?.id || provider?.vendorId || id;
+      const response = await fetch(`${API_BASE_URL}/providers/${targetId}`, {
         method: 'PUT',
         body: submitFormData,
         credentials: 'include',
@@ -268,6 +328,7 @@ function EditList() {
       tinExpireDate: provider?.tinExpireDate || '',
     });
     setSelectedZone(provider?.zoneId || '');
+    setSelectedMultiZones([]);
     setLogoPreview(provider?.logo || null);
     setCoverPreview(provider?.coverImage || null);
     setTinCertificatePreview(provider?.tinCertificate || null);
@@ -452,8 +513,77 @@ function EditList() {
         {selectedZone && (
           <Box sx={{ mb: 2, p: 2, backgroundColor: '#f5f5f5', borderRadius: 1 }}>
             <Typography variant="body2" color="primary">
-              Selected Zone: {zones.find((zone) => zone._id === selectedZone)?.name || 'N/A'}
+              Main Operating Zone: {zones.find((zone) => (zone._id || zone.id) === selectedZone)?.name || 'N/A'}
             </Typography>
+          </Box>
+        )}
+
+        {isMultiZoneModule() && (
+          <Box sx={{ mt: 3, mb: 3 }}>
+            <Box sx={{
+              p: 2,
+              borderRadius: '12px',
+              background: 'linear-gradient(135deg, #f6f8fb 0%, #f1f4f9 100%)',
+              border: '1px solid #e0e6ed',
+              mb: 2
+            }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700, color: '#2c3e50', display: 'flex', alignItems: 'center', gap: 1 }}>
+                <span style={{ color: '#667eea' }}>●</span> Additional Operating Zones
+              </Typography>
+              <Typography variant="caption" color="text.secondary">
+                Select multiple regions where your services are available
+              </Typography>
+            </Box>
+
+            <FormControl fullWidth variant="outlined">
+              <InputLabel id="multizone-select-label">Select Additional Zones</InputLabel>
+              <Select
+                labelId="multizone-select-label"
+                multiple
+                value={selectedMultiZones}
+                onChange={handleMultiZoneChange}
+                input={<OutlinedInput label="Select Additional Zones" />}
+                renderValue={(selected) => (
+                  <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                    {selected.map((value) => (
+                      <Chip
+                        key={value}
+                        label={zones.find(z => (z._id || z.id) === value)?.name || value}
+                        onDelete={() => handleRemoveMultiZone(value)}
+                        onMouseDown={(event) => event.stopPropagation()}
+                        size="small"
+                        sx={{
+                          bgcolor: '#667eea',
+                          color: 'white',
+                          fontWeight: 600,
+                          '& .MuiChip-deleteIcon': { color: 'white', opacity: 0.8 }
+                        }}
+                      />
+                    ))}
+                  </Box>
+                )}
+                MenuProps={{
+                  PaperProps: {
+                    style: { maxHeight: 300, width: 250 },
+                  },
+                }}
+              >
+                {zones
+                  .filter(zone => (zone._id || zone.id) !== selectedZone)
+                  .map((zone) => (
+                    <MenuItem
+                      key={zone._id || zone.id}
+                      value={zone._id || zone.id}
+                      sx={{
+                        fontWeight: selectedMultiZones.includes(zone._id || zone.id) ? 700 : 400,
+                        color: selectedMultiZones.includes(zone._id || zone.id) ? '#667eea' : 'inherit'
+                      }}
+                    >
+                      {zone.name}
+                    </MenuItem>
+                  ))}
+              </Select>
+            </FormControl>
           </Box>
         )}
 

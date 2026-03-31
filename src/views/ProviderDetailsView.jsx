@@ -427,11 +427,24 @@ function ProviderDetailsView() {
                                 <Grid item xs={6} md={3}>
                                     <Paper elevation={0} sx={{ p: 2, border: '1px solid #e0e0e0', borderRadius: 2 }}>
                                         <Typography variant="caption" color="text.secondary" display="block">
-                                            Zone
+                                            Operating Zones
                                         </Typography>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {vendorProfile?.zone?.name || 'N/A'}
-                                        </Typography>
+                                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
+                                            {vendorProfile?.zones && vendorProfile.zones.length > 0 ? (
+                                                vendorProfile.zones.map((z, idx) => (
+                                                    <Chip 
+                                                        key={z._id || idx} 
+                                                        label={z.name || z} 
+                                                        size="small" 
+                                                        sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#667eea', color: 'white' }} 
+                                                    />
+                                                ))
+                                            ) : (
+                                                <Typography variant="body2" fontWeight={600}>
+                                                    {vendorProfile?.zone?.name || 'N/A'}
+                                                </Typography>
+                                            )}
+                                        </Box>
                                     </Paper>
                                 </Grid>
                                 <Grid item xs={6} md={3}>

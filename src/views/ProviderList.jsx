@@ -539,29 +539,8 @@ function ProviderList() {
 
                                                                 // Special case for transport/CRM which might use /providers/add or similar
                                                                 if (base === '/providers') {
-                                                                    // Assuming there is an edit route or we use the add route with ID
-                                                                    // Based on MainRoutes, /providers/add exists. Edit might be implied or separate.
-                                                                    // Verified legacy used /providers/edit/:id but mainroutes has commented it out? 
-                                                                    // Actually MainRoutes has { path: 'providers/add', element: <AddProvider /> }
-                                                                    // and { path: 'providers/new', element: <NewProvider /> }
-                                                                    // Let's use /providers/add which likely handles edit with state or param if configured, 
-                                                                    // OR if there's a specific edit route we missed.
-                                                                    // For now, mapping to /providers/add/ID or similar if that pattern holds, 
-                                                                    // but standard seems to be base/action/id.
-                                                                    // However, CRM route is often root /providers.
-                                                                    navigate(`/providers/add?id=${vendor.vendorId}`); // Or just /providers/add and pass state?
-                                                                    // Let's try to stick to the pattern found in MainRoutes for other modules if possible,
-                                                                    // but since Transport is unique, let's look at how it WAS done.
-                                                                    // Legacy: navigate(`/providers/edit/${vendor.vendorId}`)
-                                                                    // MainRoutes: // { path: 'providers/edit', element: <EditList /> } (Commented out)
-                                                                    // Let's us /providers/add and hope it handles "Edit" or use the query param approach.
-                                                                    // BETTER: Use the same pattern as others if AddProvider supports it. 
-                                                                    // Checking AddProvider.jsx... it doesn't seem to use useParams for ID, but it might use location state or query params.
-                                                                    // WAIT, AddProvider.jsx doesn't have useParams.
-                                                                    // Let's rely on standard navigation for now, or maybe the user wants us to fix the edit route too.
-                                                                    // For now, let's map it to /providers/add which is the "Add New Provider" page, 
-                                                                    // possibly the user intends to use that for editing too (common in some apps).
-                                                                    navigate(`/providers/add`);
+                                                                    // Navigate to the newly enabled edit route with the vendor data in state
+                                                                    navigate(`/providers/edit/${vendor.vendorId}`, { state: { provider: vendor } });
                                                                 } else {
                                                                     navigate(`${base}/${action}/${vendor.vendorId}`);
                                                                 }

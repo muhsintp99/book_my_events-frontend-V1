@@ -115,7 +115,8 @@ function CateringProvider() {
     const mod = allModules.find((m) => m._id === formData.module);
     if (!mod) return false;
     const title = (mod.title || '').toLowerCase();
-    return title.includes('makeup') || title.includes('photography') || title.includes('mehandi') || title.includes('catering');
+    // Exclude venues (auditorium)
+    return !title.includes('venue') && !title.includes('auditorium');
   };
 
   const handleMultiZoneChange = (event) => {
