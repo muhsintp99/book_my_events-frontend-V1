@@ -198,7 +198,7 @@ function MakeupProvider() {
           city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
           state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
           zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
-          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || (typeof vendorProfile?.storeAddress === 'string' ? vendorProfile.storeAddress : '') || profile?.storeAddress?.fullAddress || (typeof profile?.storeAddress === 'string' ? profile.storeAddress : '') || profile?.businessAddress || ''
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
@@ -237,17 +237,27 @@ function MakeupProvider() {
       const cover = vendorProfile?.coverImage;
       if (cover) setCoverPreview(getApiImageUrl(cover));
 
-      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
-        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      // zones[0] = main zone, rest = additional zones
+      let mainZoneIdStr = '';
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones) && vendorProfile.zones.length > 0) {
+        const firstZone = vendorProfile.zones[0];
+        mainZoneIdStr = firstZone?._id?.$oid || firstZone?._id || firstZone?.id || (typeof firstZone === 'string' ? firstZone : '');
+        if (typeof mainZoneIdStr === 'object') mainZoneIdStr = mainZoneIdStr.$oid || mainZoneIdStr._id?.toString() || mainZoneIdStr.toString();
+        mainZoneIdStr = mainZoneIdStr.toString();
+      }
+      if (mainZoneIdStr && mainZoneIdStr !== '[object Object]') {
+        setSelectedZone(mainZoneIdStr);
+        setFormData(prev => ({ ...prev, zone: mainZoneIdStr }));
       }
 
       setIsFreeTrial(user.isFreeTrial || false);
       if (user.subscriptionPlan) setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
-      
-      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones)) {
+
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones) && vendorProfile.zones.length > 1) {
         const multiZoneIds = vendorProfile.zones
-          .map(z => z._id?.$oid || z._id || z)
-          .filter(id => id !== (vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone));
+          .slice(1)
+          .map(z => z._id?.$oid || z._id || z.id || (typeof z === 'object' ? z.toString() : z))
+          .filter(id => id && id !== '[object Object]');
         setSelectedMultiZones(multiZoneIds);
       }
 
@@ -1034,7 +1044,10 @@ function MakeupProvider() {
                 }}
               >
                 {zones
-                  .filter(z => z._id !== selectedZone)
+                  .filter((z) => {
+                    const zoneId = (z._id?.$oid || z._id || z.id || z).toString();
+                    return zoneId !== selectedZone && zoneId !== '[object Object]';
+                  })
                   .map((z) => (
                     <MenuItem
                       key={z._id}

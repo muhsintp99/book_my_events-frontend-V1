@@ -430,15 +430,34 @@ function ProviderDetailsView() {
                                             Operating Zones
                                         </Typography>
                                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mt: 0.5 }}>
-                                            {vendorProfile?.zones && vendorProfile.zones.length > 0 ? (
-                                                vendorProfile.zones.map((z, idx) => (
-                                                    <Chip 
-                                                        key={z._id || idx} 
-                                                        label={z.name || z} 
-                                                        size="small" 
-                                                        sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#667eea', color: 'white' }} 
-                                                    />
-                                                ))
+                                            {vendorProfile?.zones && Array.isArray(vendorProfile.zones) ? (
+                                                (() => {
+                                                    const mainZoneId = vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone;
+                                                    const mainZoneIdStr = mainZoneId ? ((typeof mainZoneId === 'object' && mainZoneId?.$oid) ? mainZoneId.$oid : mainZoneId.toString()) : '';
+                                                    
+                                                    const secondaryZones = vendorProfile.zones.filter(z => {
+                                                        const zId = z._id?.$oid || z._id || z;
+                                                        const zIdStr = (typeof zId === 'object' && zId?.$oid) ? zId.$oid : zId.toString();
+                                                        return zIdStr !== mainZoneIdStr;
+                                                    });
+
+                                                    if (secondaryZones.length === 0) {
+                                                        return (
+                                                            <Typography variant="body2" fontWeight={600}>
+                                                                {vendorProfile?.zone?.name || 'N/A'}
+                                                            </Typography>
+                                                        );
+                                                    }
+
+                                                    return secondaryZones.map((z, idx) => (
+                                                        <Chip 
+                                                            key={z._id?.$oid || z._id || idx} 
+                                                            label={z.name || z} 
+                                                            size="small" 
+                                                            sx={{ height: 20, fontSize: '0.7rem', bgcolor: '#667eea', color: 'white' }} 
+                                                        />
+                                                    ));
+                                                })()
                                             ) : (
                                                 <Typography variant="body2" fontWeight={600}>
                                                     {vendorProfile?.zone?.name || 'N/A'}

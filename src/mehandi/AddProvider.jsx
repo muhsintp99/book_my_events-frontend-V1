@@ -234,7 +234,7 @@ function AddMehandi() {
           city: vendorProfile?.storeAddress?.city || profile?.storeAddress?.city || '',
           state: vendorProfile?.storeAddress?.state || profile?.storeAddress?.state || '',
           zipCode: vendorProfile?.storeAddress?.zipCode || profile?.storeAddress?.zipCode || '',
-          fullAddress: vendorProfile?.storeAddress?.fullAddress || profile?.storeAddress?.fullAddress || profile?.businessAddress || ''
+          fullAddress: vendorProfile?.storeAddress?.fullAddress || (typeof vendorProfile?.storeAddress === 'string' ? vendorProfile.storeAddress : '') || profile?.storeAddress?.fullAddress || (typeof profile?.storeAddress === 'string' ? profile.storeAddress : '') || profile?.businessAddress || ''
         },
         minimumDeliveryTime: vendorProfile?.minimumDeliveryTime || '',
         maximumDeliveryTime: vendorProfile?.maximumDeliveryTime || '',
@@ -285,17 +285,31 @@ function AddMehandi() {
       const cover = vendorProfile?.coverImage;
       if (cover) setCoverPreview(getApiImageUrl(cover));
 
-      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
-        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      // The VendorProfile model only has a `zones[]` array (no separate `zone` field).
+      // The first zone in the array is the main zone; the rest are additional zones.
+      let mainZoneIdStr = '';
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones) && vendorProfile.zones.length > 0) {
+        const firstZone = vendorProfile.zones[0];
+        mainZoneIdStr = firstZone?._id?.$oid || firstZone?._id || firstZone?.id || (typeof firstZone === 'string' ? firstZone : '');
+        if (typeof mainZoneIdStr === 'object') {
+          mainZoneIdStr = mainZoneIdStr.$oid || mainZoneIdStr._id?.toString() || mainZoneIdStr.toString();
+        }
+        mainZoneIdStr = mainZoneIdStr.toString();
+      }
+
+      if (mainZoneIdStr && mainZoneIdStr !== '[object Object]') {
+        setSelectedZone(mainZoneIdStr);
+        setFormData(prev => ({ ...prev, zone: mainZoneIdStr }));
       }
 
       setIsFreeTrial(user.isFreeTrial || false);
       if (user.subscriptionPlan) setSubscriptionPlan(user.subscriptionPlan._id || user.subscriptionPlan);
 
-      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones)) {
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones) && vendorProfile.zones.length > 1) {
         const multiZoneIds = vendorProfile.zones
-          .map(z => z._id?.$oid || z._id || z)
-          .filter(id => id !== (vendorProfile?.zone?._id?.$oid || vendorProfile?.zone?._id || vendorProfile?.zone?.$oid || vendorProfile?.zone));
+          .slice(1) // Skip the first zone (main zone)
+          .map(z => z._id?.$oid || z._id || z.id || (typeof z === 'object' ? z.toString() : z))
+          .filter(id => id && id !== '[object Object]');
         setSelectedMultiZones(multiZoneIds);
       }
 
@@ -653,9 +667,6 @@ function AddMehandi() {
         // but for vendor we might need to handle specific fields)
         // For simplicity and matching common pattern, we use the profile update endpoint
         // and let the backend handle the mapping.
-
-        // Add role to payload for the backend to know how to handle it
-        payload.append('role', 'vendor');
 
         const updateId = profileId || id; // Profile ID is better if available, else User ID
 
@@ -1190,7 +1201,10 @@ function AddMehandi() {
                 }}
               >
                 {zones
-                  .filter(z => z._id !== selectedZone)
+                  .filter((z) => {
+                    const zoneId = (z._id?.$oid || z._id || z.id || z).toString();
+                    return zoneId !== selectedZone && zoneId !== '[object Object]';
+                  })
                   .map((z) => (
                     <MenuItem
                       key={z._id?.$oid || z._id}

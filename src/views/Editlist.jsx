@@ -80,7 +80,7 @@ function EditList() {
   const populateForm = (data) => {
     setFormData({
       storeName: data.storeName || data.vendorProfile?.storeName || '',
-      storeAddress: data.storeAddress || data.vendorProfile?.storeAddress?.fullAddress || '',
+      storeAddress: data.storeAddress || data.vendorProfile?.storeAddress?.fullAddress || (typeof data.vendorProfile?.storeAddress === 'string' ? data.vendorProfile.storeAddress : data.vendorProfile?.storeAddress?.street ? `${data.vendorProfile.storeAddress.street}, ${data.vendorProfile.storeAddress.city}` : ''),
       minimumDeliveryTime: data.minimumDeliveryTime || data.vendorProfile?.minimumDeliveryTime || '',
       maximumDeliveryTime: data.maximumDeliveryTime || data.vendorProfile?.maximumDeliveryTime || '',
       zone: data.zoneId || data.vendorProfile?.zone?._id || data.vendorProfile?.zone ||  '',
@@ -93,12 +93,33 @@ function EditList() {
       businessTIN: data.businessTIN || data.vendorProfile?.businessTIN || '',
       tinExpireDate: data.tinExpireDate || data.vendorProfile?.tinExpireDate || '',
     });
-    setSelectedZone(data.zoneId || data.vendorProfile?.zone?._id || data.vendorProfile?.zone || '');
+    // zones[0] = main zone, rest = additional zones
+    const zonesList = data.zones || data.vendorProfile?.zones || data.zoneIds || [];
+    let mainZoneIdStr = '';
+    if (Array.isArray(zonesList) && zonesList.length > 0) {
+      const firstZone = zonesList[0];
+      mainZoneIdStr = firstZone?._id?.$oid || firstZone?._id || firstZone?.id || (typeof firstZone === 'object' ? firstZone.toString() : firstZone) || '';
+      if (typeof mainZoneIdStr === 'object') mainZoneIdStr = mainZoneIdStr.$oid || mainZoneIdStr._id?.toString() || mainZoneIdStr.toString();
+      mainZoneIdStr = mainZoneIdStr.toString();
+    }
+    // Fallback to legacy zone field if zones array is empty
+    if (!mainZoneIdStr) {
+      mainZoneIdStr = data.zoneId || data.vendorProfile?.zone?._id?.$oid || data.vendorProfile?.zone?._id || data.vendorProfile?.zone || '';
+      if (typeof mainZoneIdStr === 'object') mainZoneIdStr = mainZoneIdStr.$oid || mainZoneIdStr._id?.toString() || mainZoneIdStr.toString();
+      mainZoneIdStr = mainZoneIdStr.toString();
+    }
     
-    // Initializing multizones from provider data
-    const multizones = data.zones || data.vendorProfile?.zones || data.zoneIds || [];
-    if (Array.isArray(multizones)) {
-      setSelectedMultiZones(multizones.map(z => z._id || z.id || z));
+    if (mainZoneIdStr && mainZoneIdStr !== '[object Object]') {
+      setSelectedZone(mainZoneIdStr);
+    }
+    
+    // Additional zones = zones after the first one
+    if (Array.isArray(zonesList) && zonesList.length > 1) {
+      const multiZoneIds = zonesList
+        .slice(1)
+        .map(z => z._id?.$oid || z._id || z.id || (typeof z === 'object' ? z.toString() : z))
+        .filter(id => id && id !== '[object Object]');
+      setSelectedMultiZones(multiZoneIds);
     }
     
     setLogoPreview(data.logo || data.vendorProfile?.logo || null);
@@ -569,7 +590,10 @@ function EditList() {
                 }}
               >
                 {zones
-                  .filter(zone => (zone._id || zone.id) !== selectedZone)
+                  .filter((zone) => {
+                    const zoneId = (zone._id?.$oid || zone._id || zone.id || zone).toString();
+                    return zoneId !== selectedZone && zoneId !== '[object Object]';
+                  })
                   .map((zone) => (
                     <MenuItem
                       key={zone._id || zone.id}

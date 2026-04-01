@@ -1616,8 +1616,17 @@ function AuditoriumProvider() {
       const cover = vendorProfile?.coverImage;
       if (cover) setCoverPreview(getApiImageUrl(cover));
 
-      if (vendorProfile?.zone?._id || vendorProfile?.zone) {
-        setSelectedZone(vendorProfile.zone?._id?.$oid || vendorProfile.zone?._id || vendorProfile.zone);
+      // zones[0] = main zone
+      let mainZoneIdStr = '';
+      if (vendorProfile?.zones && Array.isArray(vendorProfile.zones) && vendorProfile.zones.length > 0) {
+        const firstZone = vendorProfile.zones[0];
+        mainZoneIdStr = firstZone?._id?.$oid || firstZone?._id || firstZone?.id || (typeof firstZone === 'string' ? firstZone : '');
+        if (typeof mainZoneIdStr === 'object') mainZoneIdStr = mainZoneIdStr.$oid || mainZoneIdStr._id?.toString() || mainZoneIdStr.toString();
+        mainZoneIdStr = mainZoneIdStr.toString();
+      }
+      if (mainZoneIdStr && mainZoneIdStr !== '[object Object]') {
+        setSelectedZone(mainZoneIdStr);
+        setFormData(prev => ({ ...prev, zone: mainZoneIdStr }));
       }
 
       setIsFreeTrial(user.isFreeTrial || false);
