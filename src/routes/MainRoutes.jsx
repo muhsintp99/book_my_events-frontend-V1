@@ -166,6 +166,8 @@ const Mehandiprovider = ProviderList;
 const MehandiCoupon = Loadable(lazy(() => import('../mehandi/MehandiCoupon')));
 const ProviderDetailsView = Loadable(lazy(() => import('../views/ProviderDetailsView')));
 const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
+const BlogList = Loadable(lazy(() => import('../views/website/BlogList')));
+const Gallery = Loadable(lazy(() => import('../views/website/Gallery')));
 
 
 const Invitationdashboard = Loadable(lazy(() => import('../invitation&printing/dashboard')));
@@ -303,6 +305,8 @@ const MainRoutes = {
     { path: '/settings/vendor-registrations', element: <VendorRegistrations /> },
     { path: '/settings/vendor-registrations/:id', element: <VendorRegistrationDetail /> },
     { path: '/settings/enquiries', element: <AllEnquiries /> },
+    { path: '/settings/blog', element: <BlogList /> },
+    { path: '/settings/gallery', element: <Gallery /> },
 
     // Bookingssss
 
