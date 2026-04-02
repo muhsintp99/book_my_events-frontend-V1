@@ -28,7 +28,7 @@ import {
   Edit as EditIcon, 
   Close as CloseIcon 
 } from '@mui/icons-material';
-import { API_BASE_URL, getApiImageUrl } from '../utils/apiImageUtils';
+import { API_BASE_URL, getApiImageUrl } from '../../utils/apiImageUtils';
 
 const Gallery = () => {
   const [gallery, setGallery] = useState([]);
@@ -223,7 +223,7 @@ const Gallery = () => {
         ) : (
             <Grid container spacing={3}>
             {gallery.map((item) => (
-                <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={item._id}>
+                <Grid item xs={12} sm={6} md={4} lg={3} key={item._id}>
                 <Card sx={{ borderRadius: 3, boxShadow: '0 2px 4px rgb(0 0 0 / 0.05)', overflow: 'hidden', border: '1px solid #e2e8f0' }}>
                     <CardMedia
                     component="img"
@@ -257,7 +257,7 @@ const Gallery = () => {
                 </Grid>
             ))}
             {gallery.length === 0 && (
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                 <Box sx={{ textAlign: 'center', py: 12, bgcolor: 'white', borderRadius: 3, border: '1px solid #e2e8f0' }}>
                     <Typography variant="body1" color="#64748b">No images found for this category.</Typography>
                     <Button startIcon={<RefreshIcon />} onClick={fetchData} sx={{ mt: 2, color: '#EA4C46' }}>Refresh Gallery</Button>
@@ -288,7 +288,7 @@ const Gallery = () => {
 
         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3, flexGrow: 1 }}>
           <Grid container spacing={3}>
-            <Grid size={{ xs: 12 }}>
+            <Grid item xs={12}>
                 <TextField
                     label="Image Title *"
                     fullWidth
@@ -300,7 +300,7 @@ const Gallery = () => {
                 />
             </Grid>
 
-            <Grid size={{ xs: 12 }}>
+            <Grid item xs={12}>
                 <FormControl fullWidth required sx={{ bgcolor: '#f8fafc' }}>
                     <InputLabel>Module Selection *</InputLabel>
                     <Select
@@ -316,7 +316,7 @@ const Gallery = () => {
                 </FormControl>
             </Grid>
 
-            <Grid size={{ xs: 12 }}>
+            <Grid item xs={12}>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#64748b' }}>
                 {editMode ? 'Replace Image' : 'Upload Gallery Image'}
                 </Typography>

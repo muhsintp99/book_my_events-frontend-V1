@@ -140,7 +140,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
         blogForm.tags.split(',').forEach(tag => {
             const trimmedTag = tag.trim();
             if (trimmedTag) {
-                formData.append('tags[]', trimmedTag); // Append with [] so many backends parse as array
+                formData.append('tags[]', trimmedTag);
             }
         });
     }
@@ -183,7 +183,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
 
       <form onSubmit={handleSubmit} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <TextField
               label="Blog Title *"
               name="title"
@@ -195,7 +195,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
               sx={{ bgcolor: '#f8fafc' }}
             />
           </Grid>
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <TextField
               label="Category *"
               name="category"
@@ -208,7 +208,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <TextField
               label="Summary *"
               name="summary"
@@ -223,7 +223,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <TextField
               label="Content *"
               name="content"
@@ -239,7 +239,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <TextField
               label="Tags (Comma separated)"
               name="tags"
@@ -252,7 +252,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
           
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
              <FormControlLabel
                 control={
                     <Switch
@@ -269,7 +269,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid size={{ xs: 12 }}>
+          <Grid item xs={12}>
             <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#64748b' }}>Featured Image</Typography>
                 <Box
