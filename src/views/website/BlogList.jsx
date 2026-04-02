@@ -59,7 +59,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
 
   const fetchBlog = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/blogs/id/${id}`, {
+      const response = await fetch(`${API_BASE_URL}/blogs/${id}`, {
         headers: { 'Authorization': `Bearer ${getAuthToken()}` },
       });
       if (response.ok) {
@@ -183,7 +183,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
 
       <form onSubmit={handleSubmit} style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
         <Grid container spacing={2}>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Blog Title *"
               name="title"
@@ -195,7 +195,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
               sx={{ bgcolor: '#f8fafc' }}
             />
           </Grid>
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Category *"
               name="category"
@@ -208,7 +208,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Summary *"
               name="summary"
@@ -223,7 +223,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Content *"
               name="content"
@@ -239,7 +239,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <TextField
               label="Tags (Comma separated)"
               name="tags"
@@ -252,7 +252,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
           
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
              <FormControlLabel
                 control={
                     <Switch
@@ -269,7 +269,7 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box>
                 <Typography variant="body2" sx={{ mb: 1, fontWeight: 600, color: '#64748b' }}>Featured Image</Typography>
                 <Box
@@ -587,6 +587,18 @@ const BlogList = () => {
                       <TableCell sx={{ color: '#64748b' }}>{new Date(blog.createdAt).toLocaleDateString()}</TableCell>
                       <TableCell align="right">
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'flex-end' }}>
+                          <Tooltip title="View Details">
+                            <IconButton 
+                              size="small" 
+                              sx={{ color: '#10b981', bgcolor: '#ecfdf5', '&:hover': { bgcolor: '#d1fae5' } }} 
+                              onClick={() => {
+                                setEditingId(blog._id);
+                                setDrawerOpen(true);
+                              }}
+                            >
+                              <RefreshIcon fontSize="small" sx={{ transform: 'rotate(45deg)' }} /> 
+                            </IconButton>
+                          </Tooltip>
                           <Tooltip title="Edit">
                             <IconButton size="small" sx={{ color: '#3b82f6', bgcolor: '#eff6ff', '&:hover': { bgcolor: '#dbeafe' } }} onClick={() => handleEditClick(blog._id)}>
                               <EditIcon fontSize="small" />
