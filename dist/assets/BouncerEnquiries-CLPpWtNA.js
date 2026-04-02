@@ -1,0 +1,1 @@
+import{j as o}from"./index-DeeHtG8O.js";import{M as r}from"./ModuleEnquiries-CLhe16mr.js";import"./QuestionAnswer-CKNr2Bvi.js";import"./Event-BwUyo5DB.js";import"./Visibility-DIxHMRCP.js";import"./Category-CDOjyeev.js";import"./DialogActions-Cp8oz12O.js";const n=()=>o.jsx(r,{moduleTitle:"Bouncers & Security"});export{n as default};

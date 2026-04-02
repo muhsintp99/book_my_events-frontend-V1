@@ -18,6 +18,14 @@ const enquiriesmanagement = {
             url: '/settings/enquiries',
             icon: icons.IconMessageCircle,
             breadcrumbs: false
+        },
+        {
+            id: 'event-requests',
+            title: 'Event Requests',
+            type: 'item',
+            url: '/settings/event-requests',
+            icon: icons.IconMessageCircle,
+            breadcrumbs: false
         }
     ]
 };
