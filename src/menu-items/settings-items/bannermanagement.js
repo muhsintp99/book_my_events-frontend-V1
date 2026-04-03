@@ -1,12 +1,13 @@
-import { IconPhoto } from '@tabler/icons-react';
+import { IconPhoto,IconNews } from '@tabler/icons-react';
 
 const icons = {
-  IconPhoto
+  IconPhoto,
+  IconNews
 };
 
 const bannermanagement = {
   id: 'banner-management',
-  title: 'Banner Management',
+  title: 'Website Management',
   type: 'group',
   children: [
     {
@@ -15,6 +16,22 @@ const bannermanagement = {
       type: 'item',
       url: '/settings/banner',
       icon: icons.IconPhoto,
+      breadcrumbs: false
+    },
+    {
+      id: 'blog-list',
+      title: 'Blog List',
+      type: 'item',
+      url: '/settings/blog',
+      icon: icons.IconNews,
+      breadcrumbs: false
+    },
+    {
+      id: 'gallery-list',
+      title: 'Gallery Management',
+      type: 'item',
+      url: '/settings/gallery',
+      icon: icons.IconNews,
       breadcrumbs: false
     }
   ]
