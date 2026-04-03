@@ -18,10 +18,8 @@ import Providermgt from './CRM/Providermanagement';
 import tripmanagemet from './CRM/tripmanagment';
 import vehiclemgt from './CRM/vehiclemanagement';
 import pages from './pages';
-// import utilities from './utilities';
-// import other from './other';
-import auditoriummanagement from './auditorium/auditoriummanagement';
-import customers from './auditorium/auditoriummanagement';
+// import auditoriummanagement from './auditorium/auditoriummanagement';
+// import customers from './auditorium/auditoriummanagement';
 import bookings from './auditorium/vehiclemanagement';
 import Providermanagement from './auditorium/providermanagement';
 import management from './auditorium/management';
@@ -32,21 +30,21 @@ import subscriptionmanagement from './settings-items/subscriptionmanage';
 import taxmanagement from './settings-items/taxmanagement';
 import employeemanagement from './settings-items/employeemanage';
 import kycmanagement from './settings-items/kycmanagement';
-import cateringmanagement from './catering/cateringmanagement';
+// import cateringmanagement from './catering/cateringmanagement';
 
 import cateringsections from './catering/cateringsections';
 import CateringProvidermanagement from './catering/cateringprovidermanagement';
 import makeupsections from './makeup/makeupsections';
-import makeupmanangement from './makeup/makeupmanagement';
+// import makeupmanangement from './makeup/makeupmanagement';
 import MakeupProvidermanagement from './makeup/makeupprovidermanagement';
-import photographymanangement from './Photography/photographymanagement';
+// import photographymanangement from './Photography/photographymanagement';
 import photographysections from './Photography/photographysections';
 import PhotographyProvidermanagement from './Photography/providermanagement';
-import cakemanagement from './cakes/cakemanagement';
+// import cakemanagement from './cakes/cakemanagement';
 import cakesections from './cakes/cakesections';
 import CakeProvidermanagement from './cakes/providermanagement';
 
-import ornamentsmanagement from './ornaments/ornamentsmanagement';
+// import ornamentsmanagement from './ornaments/ornamentsmanagement';
 import ornamentssections from './ornaments/ornamentssections';
 import OrnamentsProvidermanagement from './ornaments/ornamentsprovidermanagement';
 
@@ -56,19 +54,19 @@ import BoutiqueProvidermanagement from './boutique/boutiqueprovidermanagement';
 import pincodemanagement from './settings-items/pincodemanagment';
 import vendorregistrations from './settings-items/vendorregistrations';
 import enquiriesmanagement from './settings-items/enquiriesmanagement';
-import bannermanagement from './settings-items/bannermanagement';
-import mehandimanagement from './mehandi/mehandimanagement';
+import websitemanagement from './settings-items/websitemanagement';
+// import mehandimanagement from './mehandi/mehandimanagement';
 import mehandisections from './mehandi/mehandisections';
 import MehandiProvidermanagement from './mehandi/mehandiprovidermanagement';
 import InvitationProvidermanagement from './invitation&management/invitationprovidermanagement';
 import invitationsections from './invitation&management/invitationsections';
-import invitationmanagement from './invitation&management/invitationmanagement';
+// import invitationmanagement from './invitation&management/invitationmanagement';
 import BoutiqProvidermanagement from './florist&stage/floristprovidermanagement';
 import FloristProvidermanagement from './florist&stage/floristprovidermanagement';
 import floristsections from './florist&stage/floristsections';
-import floristmanagement from './florist&stage/floristmanagement';
+// import floristmanagement from './florist&stage/floristmanagement';
 import floristdashboard from './florist&stage/floristdashboard';
-import lightmanagement from './light&sounds/lightmanagement';
+// import lightmanagement from './light&sounds/lightmanagement';
 import lightsections from './light&sounds/lightsections';
 import lightdashboard from './light&sounds/lightdashboard';
 import LightProvidermanagement from './light&sounds/lightprovidermanagement';
@@ -82,53 +80,53 @@ import ornamentsdashboard from './ornaments/dashboard';
 import boutiquedashboard from './boutique/dashboard';
 import rentaldashboard from './CRM/rentaldashboard';
 import bouncerdashboard from './bouncers&security/bouncerdashboard';
-import bouncermanagement from './bouncers&security/bouncermanagement';
+// import bouncermanagement from './bouncers&security/bouncermanagement';
 import bouncersections from './bouncers&security/bouncersections';
 import BouncerProvidermanagement from './bouncers&security/bouncerprovidermanagement';
 import emceedashboard from './emcee/emceedashboard';
-import emceemanagement from './emcee/emceemanagement';
+// import emceemanagement from './emcee/emceemanagement';
 import emceesections from './emcee/emceesections';
 import EmceeProvidermanagement from './emcee/emceeprovidermanagement';
 import panthaldashboard from './panthal&decorations/panthaldashboard';
-import panthalmanagement from './panthal&decorations/panthalmanagement';
+// import panthalmanagement from './panthal&decorations/panthalmanagement';
 import panthalsections from './panthal&decorations/panthalsections';
 import PanthalProvidermanagement from './panthal&decorations/panthalprovidermanagement';
 import professionaldashboard from './eventprofessionals/professionaldashboard';
-import professionalmanagement from './eventprofessionals/professionalmanagement';
+// import professionalmanagement from './eventprofessionals/professionalmanagement';
 import professionalsections from './eventprofessionals/professionalsections';
 import ProfessionalProvidermanagement from './eventprofessionals/professionalprovidermanagement';
 
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
-    items: [rentaldashboard, Promotionmgt, vehiclemgt, Providermgt]
+    items: [rentaldashboard, vehiclemgt, Providermgt]
   },
 
   rental: {
-    items: [rentaldashboard, Promotionmgt, vehiclemgt, Providermgt]
+    items: [rentaldashboard, vehiclemgt, Providermgt]
   },
 
   events: {
-    items: [tripmanagemet, Promotionmgt, vehiclemgt, Providermgt]
+    items: [tripmanagemet, vehiclemgt, Providermgt]
   },
 
   auditorium: {
-    items: [dashboard, auditoriummanagement, auditoriumsections, Providermanagement]
+    items: [dashboard, auditoriumsections, Providermanagement]
   },
   catering: {
-    items: [cateringdashboard, cateringmanagement, cateringsections, CateringProvidermanagement]
+    items: [cateringdashboard, cateringsections, CateringProvidermanagement]
   },
   makeup: {
-    items: [makeupdashboard, makeupmanangement, makeupsections, MakeupProvidermanagement]
+    items: [makeupdashboard, makeupsections, MakeupProvidermanagement]
   },
   photography: {
-    items: [photographydashboard, photographymanangement, photographysections, PhotographyProvidermanagement]
+    items: [photographydashboard, photographysections, PhotographyProvidermanagement]
   },
   cake: {
-    items: [cakedashboard, cakemanagement, cakesections, CakeProvidermanagement]
+    items: [cakedashboard, cakesections, CakeProvidermanagement]
   },
   ornaments: {
-    items: [ornamentsdashboard, ornamentsmanagement, ornamentssections, OrnamentsProvidermanagement]
+    items: [ornamentsdashboard, ornamentssections, OrnamentsProvidermanagement]
   },
 
   boutique: {
@@ -136,47 +134,47 @@ const moduleMenuItems = {
   },
 
   mehandi: {
-    items: [mehandidashboard, mehandimanagement, mehandisections, MehandiProvidermanagement]
+    items: [mehandidashboard, mehandisections, MehandiProvidermanagement]
   },
   invitationprinting: {
-    items: [invitationdashboard, invitationmanagement, invitationsections, InvitationProvidermanagement]
+    items: [invitationdashboard, invitationsections, InvitationProvidermanagement]
   },
   floriststage: {
-    items: [floristdashboard, floristmanagement, floristsections, FloristProvidermanagement]
+    items: [floristdashboard, floristsections, FloristProvidermanagement]
   },
   lightsounds: {
-    items: [lightdashboard, lightmanagement, lightsections, LightProvidermanagement]
+    items: [lightdashboard, lightsections, LightProvidermanagement]
   },
   bouncerssecurity: {
-    items: [bouncerdashboard, bouncermanagement, bouncersections, BouncerProvidermanagement]
+    items: [bouncerdashboard, bouncersections, BouncerProvidermanagement]
   },
   emcee: {
-    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+    items: [emceedashboard, emceesections, EmceeProvidermanagement]
   },
   eventhostemcee: {
-    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+    items: [emceedashboard, emceesections, EmceeProvidermanagement]
   },
   'eventhost/emcee': {
-    items: [emceedashboard, emceemanagement, emceesections, EmceeProvidermanagement]
+    items: [emceedashboard, emceesections, EmceeProvidermanagement]
   },
   bouncersandsecurity: {
-    items: [bouncerdashboard, bouncermanagement, bouncersections, BouncerProvidermanagement]
+    items: [bouncerdashboard, bouncersections, BouncerProvidermanagement]
   },
   panthaldecorations: {
-    items: [panthaldashboard, panthalmanagement, panthalsections, PanthalProvidermanagement]
+    items: [panthaldashboard, panthalsections, PanthalProvidermanagement]
   },
   'panthal&decorations': {
-    items: [panthaldashboard, panthalmanagement, panthalsections, PanthalProvidermanagement]
+    items: [panthaldashboard, panthalsections, PanthalProvidermanagement]
   },
   eventprofessionals: {
-    items: [professionaldashboard, professionalmanagement, professionalsections, ProfessionalProvidermanagement]
+    items: [professionaldashboard, professionalsections, ProfessionalProvidermanagement]
   },
   'eventprofessionals': {
-    items: [professionaldashboard, professionalmanagement, professionalsections, ProfessionalProvidermanagement]
+    items: [professionaldashboard, professionalsections, ProfessionalProvidermanagement]
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement, pincodemanagement, modulemanagement, bannermanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
+    items: [zonemanagement, pincodemanagement, modulemanagement, websitemanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
 
   }
 

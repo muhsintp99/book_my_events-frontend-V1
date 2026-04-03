@@ -656,7 +656,10 @@ function AddProfessional() {
       }
 
       // Files
-      if (files.logo) payload.append('logo', files.logo);
+      if (files.logo) {
+        if (isEditMode) payload.append('profilePhoto', files.logo);
+        else payload.append('logo', files.logo);
+      }
       if (files.coverImage) payload.append('coverImage', files.coverImage);
 
       if (isEditMode) {

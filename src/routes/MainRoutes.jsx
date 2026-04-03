@@ -261,9 +261,9 @@ const MainRoutes = {
     // Provider Details
     { path: 'provider/:providerId/details', element: <ProviderDetailsView /> },
 
-    // Promotions
-    { path: 'promotions/RentalBanners', element: <Banners /> },
-    { path: 'promotions/Coupons', element: <Coupons /> },
+    // Website Management (Settings)
+    { path: 'settings/banner', element: <Banners /> },
+    { path: 'settings/coupons', element: <Coupons /> },
     { path: 'promotions/PushNotification', element: <PushNotification /> },
 
     // Providers
