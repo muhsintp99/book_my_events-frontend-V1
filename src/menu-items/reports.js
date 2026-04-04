@@ -26,6 +26,14 @@ const reports = {
             url: '/reports/accounts',
             icon: icons.IconReportMoney,
             breadcrumbs: false
+        },
+        {
+            id: 'vendor-payouts',
+            title: 'Vendor Payouts',
+            type: 'item',
+            url: '/wallet/withdrawals',
+            icon: icons.IconChartLine,
+            breadcrumbs: false
         }
     ]
 };

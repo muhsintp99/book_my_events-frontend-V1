@@ -269,7 +269,7 @@ export default function Dashboard() {
                             <Stack spacing={0.5}>
                                 <Typography variant="caption" color="textSecondary" fontWeight={600}>Network Scale</Typography>
                                 <Typography variant="h4" fontWeight={700}>
-                                    {reportData?.platform?.users?.toLocaleString() || '0'} Users
+                                    {reportData?.platform?.users?.toLocaleString() || '0'} Customers
                                 </Typography>
                                 <Typography variant="caption" color="secondary.main" fontWeight={600}>
                                     {reportData?.platform?.activeVendors?.toLocaleString() || '0'} Approved Vendors
