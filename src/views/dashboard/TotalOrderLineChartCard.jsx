@@ -72,9 +72,9 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor, total, tit
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
-              <Grid>
+              <Grid size={12}>
                 <Grid container sx={{ justifyContent: 'space-between' }}>
-                  <Grid>
+                  <Grid size="auto">
                     <Avatar
                       variant="rounded"
                       sx={{
@@ -88,7 +88,7 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor, total, tit
                       <LocalMallOutlinedIcon fontSize="inherit" />
                     </Avatar>
                   </Grid>
-                  <Grid>
+                  <Grid size="auto">
                     <Button
                       disableElevation
                       variant={timeValue ? 'contained' : 'text'}
@@ -122,11 +122,11 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor, total, tit
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid sx={{ mb: 0.75 }}>
+              <Grid size={12} sx={{ mb: 0.75 }}>
                 <Grid container sx={{ alignItems: 'center' }}>
                   <Grid size={6}>
                     <Grid container sx={{ alignItems: 'center' }}>
-                      <Grid>
+                      <Grid size="auto">
                         {timeValue ? (
                           <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
                             156
@@ -137,7 +137,7 @@ export default function TotalOrderLineChartCard({ isLoading, bgcolor, total, tit
                           </Typography>
                         )}
                       </Grid>
-                      <Grid>
+                      <Grid size="auto">
                         <Avatar
                           sx={{
                             ...theme.typography.smallAvatar,
