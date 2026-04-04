@@ -13,24 +13,9 @@ const icons = {
 
 const auditoriummanagement = {
   id: 'auditorium-management-group',
-  title: 'AuditoriumManagement',
+  title: 'auditoriumManagement',
   type: 'group',
   children: [
-    {
-    id: 'Coupons',
-    title: 'Coupons',
-    type: 'item',
-    url: '/auditorium/coupons',
-    icon: icons.IconTicket,
-    breadcrumbs: false
-    },
-    // {
-    //   id: 'Push-notifications',
-    //   title: 'Push Notifications',
-    //   type: 'item',
-    //   url: '/auditorium/pushnotifications',
-    //   icon: icons.IconBell,
-    //   breadcrumbs: false
     // }
   ]
 };

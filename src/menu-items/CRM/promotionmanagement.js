@@ -29,14 +29,7 @@ const Promotionmgt = {
     //   icon: icons.IconPhoto,
     //   breadcrumbs: false
     // },
-    {
-      id: 'promotion-coupons',
-      title: 'Coupons',
-      type: 'item',
-      url: '/promotions/Coupons',  // Matches the route
-      icon: icons.IconTicket,
-      breadcrumbs: false
-    },
+    /* coupons moved to website management */
     // {
     //   id: 'promotion-cashback',
     //   title: 'Cashback',

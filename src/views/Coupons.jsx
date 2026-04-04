@@ -66,6 +66,8 @@ const Coupons = () => {
     minPurchase: "",
     discount: "",
     maxDiscount: "",
+    description: "",
+    bannerImage: null,
     isActive: true,
   });
 
@@ -109,8 +111,8 @@ const Coupons = () => {
     setError(null); // Clear previous errors
     
     try {
-      const url = `${API_BASE_URL}/coupons?page=${pageNum}&limit=10&search=${encodeURIComponent(searchQuery)}`;
-      console.log("Fetching coupons from:", url);
+      const url = `${API_BASE_URL}/coupons?page=${pageNum}&limit=10&ownerType=admin&search=${encodeURIComponent(searchQuery)}`;
+      console.log("Fetching admin coupons from:", url);
       
       const response = await fetch(url, {
         method: "GET",
@@ -260,6 +262,8 @@ const Coupons = () => {
       minPurchase: coupon.minPurchase?.toString() || "",
       discount: coupon.discount?.toString() || "",
       maxDiscount: coupon.maxDiscount?.toString() || "",
+      description: coupon.description || "",
+      bannerImage: null, // Don't pre-fill file input
       isActive: coupon.isActive !== undefined ? coupon.isActive : true,
     });
     setOpen(true);
@@ -280,6 +284,8 @@ const Coupons = () => {
       minPurchase: "",
       discount: "",
       maxDiscount: "",
+      description: "",
+      bannerImage: null,
       isActive: true,
     });
   };
@@ -306,20 +312,29 @@ const Coupons = () => {
       
       const method = editMode ? "PUT" : "POST";
       
+      const form = new FormData();
+      form.append("title", formData.title);
+      form.append("code", formData.code.toUpperCase().trim());
+      form.append("type", formData.type);
+      form.append("discountType", formData.discountType);
+      form.append("discount", formData.discount);
+      form.append("description", formData.description);
+      form.append("totalUses", formData.totalUses || "");
+      form.append("startDate", formData.startDate);
+      form.append("expireDate", formData.expireDate);
+      form.append("isActive", formData.isActive);
+      form.append("ownerType", "admin");
+
+      if (formData.bannerImage) {
+        form.append("bannerImage", formData.bannerImage);
+      }
+      
       const response = await fetch(url, {
         method: method,
         headers: {
-          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({
-          ...formData,
-          code: formData.code.toUpperCase().trim(),
-          totalUses: formData.totalUses ? parseInt(formData.totalUses) : null,
-          minPurchase: parseFloat(formData.minPurchase) || 0,
-          discount: parseFloat(formData.discount) || 0,
-          maxDiscount: formData.maxDiscount ? parseFloat(formData.maxDiscount) : null,
-        }),
+        body: form,
       });
 
       const text = await response.text();
@@ -523,6 +538,7 @@ const Coupons = () => {
         open={!!error}
         autoHideDuration={null}
         onClose={() => setError(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert 
           severity="error" 
@@ -555,6 +571,7 @@ const Coupons = () => {
         open={!!success}
         autoHideDuration={4000}
         onClose={() => setSuccess(null)}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
         <Alert severity="success" onClose={() => setSuccess(null)}>
           {success}
@@ -583,6 +600,73 @@ const Coupons = () => {
             required
             error={!formData.title && formData.title !== ""}
           />
+          
+          {/* ✅ REDESIGNED BANNER & DESCRIPTION SECTION */}
+          <Box sx={{ mb: 3, p: 2, bgcolor: '#f8f9fa', borderRadius: 2, border: '1px dashed #ced4da' }}>
+            <Typography variant="subtitle2" sx={{ mb: 1, color: '#495057', fontWeight: 'bold' }}>
+              Promotional Banner (Recommended 800x400px)
+            </Typography>
+            <Box 
+              sx={{ 
+                position: 'relative',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                p: 3,
+                bgcolor: '#fff',
+                borderRadius: 1,
+                border: '1px solid #dee2e6',
+                cursor: 'pointer',
+                '&:hover': { bgcolor: '#f1f3f5' }
+              }}
+              onClick={() => document.getElementById('couponBannerInput').click()}
+            >
+              {formData.bannerImage ? (
+                <Typography variant="body2" color="primary" sx={{ fontWeight: 'medium' }}>
+                  Selected: {formData.bannerImage.name}
+                </Typography>
+              ) : selectedCoupon?.bannerImage ? (
+                <Box textAlign="center">
+                  <Typography variant="body2" color="success.main" sx={{ fontWeight: 'medium' }}>
+                    Current Banner Exist
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    {selectedCoupon.bannerImage.split('/').pop()}
+                  </Typography>
+                </Box>
+              ) : (
+                <>
+                  <Typography variant="body2" color="textSecondary">
+                    Click to upload banner image
+                  </Typography>
+                  <Typography variant="caption" color="textSecondary">
+                    JPEG, PNG up to 2MB
+                  </Typography>
+                </>
+              )}
+              <input
+                id="couponBannerInput"
+                type="file"
+                accept="image/*"
+                style={{ display: 'none' }}
+                onChange={(e) => setFormData(prev => ({ ...prev, bannerImage: e.target.files[0] }))}
+              />
+            </Box>
+
+            <TextField
+              fullWidth
+              label="Offer Description"
+              name="description"
+              multiline
+              rows={3}
+              value={formData.description}
+              onChange={handleChange}
+              sx={{ mt: 2, bgcolor: '#fff' }}
+              placeholder="E.g., Get 20% off on all venue bookings this summer!"
+              helperText="This text will appear on the coupon card."
+            />
+          </Box>
           <Select
             fullWidth
             name="type"
@@ -655,16 +739,6 @@ const Coupons = () => {
           </Select>
           <TextField
             fullWidth
-            label="Min Purchase Amount ($)"
-            name="minPurchase"
-            type="number"
-            value={formData.minPurchase}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-            inputProps={{ min: 0, step: 0.01 }}
-          />
-          <TextField
-            fullWidth
             label="Discount *"
             name="discount"
             type="number"
@@ -674,17 +748,6 @@ const Coupons = () => {
             required
             error={!formData.discount && formData.discount !== ""}
             inputProps={{ min: 0, step: 0.01 }}
-          />
-          <TextField
-            fullWidth
-            label="Max Discount Amount ($)"
-            name="maxDiscount"
-            type="number"
-            value={formData.maxDiscount}
-            onChange={handleChange}
-            sx={{ mb: 2 }}
-            inputProps={{ min: 0, step: 0.01 }}
-            helperText="Only applicable for percentage discounts"
           />
           {editMode && (
             <Select
@@ -796,8 +859,6 @@ const Coupons = () => {
                 <TableCell>Type</TableCell>
                 <TableCell>Total Uses</TableCell>
                 <TableCell>Used</TableCell>
-                <TableCell>Min Purchase</TableCell>
-                <TableCell>Max Discount</TableCell>
                 <TableCell>Discount</TableCell>
                 <TableCell>Discount Type</TableCell>
                 <TableCell>Start Date</TableCell>
@@ -809,7 +870,7 @@ const Coupons = () => {
             <TableBody>
               {coupons.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={14} align="center">
+                  <TableCell colSpan={12} align="center">
                     <Stack spacing={2} alignItems="center" py={4}>
                       <Typography variant="h6" color="textSecondary">
                         No coupons found
@@ -841,8 +902,6 @@ const Coupons = () => {
                     <TableCell>{coupon.type || "-"}</TableCell>
                     <TableCell>{coupon.totalUses || "Unlimited"}</TableCell>
                     <TableCell>{coupon.usedCount || 0}</TableCell>
-                    <TableCell>${coupon.minPurchase || 0}</TableCell>
-                    <TableCell>{coupon.maxDiscount ? `$${coupon.maxDiscount}` : "-"}</TableCell>
                     <TableCell>
                       {coupon.discountType === "percentage" ? `${coupon.discount}%` : `$${coupon.discount}`}
                     </TableCell>
