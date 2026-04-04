@@ -255,24 +255,35 @@ export default function Dashboard() {
             }} />
             <Grid container spacing={4} alignItems="center">
                 <Grid size={{ xs: 12, md: 8 }}>
-                    <Grid container spacing={2}>
-                        <Grid size={{ xs: 12, sm: 6 }}>
+                    <Grid container spacing={3}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
                             <Stack spacing={0.5}>
-                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Total Consolidated Revenue</Typography>
+                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Revenue Portfolio</Typography>
                                 <Typography variant="h3" fontWeight={700} color="primary">
                                     ₹ {reportData?.totalSubsRevenue?.toLocaleString() || '0'}
                                 </Typography>
-                                <Typography variant="caption" color="success.main" fontWeight={600}>Includes Subscriptions</Typography>
+                                <Typography variant="caption" color="success.main" fontWeight={600}>Consolidated Earnings</Typography>
                             </Stack>
                         </Grid>
-                        <Grid size={{ xs: 12, sm: 6 }}>
+                        <Grid size={{ xs: 12, sm: 4 }}>
                             <Stack spacing={0.5}>
-                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Platform Engagement</Typography>
-                                <Typography variant="h3" fontWeight={700}>
+                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Network Scale</Typography>
+                                <Typography variant="h4" fontWeight={700}>
                                     {reportData?.platform?.users?.toLocaleString() || '0'} Users
                                 </Typography>
                                 <Typography variant="caption" color="secondary.main" fontWeight={600}>
-                                    {reportData?.platform?.activeVendors?.toLocaleString() || '0'} Active Vendors
+                                    {reportData?.platform?.activeVendors?.toLocaleString() || '0'} Approved Vendors
+                                </Typography>
+                            </Stack>
+                        </Grid>
+                        <Grid size={{ xs: 12, sm: 4 }}>
+                            <Stack spacing={0.5}>
+                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Platform Assets</Typography>
+                                <Typography variant="h4" fontWeight={700}>
+                                    {reportData?.platform?.primaryModules || 0} Modules / {reportData?.platform?.secondaryModules || 0} Sub
+                                </Typography>
+                                <Typography variant="caption" color="info.main" fontWeight={600}>
+                                    {reportData?.platform?.platformPackages || 0} Live Packages
                                 </Typography>
                             </Stack>
                         </Grid>

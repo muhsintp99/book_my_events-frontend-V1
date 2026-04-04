@@ -128,7 +128,7 @@ const AdminReports = () => {
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
-                    title="Active Vendors" 
+                    title="Approved Vendors" 
                     value={data?.platform?.activeVendors || 0} 
                     icon={StorefrontOutlinedIcon} 
                     color={theme.palette.primary.main} 
@@ -137,18 +137,20 @@ const AdminReports = () => {
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
-                    title="Total Packages" 
-                    value={data?.platform?.platformPackages || 0} 
+                    title="Main Modules" 
+                    value={data?.platform?.primaryModules || 0} 
                     icon={ReceiptLongOutlinedIcon} 
                     color={theme.palette.warning.main} 
+                    subtitle={`${data?.platform?.secondaryModules || 0} Secondary Services`}
                 />
             </Grid>
             <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
-                    title="Sub. Revenue" 
+                    title="System Revenue" 
                     value={`₹ ${data?.totalSubsRevenue?.toLocaleString() || 0}`} 
                     icon={AccountBalanceWalletOutlinedIcon} 
                     color={theme.palette.success.main} 
+                    subtitle={`${data?.platform?.platformPackages || 0} Live Packages`}
                 />
             </Grid>
 
