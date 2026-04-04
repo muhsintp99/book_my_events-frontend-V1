@@ -164,12 +164,12 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
           <CardContent sx={{ p: '24px !important' }}>
             <Grid container spacing={gridSpacing}>
               {/* Header */}
-              <Grid item xs={12}>
+              <Grid size={12}>
                 <Grid container alignItems="center" justifyContent="space-between">
-                  <Grid item>
+                  <Grid size="grow">
                     <Typography variant="h4" sx={{ fontWeight: 800 }}>{title}</Typography>
                   </Grid>
-                  <Grid item>
+                  <Grid size="auto">
                     <IconButton size="small" onClick={handleClick} sx={{ color: '#EA4C46' }}>
                       <MoreHorizOutlinedIcon fontSize="small" />
                     </IconButton>
@@ -188,7 +188,7 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
 
 
               {/* Banner Chart */}
-              <Grid item xs={12} sx={{ mt: 1 }}>
+              <Grid size={12} sx={{ mt: 1 }}>
                 <Card
                   sx={{
                     background: 'linear-gradient(135deg, #EA4C46 0%, #B91C1C 100%)',
@@ -214,7 +214,7 @@ export default function PopularCard({ isLoading = false, data = [], activeVendor
               </Grid>
 
               {/* List */}
-              <Grid item xs={12} sx={{ mt: 1 }}>
+              <Grid size={12} sx={{ mt: 1 }}>
                 {(showAll ? activeModules : initialModules).map((module, index, arr) => (
                   <ModuleItem key={index} module={module} index={index} total={arr.length} />
                 ))}

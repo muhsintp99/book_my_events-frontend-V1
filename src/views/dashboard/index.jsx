@@ -100,7 +100,7 @@ export default function Dashboard() {
   return (
     <Grid container spacing={gridSpacing}>
       {/* Welcome Banner */}
-      <Grid item xs={12}>
+      <Grid size={12}>
         <Welcome
           isLoading={isLoading}
           userName="Book my Event"
@@ -151,10 +151,10 @@ export default function Dashboard() {
         />
       </Grid>
 
-      <Grid item xs={12}>
+      <Grid size={12}>
         <Grid container spacing={gridSpacing}>
           {/* Top Cards Row */}
-          <Grid item lg={4} md={6} sm={6} xs={12}>
+          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
             <EarningCard 
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
@@ -169,8 +169,8 @@ export default function Dashboard() {
                 localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined'
                   ? (moduleStats.moduleTitle && ['light', 'bouncer', 'emcee', 'event host', 'panthal', 'professional'].some(m => moduleStats.moduleTitle.toLowerCase().includes(m))
                       ? 'ENQUIRIES THIS MONTH'
-                      : 'Total Earning')
-                  : 'Total Platform Earning'
+                      : 'Total Earning (₹)')
+                  : 'Total Platform Earning (₹)'
               }
               isCurrency={
                 !(localStorage.getItem('moduleDbId') && localStorage.getItem('moduleDbId') !== 'undefined' && 
@@ -178,7 +178,7 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid item lg={4} md={6} sm={6} xs={12}>
+          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
             <TotalOrderLineChartCard 
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
@@ -198,9 +198,9 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid item lg={4} md={12} sm={12} xs={12}>
+          <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
             <Grid container spacing={gridSpacing}>
-              <Grid item sm={6} xs={12} md={6} lg={12}>
+              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
                 <TotalIncomeDarkCard 
                   isLoading={isLoading} 
                   bgcolor={cardBgColor} 
@@ -213,7 +213,7 @@ export default function Dashboard() {
                   isCurrency={false}
                 />
               </Grid>
-              <Grid item sm={6} xs={12} md={6} lg={12}>
+              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
                 <TotalIncomeLightCard
                   isLoading={isLoading}
                   total={
@@ -240,8 +240,8 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
-      {/* Reports Section (New) */}
-      <Grid item xs={12}>
+      {/* Reports Section */}
+      <Grid size={12}>
         <MainCard title="Quick Insights & Reports" sx={{ position: 'relative', overflow: 'hidden' }}>
             <Box sx={{ 
                 position: 'absolute', 
@@ -254,18 +254,18 @@ export default function Dashboard() {
                 borderRadius: '50%' 
             }} />
             <Grid container spacing={4} alignItems="center">
-                <Grid item xs={12} md={8}>
+                <Grid size={{ xs: 12, md: 8 }}>
                     <Grid container spacing={2}>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Stack spacing={0.5}>
                                 <Typography variant="caption" color="textSecondary" fontWeight={600}>Total Consolidated Revenue</Typography>
                                 <Typography variant="h3" fontWeight={700} color="primary">
-                                    AED {reportData?.totalSubsRevenue?.toLocaleString() || '0'}
+                                    ₹ {reportData?.totalSubsRevenue?.toLocaleString() || '0'}
                                 </Typography>
                                 <Typography variant="caption" color="success.main" fontWeight={600}>Includes Subscriptions</Typography>
                             </Stack>
                         </Grid>
-                        <Grid item xs={12} sm={6}>
+                        <Grid size={{ xs: 12, sm: 6 }}>
                             <Stack spacing={0.5}>
                                 <Typography variant="caption" color="textSecondary" fontWeight={600}>Platform Engagement</Typography>
                                 <Typography variant="h3" fontWeight={700}>
@@ -278,7 +278,7 @@ export default function Dashboard() {
                         </Grid>
                     </Grid>
                 </Grid>
-                <Grid item xs={12} md={4}>
+                <Grid size={{ xs: 12, md: 4 }}>
                     <Stack direction="row" spacing={2} justifyContent={{ xs: 'center', md: 'flex-end' }}>
                         <Button 
                             variant="outlined" 
@@ -303,9 +303,9 @@ export default function Dashboard() {
       </Grid>
 
       {/* Growth Bar Chart + Popular Card Row */}
-      <Grid item xs={12}>
+      <Grid size={12}>
         <Grid container spacing={gridSpacing}>
-          <Grid item xs={12} md={8}>
+          <Grid size={{ xs: 12, md: 8 }}>
             <TotalGrowthBarChart 
               isLoading={isLoading} 
               data={overallStats.monthlyStats} 
@@ -322,7 +322,7 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid item xs={12} md={4}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <PopularCard 
               isLoading={isLoading} 
               data={

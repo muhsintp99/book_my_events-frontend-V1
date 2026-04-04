@@ -106,7 +106,7 @@ const AdminReports = () => {
 
     return (
         <Grid container spacing={gridSpacing}>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <Box sx={{ mb: 3 }}>
                     <Typography variant="h2" sx={{ fontWeight: 700, color: 'text.primary' }}>
                         System Analytics Overview
@@ -118,7 +118,7 @@ const AdminReports = () => {
             </Grid>
 
             {/* Summary Row */}
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
                     title="Total Customers" 
                     value={data?.platform?.users || 0} 
@@ -126,7 +126,7 @@ const AdminReports = () => {
                     color={theme.palette.secondary.main} 
                 />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
                     title="Active Vendors" 
                     value={data?.platform?.activeVendors || 0} 
@@ -135,7 +135,7 @@ const AdminReports = () => {
                     subtitle={`${data?.platform?.pendingApproval || 0} Pending Approval`}
                 />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
                     title="Total Packages" 
                     value={data?.platform?.platformPackages || 0} 
@@ -143,21 +143,21 @@ const AdminReports = () => {
                     color={theme.palette.warning.main} 
                 />
             </Grid>
-            <Grid item xs={12} sm={6} md={3}>
+            <Grid size={{ xs: 12, sm: 6, md: 3 }}>
                 <ReportCard 
                     title="Sub. Revenue" 
-                    value={`AED ${data?.totalSubsRevenue?.toLocaleString() || 0}`} 
+                    value={`₹ ${data?.totalSubsRevenue?.toLocaleString() || 0}`} 
                     icon={AccountBalanceWalletOutlinedIcon} 
                     color={theme.palette.success.main} 
                 />
             </Grid>
 
             {/* Detailed Stats */}
-            <Grid item xs={12} md={8}>
+            <Grid size={{ xs: 12, md: 8 }}>
                 <MainCard title="Booking Lifecycle Analytics">
                     <Grid container spacing={2}>
                         {data?.bookings?.map((item, index) => (
-                            <Grid item xs={12} sm={6} md={4} key={index}>
+                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                                 <Box sx={{ 
                                     p: 2, 
                                     border: '1px solid', 
@@ -176,7 +176,7 @@ const AdminReports = () => {
                                         {item._id || 'Draft'}
                                     </Typography>
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        Revenue: AED {item.revenue.toLocaleString()}
+                                        Revenue: ₹ {item.revenue.toLocaleString()}
                                     </Typography>
                                 </Box>
                             </Grid>
@@ -185,7 +185,7 @@ const AdminReports = () => {
                 </MainCard>
             </Grid>
 
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                 <MainCard title="Platform Distribution">
                     <Stack spacing={3}>
                         <Box>

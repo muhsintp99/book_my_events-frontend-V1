@@ -75,9 +75,9 @@ export default function EarningCard({ isLoading, bgcolor, total, title = 'Total 
         >
           <Box sx={{ p: 2.25 }}>
             <Grid container direction="column">
-              <Grid>
+              <Grid size={12}>
                 <Grid container sx={{ justifyContent: 'space-between' }}>
-                  <Grid>
+                  <Grid size="auto">
                     <Avatar
                       variant="rounded"
                       sx={{
@@ -90,7 +90,7 @@ export default function EarningCard({ isLoading, bgcolor, total, title = 'Total 
                       <CardMedia sx={{ width: 24, height: 24 }} component="img" src={EarningIcon} alt="Notification" />
                     </Avatar>
                   </Grid>
-                  <Grid>
+                  <Grid size="auto">
                     <Avatar
                       variant="rounded"
                       sx={{
@@ -138,14 +138,14 @@ export default function EarningCard({ isLoading, bgcolor, total, title = 'Total 
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid>
+              <Grid size={12}>
                 <Grid container sx={{ alignItems: 'center' }}>
-                  <Grid>
+                  <Grid size="auto">
                     <Typography sx={{ fontSize: '2.125rem', fontWeight: 500, mr: 1, mt: 1.75, mb: 0.75 }}>
                       {isLoading ? '...' : (isCurrency ? `₹${(total || 0).toLocaleString()}` : (total || 0).toLocaleString())}
                     </Typography>
                   </Grid>
-                  <Grid>
+                  <Grid size="auto">
                     <Avatar
                       sx={{
                         cursor: 'pointer',
@@ -159,7 +159,7 @@ export default function EarningCard({ isLoading, bgcolor, total, title = 'Total 
                   </Grid>
                 </Grid>
               </Grid>
-              <Grid sx={{ mb: 1.25 }}>
+              <Grid size={12} sx={{ mb: 1.25 }}>
                 <Typography
                   sx={{
                     fontSize: '1rem',

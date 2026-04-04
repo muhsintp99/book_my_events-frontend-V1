@@ -84,7 +84,7 @@ const AccountReports = () => {
                         {title}
                     </Typography>
                     <Typography variant="h3" fontWeight={700}>
-                        AED {amount?.toLocaleString()}
+                        ₹ {amount?.toLocaleString()}
                     </Typography>
                 </Box>
             </Stack>
@@ -95,7 +95,7 @@ const AccountReports = () => {
 
     return (
         <Grid container spacing={gridSpacing}>
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <Box sx={{ mb: 3, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
                     <Box>
                         <Typography variant="h2" sx={{ fontWeight: 700, color: 'text.primary' }}>
@@ -114,7 +114,7 @@ const AccountReports = () => {
             </Grid>
 
             {/* Financial Summary */}
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                 <SummaryCard 
                     title="Total Consolidated Revenue" 
                     amount={data?.summary?.totalRevenue || 0} 
@@ -122,7 +122,7 @@ const AccountReports = () => {
                     color={theme.palette.secondary.main} 
                 />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                 <SummaryCard 
                     title="Direct Booking Earning" 
                     amount={data?.summary?.bookingRevenue || 0} 
@@ -130,7 +130,7 @@ const AccountReports = () => {
                     color={theme.palette.success.main} 
                 />
             </Grid>
-            <Grid item xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
                 <SummaryCard 
                     title="Subscription Payouts" 
                     amount={data?.summary?.subscriptionRevenue || 0} 
@@ -140,14 +140,14 @@ const AccountReports = () => {
             </Grid>
 
             {/* Monthly Trend Table */}
-            <Grid item xs={12} md={7}>
+            <Grid size={{ xs: 12, md: 7 }}>
                 <MainCard title="Yearly Revenue Trend">
                     <TableContainer sx={{ maxHeight: 400 }}>
                         <Table stickyHeader>
                             <TableHead>
                                 <TableRow>
                                     <TableCell>Month</TableCell>
-                                    <TableCell>Revenue (AED)</TableCell>
+                                    <TableCell>Revenue (₹)</TableCell>
                                     <TableCell align="center">Orders</TableCell>
                                     <TableCell align="right">Success Rate</TableCell>
                                 </TableRow>
@@ -156,7 +156,7 @@ const AccountReports = () => {
                                 {data?.monthlyBreakdown?.map((row, index) => (
                                     <TableRow key={index} hover>
                                         <TableCell sx={{ fontWeight: 600 }}>{`${row._id.month}/${row._id.year}`}</TableCell>
-                                        <TableCell>AED {row.revenue.toLocaleString()}</TableCell>
+                                        <TableCell>₹ {row.revenue.toLocaleString()}</TableCell>
                                         <TableCell align="center">{row.orders}</TableCell>
                                         <TableCell align="right">
                                             <Chip 
@@ -181,7 +181,7 @@ const AccountReports = () => {
             </Grid>
 
             {/* Subscription vs Booking Distribution */}
-            <Grid item xs={12} md={5}>
+            <Grid size={{ xs: 12, md: 5 }}>
                 <MainCard title="Revenue Distribution">
                     <Stack spacing={4}>
                         <Box>
@@ -217,7 +217,7 @@ const AccountReports = () => {
             </Grid>
 
             {/* Recent Transactions Table */}
-            <Grid item xs={12}>
+            <Grid size={12}>
                 <MainCard title="Recent Financial Transactions">
                     <TableContainer>
                         <Table>
@@ -241,7 +241,7 @@ const AccountReports = () => {
                                         <TableCell>
                                             <Chip size="small" label="Completed" color="success" />
                                         </TableCell>
-                                        <TableCell align="right" sx={{ fontWeight: 700 }}>AED {tx.finalPrice.toLocaleString()}</TableCell>
+                                        <TableCell align="right" sx={{ fontWeight: 700 }}>₹ {tx.finalPrice.toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}
                                 {(!data?.recentTransactions || data?.recentTransactions.length === 0) && (
