@@ -26,6 +26,7 @@ import {
   FormControlLabel,
   Switch,
   Stack,
+  Avatar,
 } from '@mui/material';
 import {
   Search as SearchIcon,
@@ -36,6 +37,10 @@ import {
   Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { API_BASE_URL, getApiImageUrl } from '../../utils/apiImageUtils';
+
+// Import CKEditor
+import { CKEditor } from '@ckeditor/ckeditor5-react';
+import ClassicEditor from '@ckeditor/ckeditor5-build-classic';
 
 // --- Add/Edit Blog Form Component (Internal) ---
 const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
@@ -231,19 +236,27 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
           </Grid>
 
           <Grid size={{ xs: 12 }}>
-            <TextField
-              label="Content *"
-              name="content"
-              value={blogForm.content}
-              onChange={handleInputChange}
-              fullWidth
-              multiline
-              rows={8}
-              required
-              variant="outlined"
-              sx={{ bgcolor: '#f8fafc' }}
-              placeholder="Write your blog content here..."
-            />
+            <Typography variant="subtitle2" sx={{ mb: 1, fontWeight: 700, color: '#1e293b' }}>
+              Blog Content *
+            </Typography>
+            <Box sx={{ 
+              '& .ck-editor__editable': { minHeight: '300px' },
+              border: '1px solid #e2e8f0',
+              borderRadius: '8px',
+              overflow: 'hidden'
+            }}>
+              <CKEditor
+                editor={ClassicEditor}
+                data={blogForm.content}
+                onReady={editor => {
+                  console.log('CKEditor is ready to use!');
+                }}
+                onChange={(event, editor) => {
+                  const data = editor.getData();
+                  setBlogForm(prev => ({ ...prev, content: data }));
+                }}
+              />
+            </Box>
           </Grid>
 
           <Grid size={{ xs: 12 }}>
@@ -580,12 +593,13 @@ const BlogList = () => {
                     <TableRow key={blog._id} sx={{ '&:hover': { bgcolor: '#f1f5f9' } }}>
                       <TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell>
                       <TableCell>
-                        <img 
-                          src={blog.featuredImage?.startsWith('http') ? blog.featuredImage : getApiImageUrl(blog.featuredImage)} 
-                          alt={blog.title} 
-                          style={{ width: 60, height: 40, objectFit: 'cover', borderRadius: 6 }}
-                          onError={(e) => { e.target.src = 'https://via.placeholder.com/60x40?text=No+Image'; }}
-                        />
+                        <Avatar
+                           src={blog.featuredImage?.startsWith('http') ? blog.featuredImage : getApiImageUrl(blog.featuredImage)}
+                           variant="rounded"
+                           sx={{ width: 45, height: 45, bgcolor: '#f1f5f9', border: '1px solid #e2e8f0' }}
+                        >
+                            <VisibilityIcon fontSize="small" sx={{ color: '#94a3b8' }} />
+                        </Avatar>
                       </TableCell>
                       <TableCell sx={{ fontWeight: 500, color: '#1e293b' }}>{blog.title}</TableCell>
                       <TableCell><Chip label={blog.category} size="small" variant="outlined" sx={{ borderRadius: 1.5 }} /></TableCell>
@@ -594,11 +608,13 @@ const BlogList = () => {
                         <Chip 
                           label={blog.isPublished ? 'Published' : 'Draft'} 
                           sx={{ 
-                              bgcolor: blog.isPublished ? '#dcfce7' : '#f1f5f9', 
-                              color: blog.isPublished ? '#14532d' : '#475569',
-                              fontWeight: 600,
-                              fontSize: '0.75rem',
-                              borderRadius: 1.5
+                              bgcolor: blog.isPublished ? '#ecfdf5' : '#fff7ed', 
+                              color: blog.isPublished ? '#10b981' : '#f59e0b',
+                              fontWeight: 700,
+                              fontSize: '0.7rem',
+                              borderRadius: '6px',
+                              border: `1px solid ${blog.isPublished ? '#d1fae5' : '#ffedd5'}`,
+                              height: 24
                           }} 
                           size="small" 
                         />

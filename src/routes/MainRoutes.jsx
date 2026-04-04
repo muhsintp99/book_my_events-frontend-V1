@@ -306,7 +306,7 @@ const MainRoutes = {
     { path: '/settings/vendor-registrations', element: <VendorRegistrations /> },
     { path: '/settings/vendor-registrations/:id', element: <VendorRegistrationDetail /> },
     { path: '/settings/enquiries', element: <AllEnquiries /> },
-    { path: '/settings/blog', element: <BlogList /> },
+    { path: '/settings/blogs', element: <BlogList /> },
     { path: '/settings/gallery', element: <Gallery /> },
     { path: '/settings/event-requests', element: <EventRequests /> },
 

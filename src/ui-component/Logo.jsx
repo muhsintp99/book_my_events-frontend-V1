@@ -25,8 +25,8 @@
 // material-ui
 import { useTheme } from '@mui/material/styles';
 
-import logo from '../assets/images/book.png';
-import logoDark from '../assets/images/whitelogo.png';
+import logo from '../assets/images/logo.svg';
+import logoDark from '../assets/images/logo.svg';
 
 // ==============================|| LOGO ||============================== //
 export default function Logo() {
