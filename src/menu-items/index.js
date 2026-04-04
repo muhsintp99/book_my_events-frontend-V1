@@ -30,6 +30,7 @@ import subscriptionmanagement from './settings-items/subscriptionmanage';
 import taxmanagement from './settings-items/taxmanagement';
 import employeemanagement from './settings-items/employeemanage';
 import kycmanagement from './settings-items/kycmanagement';
+import walletmanagement from './settings-items/walletmanagement';
 // import cateringmanagement from './catering/cateringmanagement';
 
 import cateringsections from './catering/cateringsections';
@@ -175,7 +176,7 @@ const moduleMenuItems = {
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement, pincodemanagement, modulemanagement, analytics, websitemanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
+    items: [zonemanagement, pincodemanagement, walletmanagement, modulemanagement, analytics, websitemanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
 
   }
 

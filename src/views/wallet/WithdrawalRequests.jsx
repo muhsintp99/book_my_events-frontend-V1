@@ -16,17 +16,16 @@ import {
     DialogTitle,
     DialogContent,
     DialogActions,
-    TextField,
     CircularProgress,
     Stack,
-    IconButton,
     Snackbar,
-    Alert
+    Alert,
+    Tabs,
+    Tab
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
 import HighlightOffIcon from '@mui/icons-material/HighlightOff';
-import VisibilityIcon from '@mui/icons-material/Visibility';
 import MainCard from 'ui-component/cards/MainCard';
 import { API_BASE_URL } from '../../utils/apiImageUtils';
 
@@ -39,12 +38,13 @@ const WithdrawalRequests = () => {
     const [openDialog, setOpenDialog] = useState(false);
     const [actionType, setActionType] = useState(''); // 'approve' or 'reject'
     const [toast, setToast] = useState({ open: false, message: '', severity: 'success' });
+    const [statusTab, setStatusTab] = useState('pending');
 
-    const fetchRequests = async () => {
+    const fetchRequests = async (status) => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
-            const response = await axios.get(`${API_BASE_URL}/admin/wallet/pending-withdrawals`, {
+            const response = await axios.get(`${API_BASE_URL}/admin/wallet/all-withdrawals?status=${status}`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (response.data.success) {
@@ -59,8 +59,8 @@ const WithdrawalRequests = () => {
     };
 
     useEffect(() => {
-        fetchRequests();
-    }, []);
+        fetchRequests(statusTab);
+    }, [statusTab]);
 
     const handleProcess = async () => {
         if (!selectedRequest || !actionType) return;
@@ -82,7 +82,7 @@ const WithdrawalRequests = () => {
                     severity: 'success' 
                 });
                 setOpenDialog(false);
-                fetchRequests();
+                fetchRequests(statusTab);
             }
         } catch (error) {
             console.error('Error processing withdrawal:', error);
@@ -102,10 +102,18 @@ const WithdrawalRequests = () => {
         setOpenDialog(true);
     };
 
-    const STATUS_COLORS = {
-        pending: 'warning',
-        completed: 'success',
-        failed: 'error'
+    const handleTabChange = (event, newValue) => {
+        setStatusTab(newValue);
+    };
+
+    const getStatusChip = (status) => {
+        const config = {
+            pending: { color: 'warning', label: 'Pending' },
+            completed: { color: 'success', label: 'Completed' },
+            failed: { color: 'error', label: 'Rejected' },
+        };
+        const { color, label } = config[status] || { color: 'default', label: status };
+        return <Chip label={label} color={color} size="small" sx={{ fontWeight: 600 }} />;
     };
 
     return (
@@ -117,13 +125,28 @@ const WithdrawalRequests = () => {
                 </Typography>
             </Box>
 
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', mb: 3 }}>
+                <Tabs 
+                    value={statusTab} 
+                    onChange={handleTabChange} 
+                    textColor="secondary"
+                    indicatorColor="secondary"
+                    aria-label="withdrawal status tabs"
+                >
+                    <Tab label="Pending (New)" value="pending" />
+                    <Tab label="Completed" value="completed" />
+                    <Tab label="Rejected" value="failed" />
+                    <Tab label="Show All" value="all" />
+                </Tabs>
+            </Box>
+
             {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', p: 5 }}>
                     <CircularProgress color="error" />
                 </Box>
             ) : requests.length === 0 ? (
                 <Box sx={{ textAlign: 'center', py: 5 }}>
-                    <Typography variant="h5" color="textSecondary">No pending withdrawal requests</Typography>
+                    <Typography variant="h5" color="textSecondary">No {statusTab} withdrawal requests found</Typography>
                 </Box>
             ) : (
                 <TableContainer component={Paper} elevation={0} sx={{ border: '1px solid #eef2f6' }}>
@@ -134,6 +157,7 @@ const WithdrawalRequests = () => {
                                 <TableCell>Requested Date</TableCell>
                                 <TableCell align="right">Amount (₹)</TableCell>
                                 <TableCell>Description</TableCell>
+                                <TableCell align="center">Status</TableCell>
                                 <TableCell align="center">Actions</TableCell>
                             </TableRow>
                         </TableHead>
@@ -163,28 +187,37 @@ const WithdrawalRequests = () => {
                                         <Typography variant="body2">{req.transaction.description}</Typography>
                                     </TableCell>
                                     <TableCell align="center">
-                                        <Stack direction="row" spacing={1} justifyContent="center">
-                                            <Button 
-                                                size="small" 
-                                                variant="contained" 
-                                                color="success"
-                                                startIcon={<CheckCircleOutlineIcon />}
-                                                onClick={() => openConfirmDialog(req, 'approve')}
-                                                sx={{ borderRadius: '8px' }}
-                                            >
-                                                Approve
-                                            </Button>
-                                            <Button 
-                                                size="small" 
-                                                variant="outlined" 
-                                                color="error"
-                                                startIcon={<HighlightOffIcon />}
-                                                onClick={() => openConfirmDialog(req, 'reject')}
-                                                sx={{ borderRadius: '8px' }}
-                                            >
-                                                Reject
-                                            </Button>
-                                        </Stack>
+                                        {getStatusChip(req.transaction.status)}
+                                    </TableCell>
+                                    <TableCell align="center">
+                                        {req.transaction.status === 'pending' ? (
+                                            <Stack direction="row" spacing={1} justifyContent="center">
+                                                <Button 
+                                                    size="small" 
+                                                    variant="contained" 
+                                                    color="success"
+                                                    startIcon={<CheckCircleOutlineIcon />}
+                                                    onClick={() => openConfirmDialog(req, 'approve')}
+                                                    sx={{ borderRadius: '8px' }}
+                                                >
+                                                    Approve
+                                                </Button>
+                                                <Button 
+                                                    size="small" 
+                                                    variant="outlined" 
+                                                    color="error"
+                                                    startIcon={<HighlightOffIcon />}
+                                                    onClick={() => openConfirmDialog(req, 'reject')}
+                                                    sx={{ borderRadius: '8px' }}
+                                                >
+                                                    Reject
+                                                </Button>
+                                            </Stack>
+                                        ) : (
+                                            <Typography variant="caption" color="textSecondary">
+                                                Processed
+                                            </Typography>
+                                        )}
                                     </TableCell>
                                 </TableRow>
                             ))}
