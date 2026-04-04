@@ -22,7 +22,7 @@ const bannermanagement = {
       id: 'blog-list',
       title: 'Blog List',
       type: 'item',
-      url: '/settings/blog',
+      url: '/settings/blogs',
       icon: icons.IconNews,
       breadcrumbs: false
     },
