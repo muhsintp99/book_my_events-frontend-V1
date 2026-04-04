@@ -169,6 +169,8 @@ const Unauthorized = Loadable(lazy(() => import('../views/Unauthorized')));
 const BlogList = Loadable(lazy(() => import('../views/website/BlogList')));
 const Gallery = Loadable(lazy(() => import('../views/website/Gallery')));
 const EventRequests = Loadable(lazy(() => import('../views/website/EventRequests')));
+const AdminReport = Loadable(lazy(() => import('../views/reports/AdminReports')));
+const AccountReport = Loadable(lazy(() => import('../views/reports/AccountReports')));
 
 
 const Invitationdashboard = Loadable(lazy(() => import('../invitation&printing/dashboard')));
@@ -309,6 +311,8 @@ const MainRoutes = {
     { path: '/settings/blogs', element: <BlogList /> },
     { path: '/settings/gallery', element: <Gallery /> },
     { path: '/settings/event-requests', element: <EventRequests /> },
+    { path: '/reports/admin', element: <AdminReport /> },
+    { path: '/reports/accounts', element: <AccountReport /> },
 
     // Bookingssss
 

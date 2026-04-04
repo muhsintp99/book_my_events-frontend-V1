@@ -1,10 +1,14 @@
 import { useEffect, useState } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 
 // material-ui
+import { useTheme } from '@mui/material/styles';
 import Grid from '@mui/material/Grid';
 import Box from '@mui/material/Box';
 import Typography from '@mui/material/Typography';
+import Button from '@mui/material/Button';
+import Stack from '@mui/material/Stack';
 
 // project imports
 import EarningCard from './EarningCard';
@@ -14,17 +18,24 @@ import TotalIncomeLightCard from '../../ui-component/cards/TotalIncomeLightCard'
 import TotalGrowthBarChart from './TotalGrowthBarChart';
 import PopularCard from './PopularCard';
 import Welcome from './Welcome';
+import MainCard from 'ui-component/cards/MainCard';
 
 import { gridSpacing } from 'store/constant';
 import { API_BASE_URL } from '../../utils/apiImageUtils';
 
 // assets
 import StorefrontTwoToneIcon from '@mui/icons-material/StorefrontTwoTone';
+import AssessmentOutlinedIcon from '@mui/icons-material/AssessmentOutlined';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import ArrowForwardIcon from '@mui/icons-material/ArrowForward';
 
 // ==============================|| DEFAULT DASHBOARD ||============================== //
 
 export default function Dashboard() {
+  const theme = useTheme();
+  const navigate = useNavigate();
   const [isLoading, setLoading] = useState(true);
+  const [reportData, setReportData] = useState(null);
   const [moduleStats, setModuleStats] = useState({
     moduleTitle: '',
     totalEarnings: 0,
@@ -34,7 +45,7 @@ export default function Dashboard() {
     activeVendors: 0,
     totalVendors: 0,
     totalPackages: 0,
-    topVendors: [], // Added topVendors
+    topVendors: [],
     growthRate: 0,
     currentMonthIncome: 0
   });
@@ -68,6 +79,12 @@ export default function Dashboard() {
         if (overallRes.data.success) {
           setOverallStats(overallRes.data.data);
         }
+
+        // Fetch Consolidated Report Data (New)
+        const reportRes = await axios.get(`${API_BASE_URL}/reports/admin/all-around`);
+        if (reportRes.data.success) {
+          setReportData(reportRes.data.data);
+        }
       } catch (error) {
         console.error('Error fetching dashboard stats:', error);
       } finally {
@@ -83,7 +100,7 @@ export default function Dashboard() {
   return (
     <Grid container spacing={gridSpacing}>
       {/* Welcome Banner */}
-      <Grid size={12}>
+      <Grid item xs={12}>
         <Welcome
           isLoading={isLoading}
           userName="Book my Event"
@@ -134,10 +151,10 @@ export default function Dashboard() {
         />
       </Grid>
 
-      <Grid size={12}>
+      <Grid item xs={12}>
         <Grid container spacing={gridSpacing}>
           {/* Top Cards Row */}
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+          <Grid item lg={4} md={6} sm={6} xs={12}>
             <EarningCard 
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
@@ -161,7 +178,7 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid size={{ lg: 4, md: 6, sm: 6, xs: 12 }}>
+          <Grid item lg={4} md={6} sm={6} xs={12}>
             <TotalOrderLineChartCard 
               isLoading={isLoading} 
               bgcolor={cardBgColor} 
@@ -181,9 +198,9 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid size={{ lg: 4, md: 12, sm: 12, xs: 12 }}>
+          <Grid item lg={4} md={12} sm={12} xs={12}>
             <Grid container spacing={gridSpacing}>
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
+              <Grid item sm={6} xs={12} md={6} lg={12}>
                 <TotalIncomeDarkCard 
                   isLoading={isLoading} 
                   bgcolor={cardBgColor} 
@@ -196,7 +213,7 @@ export default function Dashboard() {
                   isCurrency={false}
                 />
               </Grid>
-              <Grid size={{ sm: 6, xs: 12, md: 6, lg: 12 }}>
+              <Grid item sm={6} xs={12} md={6} lg={12}>
                 <TotalIncomeLightCard
                   isLoading={isLoading}
                   total={
@@ -223,10 +240,72 @@ export default function Dashboard() {
         </Grid>
       </Grid>
 
+      {/* Reports Section (New) */}
+      <Grid item xs={12}>
+        <MainCard title="Quick Insights & Reports" sx={{ position: 'relative', overflow: 'hidden' }}>
+            <Box sx={{ 
+                position: 'absolute', 
+                right: -50, 
+                top: -50, 
+                width: 200, 
+                height: 200, 
+                background: theme.palette.primary.light, 
+                opacity: 0.1, 
+                borderRadius: '50%' 
+            }} />
+            <Grid container spacing={4} alignItems="center">
+                <Grid item xs={12} md={8}>
+                    <Grid container spacing={2}>
+                        <Grid item xs={12} sm={6}>
+                            <Stack spacing={0.5}>
+                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Total Consolidated Revenue</Typography>
+                                <Typography variant="h3" fontWeight={700} color="primary">
+                                    AED {reportData?.totalSubsRevenue?.toLocaleString() || '0'}
+                                </Typography>
+                                <Typography variant="caption" color="success.main" fontWeight={600}>Includes Subscriptions</Typography>
+                            </Stack>
+                        </Grid>
+                        <Grid item xs={12} sm={6}>
+                            <Stack spacing={0.5}>
+                                <Typography variant="caption" color="textSecondary" fontWeight={600}>Platform Engagement</Typography>
+                                <Typography variant="h3" fontWeight={700}>
+                                    {reportData?.platform?.users?.toLocaleString() || '0'} Users
+                                </Typography>
+                                <Typography variant="caption" color="secondary.main" fontWeight={600}>
+                                    {reportData?.platform?.activeVendors?.toLocaleString() || '0'} Active Vendors
+                                </Typography>
+                            </Stack>
+                        </Grid>
+                    </Grid>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                    <Stack direction="row" spacing={2} justifyContent={{ xs: 'center', md: 'flex-end' }}>
+                        <Button 
+                            variant="outlined" 
+                            startIcon={<AssessmentOutlinedIcon />}
+                            onClick={() => navigate('/reports/admin')}
+                            sx={{ borderRadius: '10px' }}
+                        >
+                            Admin Report
+                        </Button>
+                        <Button 
+                            variant="contained" 
+                            endIcon={<ArrowForwardIcon />}
+                            onClick={() => navigate('/reports/accounts')}
+                            sx={{ bgcolor: cardBgColor, borderRadius: '10px', '&:hover': { bgcolor: theme.palette.error.dark } }}
+                        >
+                            Account Report
+                        </Button>
+                    </Stack>
+                </Grid>
+            </Grid>
+        </MainCard>
+      </Grid>
+
       {/* Growth Bar Chart + Popular Card Row */}
-      <Grid size={12}>
+      <Grid item xs={12}>
         <Grid container spacing={gridSpacing}>
-          <Grid size={{ xs: 12, md: 8 }}>
+          <Grid item xs={12} md={8}>
             <TotalGrowthBarChart 
               isLoading={isLoading} 
               data={overallStats.monthlyStats} 
@@ -243,7 +322,7 @@ export default function Dashboard() {
               }
             />
           </Grid>
-          <Grid size={{ xs: 12, md: 4 }}>
+          <Grid item xs={12} md={4}>
             <PopularCard 
               isLoading={isLoading} 
               data={

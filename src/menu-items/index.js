@@ -95,19 +95,20 @@ import professionaldashboard from './eventprofessionals/professionaldashboard';
 // import professionalmanagement from './eventprofessionals/professionalmanagement';
 import professionalsections from './eventprofessionals/professionalsections';
 import ProfessionalProvidermanagement from './eventprofessionals/professionalprovidermanagement';
+import analytics from './reports';
 
 // Define menu items for each module
 const moduleMenuItems = {
   crm: {
-    items: [rentaldashboard, vehiclemgt, Providermgt]
+    items: [rentaldashboard, analytics, vehiclemgt, Providermgt]
   },
 
   rental: {
-    items: [rentaldashboard, vehiclemgt, Providermgt]
+    items: [rentaldashboard, analytics, vehiclemgt, Providermgt]
   },
 
   events: {
-    items: [tripmanagemet, vehiclemgt, Providermgt]
+    items: [tripmanagemet, analytics, vehiclemgt, Providermgt]
   },
 
   auditorium: {
@@ -174,7 +175,7 @@ const moduleMenuItems = {
   },
   setting: {
     // items: [zonemanagement, modulemanagement, subscriptionmanagement, taxmanagement, employeemanagement, kycmanagement]
-    items: [zonemanagement, pincodemanagement, modulemanagement, websitemanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
+    items: [zonemanagement, pincodemanagement, modulemanagement, analytics, websitemanagement, subscriptionmanagement, kycmanagement, vendorregistrations, enquiriesmanagement]
 
   }
 
