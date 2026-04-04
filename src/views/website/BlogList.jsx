@@ -33,6 +33,7 @@ import {
   Edit as EditIcon,
   Delete as DeleteIcon,
   Close as CloseIcon,
+  Visibility as VisibilityIcon,
 } from '@mui/icons-material';
 import { API_BASE_URL, getApiImageUrl } from '../../utils/apiImageUtils';
 
@@ -196,16 +197,22 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
-            <TextField
-              label="Category *"
-              name="category"
-              value={blogForm.category}
-              onChange={handleInputChange}
-              fullWidth
-              required
-              variant="outlined"
-              sx={{ bgcolor: '#f8fafc' }}
-            />
+            <FormControl fullWidth variant="outlined" sx={{ bgcolor: '#f8fafc' }} required>
+              <InputLabel>Category *</InputLabel>
+              <Select
+                name="category"
+                value={blogForm.category}
+                onChange={handleInputChange}
+                label="Category *"
+              >
+                {categories.length === 0 && <MenuItem value="">No categories available</MenuItem>}
+                {categories.map((cat, idx) => (
+                  <MenuItem key={idx} value={cat}>{cat}</MenuItem>
+                ))}
+                <MenuItem value="General">General</MenuItem>
+                <MenuItem value="Events">Events</MenuItem>
+              </Select>
+            </FormControl>
           </Grid>
 
           <Grid size={{ xs: 12 }}>
@@ -239,6 +246,18 @@ const BlogForm = ({ id, categories, onSuccess, onCancel }) => {
             />
           </Grid>
 
+          <Grid size={{ xs: 12 }}>
+            <TextField
+              label="Author"
+              name="author"
+              value={blogForm.author}
+              onChange={handleInputChange}
+              fullWidth
+              placeholder="e.g. Admin name or Writer name"
+              variant="outlined"
+              sx={{ bgcolor: '#f8fafc' }}
+            />
+          </Grid>
           <Grid size={{ xs: 12 }}>
             <TextField
               label="Tags (Comma separated)"
@@ -397,7 +416,7 @@ const BlogList = () => {
       setLoading(true);
       setError(null);
 
-      const response = await fetch(`${API_BASE_URL}/blogs?page=${currentPage}&limit=${itemsPerPage}`, {
+      const response = await fetch(`${API_BASE_URL}/blogs/admin?page=${currentPage}&limit=${itemsPerPage}`, {
         headers: {
           'Authorization': `Bearer ${getAuthToken()}`,
         },
@@ -596,7 +615,7 @@ const BlogList = () => {
                                 setDrawerOpen(true);
                               }}
                             >
-                              <RefreshIcon fontSize="small" sx={{ transform: 'rotate(45deg)' }} /> 
+                              <VisibilityIcon fontSize="small" /> 
                             </IconButton>
                           </Tooltip>
                           <Tooltip title="Edit">
